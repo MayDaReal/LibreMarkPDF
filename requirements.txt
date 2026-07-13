@@ -1,0 +1,6 @@
+markdown>=3.5
+playwright>=1.40
+pypdfium2>=4.0
+pillow>=10.0
+tkinterdnd2>=0.3.0
+pyinstaller>=6.0
