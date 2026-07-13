@@ -1,6 +1,6 @@
 # High-reliability program backlog
 
-Status: **ready for planning**
+Status: **Gate G1 in progress; decision recorded as not passed**
 Baseline: [`BASELINE_AUDIT.md`](BASELINE_AUDIT.md), score **43/100**
 Architecture: [`TARGET_ARCHITECTURE.md`](TARGET_ARCHITECTURE.md)
 
@@ -142,6 +142,16 @@ Acceptance:
 - The chosen direction preserves the approved default-theme appearance within
   the reviewed tolerance.
 
+G1 integration evidence (2026-07-13):
+[`G1_RENDERER_SPIKE_REPORT.md`](G1_RENDERER_SPIKE_REPORT.md). The Python
+3.9-compatible target candidate is Playwright 1.60.0 with Chromium/headless
+shell 148.0.7778.96 revision 1223 and FFmpeg 1011. A Linux target-revision
+prototype recorded zero external requests for embedded local content, blocked
+a hostile HTTPS image before response, rendered the embedded image, and kept
+JavaScript disabled. No SPIKE task is accepted as complete: exact font binaries,
+native Windows plus second-OS font/visual evidence, two-clean-build fingerprints,
+and the native artifact-format comparison remain missing.
+
 ## Lot 1B — Package and quality foundations
 
 Owner: quality/supply-chain agent
@@ -150,22 +160,22 @@ Files: `pyproject.toml`, constraints/locks, CI scaffolding, quality configuratio
 
 - [ ] `QAS-001` Add `pyproject.toml` with Python 3.9-compatible metadata,
   application version source, package data, and console entry point.
-- [ ] `QAS-002` Separate runtime, GUI, build, test, and documentation dependency
+- [x] `QAS-002` Separate runtime, GUI, build, test, and documentation dependency
   groups/extras.
 - [ ] `QAS-003` Implement a reproducible lock/constraints strategy with hashes
   for release environments.
 - [ ] `QAS-004` Add a clean-environment unit-test workflow on supported Python
   versions.
-- [ ] `QAS-005` Add focused static checks appropriate to the current codebase,
+- [x] `QAS-005` Add focused static checks appropriate to the current codebase,
   without unrelated mass formatting.
-- [ ] `QAS-006` Add coverage reporting by subsystem and document the initial
+- [x] `QAS-006` Add coverage reporting by subsystem and document the initial
   threshold.
 - [ ] `QAS-007` Configure dependency, secret, and code scanning.
-- [ ] `QAS-008` Add Dependabot or Renovate with controlled Playwright/browser
+- [x] `QAS-008` Add Dependabot or Renovate with controlled Playwright/browser
   update handling.
-- [ ] `QAS-009` Add `.gitignore` and `.gitattributes`; exclude generated builds,
+- [x] `QAS-009` Add `.gitignore` and `.gitattributes`; exclude generated builds,
   browsers, venvs, caches, PDFs, and local configuration.
-- [ ] `QAS-010` Define source-archive and release-artifact hygiene checks.
+- [x] `QAS-010` Define source-archive and release-artifact hygiene checks.
 
 Acceptance:
 
@@ -173,23 +183,33 @@ Acceptance:
 - Runtime and build dependencies are distinguishable.
 - Dependency resolution is repeatable and renderer updates cannot drift silently.
 
+G1 integration evidence (2026-07-13):
+[`G1_QAS_EVIDENCE.md`](G1_QAS_EVIDENCE.md). QAS-002, QAS-005, QAS-006,
+QAS-008, QAS-009, and QAS-010 are accepted from local evidence. QAS-001,
+QAS-003, QAS-004, and QAS-007 remain partial: ordinary installed-wheel resource
+lookup is unresolved, the Windows hash lock has not run natively, no clean
+Python 3.9/hosted workflow result exists, and hosted scanners/security settings
+are unverified. The clean CPython 3.12 pure suite ran 36 tests with exit 0 and
+31% branch-aware coverage; the complete target-renderer suite ran 39 tests with
+exit 0.
+
 ## Lot 1C — Open-source foundations
 
 Owner: community/documentation agent
 Execution: parallel with Lots 1A, 1B, and 1D
 Files: community health documents and issue/PR templates
 
-- [ ] `OSS-001` Add `CONTRIBUTING.md` with development, test, review, translation,
+- [x] `OSS-001` Add `CONTRIBUTING.md` with development, test, review, translation,
   and theme contribution workflows.
-- [ ] `OSS-002` Add `SECURITY.md` with supported versions and private reporting.
-- [ ] `OSS-003` Add a code of conduct, support policy, and lightweight governance.
-- [ ] `OSS-004` Add bug, feature, packaging, rendering, translation, and theme
+- [x] `OSS-002` Add `SECURITY.md` with supported versions and private reporting.
+- [x] `OSS-003` Add a code of conduct, support policy, and lightweight governance.
+- [x] `OSS-004` Add bug, feature, packaging, rendering, translation, and theme
   issue templates plus a pull request template.
-- [ ] `OSS-005` Add changelog and semantic-versioning policy.
-- [ ] `OSS-006` Add a roadmap that links to this backlog without promising dates.
-- [ ] `OSS-007` Add a documentation synchronization checklist for README,
+- [x] `OSS-005` Add changelog and semantic-versioning policy.
+- [x] `OSS-006` Add a roadmap that links to this backlog without promising dates.
+- [x] `OSS-007` Add a documentation synchronization checklist for README,
   English manual, French manual, CLI help, and skill.
-- [ ] `OSS-008` Replace unverified blanket dependency-license claims with a
+- [x] `OSS-008` Replace unverified blanket dependency-license claims with a
   verifiable notice-generation plan.
 
 Acceptance:
@@ -198,15 +218,22 @@ Acceptance:
   requirements without private knowledge.
 - Security reports and theme contributions have clear channels.
 
+G1 integration evidence (2026-07-13): OSS-001 through OSS-008 are accepted.
+`tests.test_community` exercises policy, private-report fallback, issue-form,
+and documentation-sync presence. The repository administrator must still enable
+GitHub private vulnerability reporting; `SECURITY.md` provides a non-sensitive
+fallback when it is unavailable. No supported-release or theme-format claim is
+made.
+
 ## Lot 1D — Product identity availability research
 
 Owner: identity research agent
 Execution: research can run after G0; no product identity decision before human gate
 Files: research report only
 
-- [ ] `BRD-001` Score 5–10 candidates for distinction, clarity, EN/FR speech,
+- [x] `BRD-001` Score 5–10 candidates for distinction, clarity, EN/FR speech,
   CLI suitability, search intent, and community fit.
-- [ ] `BRD-002` Include `LibreMark PDF` in a shortlist of three, not as an
+- [x] `BRD-002` Include `LibreMark PDF` in a shortlist of three, not as an
   automatically approved choice.
 - [ ] `BRD-003` Check web/search, GitHub, PyPI, winget, Scoop, Homebrew, Linux
   package registries, relevant domains, and social handles.
@@ -224,6 +251,13 @@ Human gate G-Brand:
 - No identity decision is merged merely because automated searches found no
   collision.
 
+G1 research evidence (2026-07-13):
+[`G1_IDENTITY_RESEARCH.md`](G1_IDENTITY_RESEARCH.md). BRD-001 and BRD-002 are
+accepted as historical research without reopening ADR-008. BRD-003 and BRD-004
+remain incomplete because authoritative registry/domain/handle evidence and
+legal clearance are absent. BRD-005 remains research-only: three directions
+were assessed, but alternatives and a 512-pixel raster were not generated.
+
 ## Gate G1 — Foundation approval
 
 G1 passes when:
@@ -233,6 +267,15 @@ G1 passes when:
 - community/security policies exist;
 - the locked target engine and font licenses are recorded;
 - unresolved architecture questions have explicit owners.
+
+G1 decision (2026-07-13): **not passed**. Evidence is indexed in
+[`G1_GATE_REPORT.md`](G1_GATE_REPORT.md). Blocking items are native Windows and
+second-OS candidate-font/visual measurements, the Windows one-file versus
+portable-directory comparison, clean Python 3.9/hosted CI execution, installed-
+wheel resource handling, and hosted security-setting evidence. Lot 2 is not
+authorized by this decision.
+Report and lock hashes are recorded in
+[`G1_EVIDENCE_MANIFEST.sha256`](G1_EVIDENCE_MANIFEST.sha256).
 
 ## Lot 2A — Deterministic and safe core
 
