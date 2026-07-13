@@ -1,0 +1,17 @@
+name: Rendering difference
+description: Report pagination, font, geometry, resource, or visual drift.
+title: "[Rendering]: "
+labels: [rendering]
+body:
+  - type: textarea
+    id: profile
+    attributes: {label: "Renderer identity", description: "App/source version, render profile/fingerprint if available, Playwright/Chromium/PDFium versions, OS/architecture, fonts, locale, and time zone."}
+    validations: {required: true}
+  - type: textarea
+    id: fixture
+    attributes: {label: "Minimal fixture and options", description: "Remove private content; attach only content you have permission to share."}
+    validations: {required: true}
+  - type: textarea
+    id: difference
+    attributes: {label: "Measured difference", description: "Page count/text/geometry plus raster metrics and before/after evidence when available."}
+    validations: {required: true}

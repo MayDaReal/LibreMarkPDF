@@ -1,0 +1,13 @@
+name: Feature request
+description: Propose a user-visible capability.
+title: "[Feature]: "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes: {label: "User problem", description: "Describe the workflow or limitation, not only a proposed implementation."}
+    validations: {required: true}
+  - type: textarea
+    id: proposal
+    attributes: {label: "Proposed behavior", description: "Include GUI, CLI, skill, compatibility, offline, and EN/FR implications."}
+    validations: {required: true}

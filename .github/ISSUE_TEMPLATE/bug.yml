@@ -1,0 +1,26 @@
+name: Bug report
+description: Report reproducible incorrect behavior.
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Do not include private documents, secrets, or vulnerability details.
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Observable behavior
+      description: What happened, and what did you expect?
+    validations: {required: true}
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction
+      description: Exact command/actions, exit code, stdout, and stderr.
+    validations: {required: true}
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: OS/architecture, Python, source commit or artifact hash, dependency lock, renderer revision, and network state.
+    validations: {required: true}

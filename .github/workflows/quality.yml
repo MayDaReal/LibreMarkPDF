@@ -1,0 +1,78 @@
+name: quality
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pure-tests:
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.9", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+      - name: Install locked test dependencies
+        run: python -m pip install -c requirements/constraints.txt -e ".[test]"
+      - name: Python 3.9 syntax and focused static checks
+        run: |
+          python -m compileall -q libremark_pdf tests tools
+          ruff check libremark_pdf tests tools
+      - name: Pure browser-free tests with coverage
+        run: |
+          coverage run -m unittest \
+            tests.test_cli tests.test_community tests.test_i18n tests.test_packaging \
+            tests.test_quality_foundations \
+            tests.test_core.TestTitleExtraction \
+            tests.test_core.TestHeaderFooterConfig \
+            tests.test_core.TestTemplateBuilding \
+            tests.test_core.TestMarkdownConversion
+          coverage report
+          coverage xml
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coverage-${{ matrix.python-version }}
+          path: coverage.xml
+
+  browser-tests:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.9"
+          cache: pip
+      - name: Install locked test dependencies
+        run: python -m pip install -c requirements/constraints.txt -e ".[test]"
+      - name: Install locked Chromium headless shell
+        env:
+          PLAYWRIGHT_BROWSERS_PATH: ${{ runner.temp }}/libremark-browsers
+        run: python -m playwright install --with-deps --only-shell chromium
+      - name: Full suite
+        env:
+          PLAYWRIGHT_BROWSERS_PATH: ${{ runner.temp }}/libremark-browsers
+        run: python -m unittest discover -s tests -v
+
+  source-hygiene:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.9"
+      - run: python tools/check_source_hygiene.py
+      - name: Build and inspect source archive
+        run: |
+          git archive --format=tar HEAD > "${RUNNER_TEMP}/libremark-source.tar"
+          tar -tf "${RUNNER_TEMP}/libremark-source.tar" > "${RUNNER_TEMP}/manifest.txt"
+          python tools/check_source_hygiene.py --manifest "${RUNNER_TEMP}/manifest.txt"

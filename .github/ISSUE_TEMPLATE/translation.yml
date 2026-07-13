@@ -1,0 +1,17 @@
+name: Translation issue
+description: Improve English/French wording or report placeholder drift.
+title: "[Translation]: "
+labels: [translation]
+body:
+  - type: dropdown
+    id: language
+    attributes: {label: "Language", options: ["English", "French"]}
+    validations: {required: true}
+  - type: textarea
+    id: location
+    attributes: {label: "Location and current text", description: "File/screen/key and the exact current wording."}
+    validations: {required: true}
+  - type: textarea
+    id: wording
+    attributes: {label: "Suggested idiomatic wording", description: "Preserve flags, tokens, paths, identifiers, and formatting placeholders."}
+    validations: {required: true}

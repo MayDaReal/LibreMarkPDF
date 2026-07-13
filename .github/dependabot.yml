@@ -1,0 +1,19 @@
+version: 2
+updates:
+  - package-ecosystem: pip
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      non-renderer-python:
+        patterns: ["*"]
+        exclude-patterns: ["playwright", "Markdown", "pypdfium2"]
+    ignore:
+      - dependency-name: playwright
+      - dependency-name: Markdown
+      - dependency-name: pypdfium2
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly

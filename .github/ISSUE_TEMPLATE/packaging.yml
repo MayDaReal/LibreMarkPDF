@@ -1,0 +1,17 @@
+name: Packaging or platform issue
+description: Report a native build or artifact problem.
+title: "[Packaging]: "
+labels: [packaging]
+body:
+  - type: textarea
+    id: artifact
+    attributes: {label: "Exact artifact", description: "Filename, size, SHA-256, source commit, and build command."}
+    validations: {required: true}
+  - type: textarea
+    id: environment
+    attributes: {label: "Native environment", description: "OS version/build, architecture, security product, Python/cache/network state, and test path."}
+    validations: {required: true}
+  - type: textarea
+    id: failure
+    attributes: {label: "Failure evidence", description: "Exact action/command, exit code, stdout/stderr, and checklist section."}
+    validations: {required: true}

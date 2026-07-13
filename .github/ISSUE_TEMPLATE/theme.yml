@@ -1,0 +1,20 @@
+name: Theme proposal
+description: Propose a future local, licensed, offline theme.
+title: "[Theme]: "
+labels: [theme]
+body:
+  - type: markdown
+    attributes:
+      value: The versioned theme format is not implemented yet; proposals are design input only.
+  - type: textarea
+    id: purpose
+    attributes: {label: "Purpose and users", description: "Explain the intended documents and accessibility goals."}
+    validations: {required: true}
+  - type: textarea
+    id: licenses
+    attributes: {label: "Licenses and resources", description: "SPDX IDs, authors/sources, hashes, fonts/assets, and confirmation of no external URLs or imports."}
+    validations: {required: true}
+  - type: textarea
+    id: evidence
+    attributes: {label: "Preview evidence", description: "Fixture, renderer profile, generated preview location, and visual-review notes."}
+    validations: {required: true}

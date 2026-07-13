@@ -19,11 +19,13 @@ build/
 dist/
 browsers/
 *.pdf
+*.spec.bak
 
 # Local historical audit; never publish in repository history.
 docs/project-reliability/BASELINE_AUDIT.md
 
 # Local configuration and secrets
+.libremark-pdf/
 .env
 .env.*
 !.env.example

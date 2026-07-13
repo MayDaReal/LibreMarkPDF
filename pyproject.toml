@@ -1,0 +1,76 @@
+[build-system]
+requires = ["setuptools==82.0.1"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "libremark-pdf"
+dynamic = ["version"]
+description = "Local Markdown-to-PDF desktop and command-line converter"
+readme = "README.md"
+requires-python = ">=3.9"
+license = {file = "LICENSE"}
+authors = [{name = "LibreMark PDF contributors"}]
+classifiers = [
+  "Development Status :: 2 - Pre-Alpha",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+]
+dependencies = [
+  "Markdown==3.9",
+  "playwright==1.60.0",
+]
+
+[project.optional-dependencies]
+gui = [
+  "pillow==11.3.0",
+  "pypdfium2==5.11.0",
+  "tkinterdnd2==0.6.2",
+]
+build = [
+  "pillow==11.3.0",
+  "pypdfium2==5.11.0",
+  "tkinterdnd2==0.6.2",
+  "pyinstaller==6.21.0",
+  "setuptools==82.0.1",
+]
+test = [
+  "pillow==11.3.0",
+  "pypdfium2==5.11.0",
+  "tkinterdnd2==0.6.2",
+  "coverage==7.10.7",
+  "ruff==0.14.2",
+]
+docs = []
+
+[project.scripts]
+libremark-pdf = "libremark_pdf.__main__:main"
+
+[tool.setuptools.dynamic]
+version = {attr = "libremark_pdf.__version__"}
+
+[tool.setuptools.packages.find]
+include = ["libremark_pdf*"]
+
+[tool.coverage.run]
+branch = true
+source = ["libremark_pdf"]
+
+[tool.coverage.report]
+# Initial browser-free subsystem baseline measured at 31%; raise with coverage.
+fail_under = 30
+show_missing = true
+skip_covered = true
+
+[tool.ruff]
+target-version = "py39"
+line-length = 88
+exclude = ["venv", "venv-linux", "build", "dist", "browsers"]
+
+[tool.ruff.lint]
+# Syntax/undefined-name failures only for the first gate; formatting is not yet
+# authoritative and existing style is intentionally left untouched.
+select = ["E9", "F63", "F7", "F82"]
