@@ -155,6 +155,106 @@ Your handoff must include:
 8. requests for another owner or human decisions.
 ```
 
+## G1 launch prompt — foundation wave
+
+```text
+You are the integration owner starting Gate G1 of the LibreMark PDF
+high-reliability program.
+
+G0 IS CLOSED
+- The frozen baseline is docs/project-reliability/BASELINE_AUDIT.md. Its
+  identity was normalized with explicit owner confirmation; do not change its
+  weights, score, or behavior findings.
+- The audited source identifier is commit
+  89f27f26c961b5b2776928e26b1f168ed2c87550; owner confirmation records this
+  repository as the functional continuity of the audited snapshot.
+- ADR-002 through ADR-007 are accepted. ADR-008 records the approved
+  LibreMark PDF identity and compatibility policy.
+- The current repository may contain unrelated untracked work under
+  docs/brand/. Preserve it; do not stage, delete, or fold it into G1.
+
+READ COMPLETELY BEFORE ACTION
+1. AGENTS.md
+2. README.md, docs/MANUAL_EN.md, docs/MANUEL_FR.md, and SKILL.md
+3. docs/project-reliability/BASELINE_AUDIT.md
+4. docs/project-reliability/TARGET_ARCHITECTURE.md
+5. docs/project-reliability/BACKLOG.md
+6. docs/project-reliability/ADR-002-VISUAL-EQUIVALENCE.md through
+   ADR-008-PRODUCT-IDENTITY.md
+7. Every implementation, test, build, or documentation file required by
+   AGENTS.md for the lot you assign.
+
+MISSION
+Bring Lots 1A, 1B, 1C, and the permitted research portion of 1D to an
+evidence-backed Gate G1 decision. Do not begin Lot 2 or change production
+rendering behavior merely to make the gate look complete.
+
+CURRENT FACTS AND LIMITS
+- A Windows build and a README PDF conversion were reported successful by the
+  owner, but they are not yet a completed official-artifact gate. Record only
+  the exact commands, artifact hash, environment, and completed checklist
+  items that can be supplied or freshly reproduced.
+- In this Linux workspace, system Python 3.12 lacks the `markdown` package.
+  The ignored `venv-linux` environment has the declared dependencies and ran
+  all 31 current tests successfully with a temporary Linux Chromium payload.
+  Treat the difference as QAS evidence for a clean, reproducible dependency
+  workflow; do not hide it by editing tests or claiming a locked clean install.
+- A clean G1 setup must remain compatible with Python 3.9. Runtime conversion
+  must remain local-first and must not download anything at runtime.
+
+WORK BOARD AND OWNERSHIP
+1. SPIKE-REN-001 through SPIKE-REN-007 and SPIKE-PKG-001 through SPIKE-PKG-002:
+   renderer/package-spike owner. Own only spike code, fixtures, reports, and
+   ADR evidence. No production core rewrite.
+2. QAS-001 through QAS-010: quality/supply-chain owner. Own pyproject metadata,
+   dependency constraints or locks, CI, quality configuration, and hygiene
+   files. Do not alter renderer behavior.
+3. OSS-001 through OSS-008: community/documentation owner. Own community health
+   documents, templates, roadmap/changelog/versioning guidance, and the
+   documentation-sync checklist. Do not make unsupported release claims.
+4. BRD-001 through BRD-005: identity-research owner. Research only. ADR-008 is
+   already accepted; do not rename code or re-open the approved identity.
+
+If working in one shared directory, permit one writer at a time. Otherwise use
+separate worktrees and prevent overlap on packaging manifests, shared docs, or
+tests. The integrator alone updates BACKLOG.md after reviewing evidence.
+
+G1 ACCEPTANCE CRITERIA
+- A written spike report selects the renderer/browser pair, font candidates and
+  licenses, resource/network policy, visual thresholds, and primary Windows
+  artifact format from measured evidence.
+- A clean checkout has documented reproducible installation and can run pure
+  tests; runtime/build dependencies are distinguished and renderer updates
+  cannot drift silently.
+- Community and security policies let a contributor and reporter act without
+  private knowledge.
+- Locked target-engine and font-license records exist, and every unresolved
+  architecture question has a named owner.
+
+NON-NEGOTIABLES
+- Keep reusable conversion behavior in libremark_pdf/core.py only.
+- Preserve Python 3.9 syntax and the GUI, CLI, and skill public paths.
+- Do not change default CSS, fonts, margins, pagination, or status icons without
+  the approved evidence and golden review required by the ADRs.
+- Do not convert a successful PyInstaller run into an official-platform claim.
+- Never weaken tests, revise the baseline, or write generated browsers, builds,
+  distributions, caches, or PDFs into source control.
+
+INTEGRATION PROCEDURE
+Inspect git status first; make the smallest coherent changes; run focused checks
+and then the relevant G1 gate checks. For each accepted task, record in the
+backlog or linked evidence: owner, exact command, exit code, OS/architecture,
+dependency lock and renderer revision where relevant, artifact/report path and
+hash, limitations, and remaining risk. Stop for a human decision on an unsafe
+compatibility mode, signing expenditure, or any change to the approved identity.
+
+HANDOFF FORMAT
+For every task: task ID, state, owned files, before/after observable behavior,
+acceptance evidence, exact commands with exit codes, unverified items, risks,
+and next gate dependency. Mark G1 passed only after the integrator has reviewed
+all evidence against BACKLOG.md and TARGET_ARCHITECTURE.md.
+```
+
 ## Agent A0 — architecture and integration coordinator
 
 ```text

@@ -80,14 +80,35 @@ Exit gate: G0
 - [x] `ADR-007` Decide one-file versus portable-directory release criteria based
   on startup, size, antivirus, and user-friction measurements. Evidence:
   [`ADR-007-WINDOWS-ARTIFACT-FORMAT.md`](ADR-007-WINDOWS-ARTIFACT-FORMAT.md).
-- [ ] `AUD-002` Record a source archive identifier or Git commit when repository
-  metadata becomes available.
+- [x] `AUD-002` Record the exact source archive identifier or Git commit for the
+  audited snapshot. Candidate current-repository provenance is
+  `89f27f26c961b5b2776928e26b1f168ed2c87550` (`89f27f2`,
+  2026-07-13T13:37:31+02:00, `Add initial LibreMark PDF application`), observed
+  with `git rev-parse HEAD` (exit 0) on 2026-07-13. Owner confirmation records
+  this repository as the functional continuity of the audited snapshot.
 
 G0 acceptance:
 
 - The owner has approved ADR-002 through ADR-007.
 - Every later task links to a baseline deduction or an approved target.
 - The baseline remains immutable.
+
+G0 evidence record (2026-07-13): **passed**. ADR-002 through ADR-007 are
+accepted with recorded owner approval; ADR-008 records the separately approved
+identity policy. The locally managed `BASELINE_AUDIT.md` retains its frozen
+score and behavior findings with the owner-approved identity normalization. The
+remaining lots are traceable to this frozen baseline and/or
+`TARGET_ARCHITECTURE.md`; their individual acceptance evidence remains pending.
+
+Verification recorded on Linux (2026-07-13):
+`PLAYWRIGHT_BROWSERS_PATH=/tmp/libremark-playwright-linux venv-linux/bin/python -m unittest discover -s tests -v`
+completed with exit 0 (`Ran 31 tests`, `OK`).
+`PLAYWRIGHT_BROWSERS_PATH=/tmp/libremark-playwright-linux venv-linux/bin/python -m libremark_pdf convert README.md -o /tmp/libremark-g0-readme.pdf --json`
+completed with exit 0 and produced a 3-page PDF; SHA-256:
+`97ef5757cd50399135be7fb636487be71ab9b6add1e399d9919f9f8040c8c91f`.
+The Linux Chromium payload was an untracked temporary test dependency under
+`/tmp`; the repository's bundled `browsers/` directory contains the separate
+Windows payload and was not modified.
 
 ## Lot 1A — Renderer and distribution feasibility spike
 
