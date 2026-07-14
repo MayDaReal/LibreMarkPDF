@@ -513,6 +513,7 @@ class _BrowserRenderer:
     def __init__(self) -> None:
         self._playwright = None
         self._browser = None
+        self.last_observed_requests = []
 
     def __enter__(self) -> "_BrowserRenderer":
         try:
@@ -563,7 +564,7 @@ class _BrowserRenderer:
                 java_script_enabled=False, service_workers="block",
             )
             page = context.new_page()
-            observed_requests = []
+            self.last_observed_requests = []
 
             def abort_request(route):
                 # Data URIs are validated and embedded by the core; every other
@@ -571,7 +572,7 @@ class _BrowserRenderer:
                 if route.request.url.startswith("data:"):
                     route.continue_()
                     return
-                observed_requests.append(route.request.url)
+                self.last_observed_requests.append(route.request.url)
                 route.abort()
 
             page.route("**/*", abort_request)
@@ -594,7 +595,7 @@ class _BrowserRenderer:
                 tagged=True,
                 outline=True,
             )
-            if observed_requests:
+            if self.last_observed_requests:
                 raise ConversionError("NETWORK_BLOCKED: renderer attempted a network request")
         except ConversionError:
             raise

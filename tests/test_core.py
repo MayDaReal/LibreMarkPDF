@@ -342,6 +342,24 @@ class TestResourcePolicy(unittest.TestCase):
 
 
 class TestEndToEndConversion(unittest.TestCase):
+    def test_safe_and_trusted_static_rendering_observe_zero_requests(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            safe_output = root / "safe.pdf"
+            trusted_output = root / "trusted.pdf"
+            with core._BrowserRenderer() as renderer:
+                core.convert_markdown_text_to_pdf(
+                    "# Safe\n\nLiteral <b>markup</b>", safe_output, _renderer=renderer
+                )
+                self.assertEqual(renderer.last_observed_requests, [])
+                core.convert_markdown_text_to_pdf(
+                    "# Trusted\n\n<div class=\"note\">static content</div>",
+                    trusted_output,
+                    trusted_html=True,
+                    _renderer=renderer,
+                )
+                self.assertEqual(renderer.last_observed_requests, [])
+
     def test_convert_markdown_text_to_pdf_creates_a_file(self):
         with tempfile.TemporaryDirectory() as tmp:
             output = Path(tmp) / "out.pdf"

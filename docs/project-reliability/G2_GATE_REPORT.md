@@ -181,3 +181,19 @@ actual SVG root in addition to the existing active-content inspection.
 The Pyenv-managed interpreter is not on the non-interactive shell `PATH`; G2
 commands must use the explicit venv path above. Browser network observation and
 the full canonical corpus remain open gate evidence.
+
+## Incremental evidence — observed network isolation
+
+`_BrowserRenderer` now retains the observed, non-`data:` route requests from
+the most recent document solely for verification. Any such request is aborted
+and fails the conversion as `NETWORK_BLOCKED`. The locked browser integration
+test rendered one safe document and one approved trusted-static document in the
+same browser process and asserted an empty observation list after each render.
+
+| Command | Exit | Result |
+| --- | ---: | --- |
+| `PLAYWRIGHT_BROWSERS_PATH="$HOME/.cache/ms-playwright" venv-linux/bin/python -m unittest tests.test_core.TestEndToEndConversion.test_safe_and_trusted_static_rendering_observe_zero_requests -v` | 0 | Locked Chromium completed both modes; each recorded `[]` observed non-data requests. |
+
+This is reproducible Linux evidence for REN-004. It must be repeated from the
+exact candidate commit on native Windows; no network observation may be inferred
+from this Linux run.
