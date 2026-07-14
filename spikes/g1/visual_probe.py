@@ -24,8 +24,16 @@ from spikes.g1.fetch_font_candidates import load_manifest, sha256_file  # noqa: 
 
 HERE = Path(__file__).resolve().parent
 FIXTURE = HERE / "fixtures" / "visual-representative.md"
-FONT_MANIFEST = HERE / "font_candidates.json"
+FONT_MANIFEST = HERE / "font_candidates_static.json"
 TEST_DATE = "2026-01-15"
+LEGACY_FONT_CSS = {
+    "NotoSans.ttf": ("G1 Noto Sans", "100 900"),
+    "NotoSansMono.ttf": ("G1 Noto Sans Mono", "100 900"),
+    "NotoSansArabic.ttf": ("G1 Noto Sans Arabic", "100 900"),
+    "NotoSansCJKsc-Regular.otf": ("G1 Noto Sans CJK SC", "400"),
+    "NotoSansSymbols2-Regular.ttf": ("G1 Noto Sans Symbols 2", "400"),
+    "NotoEmoji.ttf": ("G1 Noto Emoji", "100 900"),
+}
 
 
 def sha256_bytes(data: bytes) -> str:
@@ -38,18 +46,17 @@ def data_uri(path: Path) -> str:
     return "data:{};base64,{}".format(mime, encoded)
 
 
-def candidate_font_css(font_dir: Path) -> str:
-    definitions = [
-        ("G1 Noto Sans", "NotoSans.ttf", "100 900"),
-        ("G1 Noto Sans Mono", "NotoSansMono.ttf", "100 900"),
-        ("G1 Noto Sans Arabic", "NotoSansArabic.ttf", "100 900"),
-        ("G1 Noto Sans CJK SC", "NotoSansCJKsc-Regular.otf", "400"),
-        ("G1 Noto Sans Symbols 2", "NotoSansSymbols2-Regular.ttf", "400"),
-        ("G1 Noto Emoji", "NotoEmoji.ttf", "100 900"),
-    ]
+def font_face(item: Dict[str, Any]) -> tuple:
+    if "css_family" in item and "css_weight" in item:
+        return item["css_family"], item["css_weight"]
+    return LEGACY_FONT_CSS[item["filename"]]
+
+
+def candidate_font_css(manifest: Dict[str, Any], font_dir: Path) -> str:
     rules = []
-    for family, filename, weight in definitions:
-        path = font_dir / filename
+    for item in manifest["files"]:
+        family, weight = font_face(item)
+        path = font_dir / item["filename"]
         rules.append(
             "@font-face {{font-family:'{}';src:url('{}');font-style:normal;"
             "font-weight:{};font-display:block;}}".format(
@@ -68,16 +75,25 @@ def candidate_font_css(font_dir: Path) -> str:
     return "\n".join(rules)
 
 
-def footer_template(profile: str, font_dir: Optional[Path]) -> str:
+def footer_template(
+    profile: str, manifest: Dict[str, Any], font_dir: Optional[Path]
+) -> str:
     template = core.build_footer_template(core.HeaderFooterConfig())
     if profile == "current":
         return template
     if font_dir is None:
         raise ValueError("Candidate profile requires a font directory")
-    font_rule = (
-        "<style>@font-face{font-family:'G1 Noto Sans';src:url('"
-        + data_uri(font_dir / "NotoSans.ttf")
-        + "');font-style:normal;font-weight:100 900;font-display:block;}</style>"
+    proportional = [
+        item for item in manifest["files"] if font_face(item)[0] == "G1 Noto Sans"
+    ]
+    font_rule = "<style>{}</style>".format(
+        "".join(
+            "@font-face{{font-family:'G1 Noto Sans';src:url('{}');font-style:normal;"
+            "font-weight:{};font-display:block;}}".format(
+                data_uri(font_dir / item["filename"]), font_face(item)[1]
+            )
+            for item in proportional
+        )
     )
     return font_rule + template.replace(
         "font-family: Helvetica, Arial, sans-serif;",
@@ -151,6 +167,7 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--profile", choices=("current", "candidate"), required=True)
     parser.add_argument("--output-dir", required=True, type=Path)
+    parser.add_argument("--font-manifest", default=FONT_MANIFEST, type=Path)
     parser.add_argument(
         "--font-root",
         type=Path,
@@ -163,7 +180,8 @@ def main() -> int:
     if args.profile == "candidate" and args.font_root is None:
         parser.error("--font-root is required for the candidate profile")
 
-    manifest = load_manifest()
+    manifest_path = args.font_manifest.resolve()
+    manifest = load_manifest(manifest_path)
     font_dir = args.font_root / "fonts" if args.font_root else None
     if font_dir is not None:
         for item in manifest["files"]:
@@ -177,7 +195,7 @@ def main() -> int:
     title = core.extract_title(body_html)
     css = core.DEFAULT_CSS_PATH.read_text(encoding="utf-8")
     if args.profile == "candidate" and font_dir is not None:
-        css += "\n" + candidate_font_css(font_dir)
+        css += "\n" + candidate_font_css(manifest, font_dir)
     full_html = core.build_full_html(body_html, title, css)
     html_fingerprint = sha256_bytes(
         b"libremark-g1-visual-html-v1\0" + full_html.encode("utf-8")
@@ -250,7 +268,7 @@ def main() -> int:
             margin=core.MARGIN_WITH_HEADER_FOOTER,
             display_header_footer=True,
             header_template=core.build_header_template(core.HeaderFooterConfig()),
-            footer_template=footer_template(args.profile, font_dir),
+            footer_template=footer_template(args.profile, manifest, font_dir),
             print_background=True,
         )
         browser_version = browser.version
@@ -259,7 +277,7 @@ def main() -> int:
 
     pages = rasterize_pdf(pdf_path, args.output_dir)
     asset_records = []
-    for path in [core.DEFAULT_CSS_PATH, FIXTURE, FONT_MANIFEST]:
+    for path in [core.DEFAULT_CSS_PATH, FIXTURE, manifest_path]:
         asset_records.append(
             {
                 "bytes": path.stat().st_size,
@@ -282,7 +300,7 @@ def main() -> int:
 
     profile_data = {
         "date": TEST_DATE,
-        "font_manifest_sha256": sha256_file(FONT_MANIFEST) if font_dir else None,
+        "font_manifest_sha256": sha256_file(manifest_path) if font_dir else None,
         "html_fingerprint": html_fingerprint,
         "locale": "en-US",
         "margins": core.MARGIN_WITH_HEADER_FOOTER,

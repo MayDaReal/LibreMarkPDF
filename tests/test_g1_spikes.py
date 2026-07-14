@@ -6,9 +6,9 @@ from pathlib import Path
 
 from PIL import Image
 
-from spikes.g1.fetch_font_candidates import load_manifest
+from spikes.g1.fetch_font_candidates import iter_assets, load_manifest
 from spikes.g1.visual_compare import changed_regions, global_ssim, page_metrics
-from spikes.g1.visual_probe import output_is_outside_repository
+from spikes.g1.visual_probe import font_face, output_is_outside_repository
 
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -18,12 +18,23 @@ class TestFontCandidateManifest(unittest.TestCase):
     def test_manifest_pins_complete_font_and_license_records(self):
         manifest = load_manifest()
         self.assertEqual(manifest["schema"], 1)
-        self.assertEqual(len(manifest["files"]), 6)
+        self.assertEqual(len(manifest["files"]), 7)
         self.assertGreater(sum(item["bytes"] for item in manifest["files"]), 20_000_000)
         for item in manifest["files"]:
             self.assertEqual(len(item["sha256"]), 64)
             self.assertEqual(len(item["license_sha256"]), 64)
-            self.assertIn(manifest["sources"]["google-fonts"] if "google/fonts" in item["url"] else manifest["sources"]["noto-cjk"], item["url"])
+            self.assertIn("css_family", item)
+            self.assertIn("css_weight", item)
+            self.assertTrue(any(revision in item["url"] for revision in manifest["sources"].values()))
+
+    def test_reused_license_is_fetched_once(self):
+        manifest = load_manifest()
+        asset_paths = [asset["filename"] for asset in iter_assets(manifest)]
+        self.assertEqual(len(asset_paths), len(set(asset_paths)))
+
+    def test_legacy_variable_manifest_remains_selectable(self):
+        legacy = load_manifest(ROOT / "spikes" / "g1" / "font_candidates.json")
+        self.assertEqual(font_face(legacy["files"][0]), ("G1 Noto Sans", "100 900"))
 
     def test_fixture_covers_required_scripts(self):
         fixture = (
@@ -41,6 +52,8 @@ class TestFontCandidateManifest(unittest.TestCase):
         self.assertIn("PLAYWRIGHT_BROWSERS_PATH", runner)
         self.assertNotIn("playwright install", runner)
         self.assertIn("Compress-Archive", runner)
+        self.assertIn("Resolve-Path -LiteralPath $_.FullName -Relative", runner)
+        self.assertNotIn(".Substring($EvidenceRoot.Length", runner)
 
     def test_visual_probe_rejects_system_font_fallback_for_candidate(self):
         probe = (ROOT / "spikes" / "g1" / "visual_probe.py").read_text(

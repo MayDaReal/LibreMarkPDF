@@ -19,15 +19,22 @@ embed arbitrary Markdown resources or sanitize trusted HTML.
 
 ## Candidate fonts and visual comparison
 
-`font_candidates.json` locks the six G1 candidate font files and their license
-records to immutable upstream commits and SHA-256 values. Fetching is an
-explicit spike-setup operation, never a conversion-time action:
+`font_candidates.json` preserves the six-file variable-font candidate that
+failed the first Windows/Linux comparison. `font_candidates_static.json` is
+the default second candidate: it separates proportional Regular and SemiBold
+into static files and locks seven font files and four license records to
+immutable upstream commits and SHA-256 values. Fetching is an explicit
+spike-setup operation, never a conversion-time action:
 
 ```bash
 python spikes/g1/fetch_font_candidates.py --output-dir /tmp/libremark-g1-font-set
 python spikes/g1/fetch_font_candidates.py \
   --output-dir /tmp/libremark-g1-font-set --verify-only
 ```
+
+Pass `--manifest spikes/g1/font_candidates.json` to reproduce the rejected
+variable-font candidate. `visual_probe.py` accepts the corresponding
+`--font-manifest` option.
 
 `visual_probe.py` renders the representative fixture with either the unchanged
 current font stack or the candidate embedded fonts. It denies HTTP/HTTPS,

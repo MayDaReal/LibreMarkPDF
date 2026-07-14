@@ -1,0 +1,109 @@
+{
+  "schema": 1,
+  "selection": "Static Noto candidate set after the variable-font cross-OS G1 failure",
+  "sources": {
+    "google-fonts": "ec0464b978de222073645d6d3366f3fdf03376d8",
+    "noto-cjk": "f8d157532fbfaeda587e826d4cd5b21a49186f7c",
+    "noto-distribution": "11caf4e14799c87eadf02026f2bd17eec5d50adb"
+  },
+  "files": [
+    {
+      "bytes": 621572,
+      "css_family": "G1 Noto Sans",
+      "css_weight": "400",
+      "family": "Noto Sans",
+      "filename": "NotoSans-Regular.ttf",
+      "license_bytes": 11357,
+      "license_filename": "NotoDistribution-OFL.txt",
+      "license_sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+      "license_url": "https://raw.githubusercontent.com/notofonts/notofonts.github.io/11caf4e14799c87eadf02026f2bd17eec5d50adb/LICENSE",
+      "role": "proportional regular",
+      "sha256": "478c558ea716033cd60c03438f628dfa75694dcf6b5f6d505a2f05fd2b4f3823",
+      "url": "https://raw.githubusercontent.com/notofonts/notofonts.github.io/11caf4e14799c87eadf02026f2bd17eec5d50adb/fonts/NotoSans/hinted/ttf/NotoSans-Regular.ttf"
+    },
+    {
+      "bytes": 625052,
+      "css_family": "G1 Noto Sans",
+      "css_weight": "600",
+      "family": "Noto Sans",
+      "filename": "NotoSans-SemiBold.ttf",
+      "license_bytes": 11357,
+      "license_filename": "NotoDistribution-OFL.txt",
+      "license_sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+      "license_url": "https://raw.githubusercontent.com/notofonts/notofonts.github.io/11caf4e14799c87eadf02026f2bd17eec5d50adb/LICENSE",
+      "role": "proportional semibold",
+      "sha256": "a4e91fd530ac2b4ef5367240144ff37d7d65d66cf76f2e9a2187b93c676f92d0",
+      "url": "https://raw.githubusercontent.com/notofonts/notofonts.github.io/11caf4e14799c87eadf02026f2bd17eec5d50adb/fonts/NotoSans/hinted/ttf/NotoSans-SemiBold.ttf"
+    },
+    {
+      "bytes": 596428,
+      "css_family": "G1 Noto Sans Mono",
+      "css_weight": "400",
+      "family": "Noto Sans Mono",
+      "filename": "NotoSansMono-Regular.ttf",
+      "license_bytes": 11357,
+      "license_filename": "NotoDistribution-OFL.txt",
+      "license_sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+      "license_url": "https://raw.githubusercontent.com/notofonts/notofonts.github.io/11caf4e14799c87eadf02026f2bd17eec5d50adb/LICENSE",
+      "role": "monospace regular",
+      "sha256": "65b5e2b2c4a1fba9ae8be1f026cb35b03dcb8886d9b2a4147054fde12f7e767d",
+      "url": "https://raw.githubusercontent.com/notofonts/notofonts.github.io/11caf4e14799c87eadf02026f2bd17eec5d50adb/fonts/NotoSansMono/hinted/ttf/NotoSansMono-Regular.ttf"
+    },
+    {
+      "bytes": 234892,
+      "css_family": "G1 Noto Sans Arabic",
+      "css_weight": "400",
+      "family": "Noto Sans Arabic",
+      "filename": "NotoSansArabic-Regular.ttf",
+      "license_bytes": 11357,
+      "license_filename": "NotoDistribution-OFL.txt",
+      "license_sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+      "license_url": "https://raw.githubusercontent.com/notofonts/notofonts.github.io/11caf4e14799c87eadf02026f2bd17eec5d50adb/LICENSE",
+      "role": "Arabic and RTL fallback",
+      "sha256": "bdff3e5659d67e67def05b33f749683b9376ae819d65d3dd62ac4640b3aaef48",
+      "url": "https://raw.githubusercontent.com/notofonts/notofonts.github.io/11caf4e14799c87eadf02026f2bd17eec5d50adb/fonts/NotoSansArabic/hinted/ttf/NotoSansArabic-Regular.ttf"
+    },
+    {
+      "bytes": 16437364,
+      "css_family": "G1 Noto Sans CJK SC",
+      "css_weight": "400",
+      "family": "Noto Sans CJK SC",
+      "filename": "NotoSansCJKsc-Regular.otf",
+      "license_bytes": 4301,
+      "license_filename": "NotoCJK-OFL.txt",
+      "license_sha256": "6a73f9541c2de74158c0e7cf6b0a58ef774f5a780bf191f2d7ec9cc53efe2bf2",
+      "license_url": "https://raw.githubusercontent.com/notofonts/noto-cjk/f8d157532fbfaeda587e826d4cd5b21a49186f7c/Sans/LICENSE",
+      "role": "CJK fallback",
+      "sha256": "2c76254f6fc379fddfce0a7e84fb5385bb135d3e399294f6eeb6680d0365b74b",
+      "url": "https://raw.githubusercontent.com/notofonts/noto-cjk/f8d157532fbfaeda587e826d4cd5b21a49186f7c/Sans/OTF/SimplifiedChinese/NotoSansCJKsc-Regular.otf"
+    },
+    {
+      "bytes": 1233128,
+      "css_family": "G1 Noto Sans Symbols 2",
+      "css_weight": "400",
+      "family": "Noto Sans Symbols 2",
+      "filename": "NotoSansSymbols2-Regular.ttf",
+      "license_bytes": 4383,
+      "license_filename": "NotoSansSymbols2-OFL.txt",
+      "license_sha256": "b118dd41337806a5d4797052c77caf3bd096aed783e5eb21b4d11154351e1ac0",
+      "license_url": "https://raw.githubusercontent.com/google/fonts/ec0464b978de222073645d6d3366f3fdf03376d8/ofl/notosanssymbols2/OFL.txt",
+      "role": "symbols fallback",
+      "sha256": "7d5fb73b7ca67a6798101741f5d280a3d016a56a197afcd4199dbb57b4b82a21",
+      "url": "https://raw.githubusercontent.com/google/fonts/ec0464b978de222073645d6d3366f3fdf03376d8/ofl/notosanssymbols2/NotoSansSymbols2-Regular.ttf"
+    },
+    {
+      "bytes": 1982596,
+      "css_family": "G1 Noto Emoji",
+      "css_weight": "400",
+      "family": "Noto Emoji",
+      "filename": "NotoEmoji.ttf",
+      "license_bytes": 4330,
+      "license_filename": "NotoEmoji-OFL.txt",
+      "license_sha256": "500bb1ccf43df7bbb522112f9133a52b16e1c35e809632f5d8609b179152de5b",
+      "license_url": "https://raw.githubusercontent.com/google/fonts/ec0464b978de222073645d6d3366f3fdf03376d8/ofl/notoemoji/OFL.txt",
+      "role": "monochrome emoji fallback at fixed CSS weight",
+      "sha256": "de6c18832938afc99caf132b39d6a30a19bac7f2e812e28db2535b4608d27551",
+      "url": "https://raw.githubusercontent.com/google/fonts/ec0464b978de222073645d6d3366f3fdf03376d8/ofl/notoemoji/NotoEmoji%5Bwght%5D.ttf"
+    }
+  ]
+}

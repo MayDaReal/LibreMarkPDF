@@ -11,7 +11,7 @@ from typing import Any, Dict, Iterable
 
 
 HERE = Path(__file__).resolve().parent
-MANIFEST_PATH = HERE / "font_candidates.json"
+MANIFEST_PATH = HERE / "font_candidates_static.json"
 
 
 def sha256_file(path: Path) -> str:
@@ -33,19 +33,26 @@ def load_manifest(path: Path = MANIFEST_PATH) -> Dict[str, Any]:
 
 
 def iter_assets(manifest: Dict[str, Any]) -> Iterable[Dict[str, Any]]:
+    emitted = set()
     for item in manifest["files"]:
-        yield {
-            "bytes": item["bytes"],
-            "filename": Path("fonts") / item["filename"],
-            "sha256": item["sha256"],
-            "url": item["url"],
-        }
-        yield {
-            "bytes": item["license_bytes"],
-            "filename": Path("licenses") / item["license_filename"],
-            "sha256": item["license_sha256"],
-            "url": item["license_url"],
-        }
+        assets = (
+            {
+                "bytes": item["bytes"],
+                "filename": Path("fonts") / item["filename"],
+                "sha256": item["sha256"],
+                "url": item["url"],
+            },
+            {
+                "bytes": item["license_bytes"],
+                "filename": Path("licenses") / item["license_filename"],
+                "sha256": item["license_sha256"],
+                "url": item["license_url"],
+            },
+        )
+        for asset in assets:
+            if asset["filename"] not in emitted:
+                emitted.add(asset["filename"])
+                yield asset
 
 
 def verify(path: Path, expected_bytes: int, expected_sha256: str) -> None:
@@ -79,6 +86,7 @@ def fetch(url: str, target: Path) -> None:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--output-dir", required=True, type=Path)
+    parser.add_argument("--manifest", default=MANIFEST_PATH, type=Path)
     parser.add_argument(
         "--verify-only",
         action="store_true",
@@ -86,7 +94,7 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    manifest = load_manifest()
+    manifest = load_manifest(args.manifest)
     records = []
     for asset in iter_assets(manifest):
         target = args.output_dir / asset["filename"]

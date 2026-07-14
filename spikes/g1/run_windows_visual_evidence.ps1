@@ -42,7 +42,7 @@ if (Test-Path $EvidenceRoot) {
     throw "EvidenceRoot already exists; use a new empty directory."
 }
 New-Item -ItemType Directory -Path $EvidenceRoot | Out-Null
-$EvidenceRoot = (Resolve-Path $EvidenceRoot).Path
+$EvidenceRoot = (Get-Item -LiteralPath $EvidenceRoot).FullName
 $Transcript = Join-Path $EvidenceRoot "windows-visual-transcript.txt"
 Start-Transcript -Path $Transcript | Out-Null
 $TranscriptStarted = $true
@@ -113,15 +113,24 @@ finally {
     }
 }
 
+$EvidenceRoot = (Get-Item -LiteralPath $EvidenceRoot).FullName
 $ManifestPath = Join-Path $EvidenceRoot "WINDOWS_VISUAL_EVIDENCE.sha256"
-$ManifestLines = Get-ChildItem -Path $EvidenceRoot -File -Recurse |
-    Where-Object { $_.FullName -ne $ManifestPath } |
-    Sort-Object FullName |
-    ForEach-Object {
-        $Relative = $_.FullName.Substring($EvidenceRoot.Length + 1).Replace("\", "/")
-        $Hash = (Get-FileHash -Algorithm SHA256 $_.FullName).Hash.ToLowerInvariant()
-        "$Hash  $Relative"
-    }
+Push-Location $EvidenceRoot
+try {
+    $ManifestLines = Get-ChildItem -Path $EvidenceRoot -File -Recurse |
+        Where-Object { $_.FullName -ne $ManifestPath } |
+        Sort-Object FullName |
+        ForEach-Object {
+            $Relative = (Resolve-Path -LiteralPath $_.FullName -Relative) `
+                -replace '^\.[\\/]', ''
+            $Relative = $Relative.Replace("\", "/")
+            $Hash = (Get-FileHash -Algorithm SHA256 $_.FullName).Hash.ToLowerInvariant()
+            "$Hash  $Relative"
+        }
+}
+finally {
+    Pop-Location
+}
 $ManifestLines | Set-Content -Encoding ASCII $ManifestPath
 
 $Archive = "$EvidenceRoot.zip"

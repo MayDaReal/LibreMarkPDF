@@ -1,6 +1,6 @@
 # Gate G1 renderer and packaging spike report
 
-Status: **direction selected; native Windows visual comparison pending**
+Status: **first cross-OS font candidate rejected; static replacement pending Windows**
 Evidence date: 2026-07-14
 Linux environment: Ubuntu 24.04.4, Linux 6.17 x86_64, CPython 3.12.3
 Windows evidence source: commit `50f134121366e4922774bd67c6e5e7554108d09b`
@@ -15,9 +15,9 @@ remain outside the repository.
 | Decision | Selected direction | Evidence status |
 | --- | --- | --- |
 | Renderer/browser | Python 3.9-compatible Playwright 1.60.0, Chromium/headless shell 148.0.7778.96 revision 1223, FFmpeg 1011 | native Windows and Linux launch evidence exists |
-| Fonts | the six-file Noto set locked below | exact files, commits, hashes, sizes, roles, and OFL records exist; Windows visual run pending |
+| Fonts | seven-file static-weight Noto replacement locked below | first variable set failed cross-OS; replacement commits, hashes, sizes, roles, and OFL records exist; Windows rerun pending |
 | Resources/network | embed accepted local resources before rendering; deny HTTP/HTTPS; disable JavaScript and service workers; literal safe HTML by default | Linux and Windows feasibility probes observed zero responses; production implementation is Lot 2 |
-| Visual thresholds | ADR-002 unchanged: 144 DPI, SSIM >= 0.995, changed pixels <= 0.10% at RGB delta 16, largest changed region <= 0.50%, plus strict structural equality | Linux repeat passes exactly; native Windows/Linux pair pending |
+| Visual thresholds | ADR-002 unchanged: 144 DPI, SSIM >= 0.995, changed pixels <= 0.10% at RGB delta 16, largest changed region <= 0.50%, plus strict structural equality | first native pair failed; static Linux repeat passes exactly; replacement Windows/Linux pair pending |
 | Windows primary format | zipped portable directory | selected under ADR-007 from native onefile/portable measurements; this is not an official artifact claim |
 
 ## Renderer lock
@@ -38,7 +38,8 @@ The native Windows headless shell was 201,396,224 bytes, SHA-256
 
 ## Locked font candidates and licenses
 
-`spikes/g1/font_candidates.json` is the machine-readable authority. Google
+`spikes/g1/font_candidates.json` preserves the first machine-readable
+variable-font candidate. Google
 Fonts is pinned to commit `ec0464b978de222073645d6d3366f3fdf03376d8` and
 Noto CJK to commit `f8d157532fbfaeda587e826d4cd5b21a49186f7c`.
 
@@ -55,8 +56,29 @@ The set totals 24,255,268 bytes before packaging. The CJK fallback accounts
 for 67.8% of that total and remains the main size risk. Every file is licensed
 under SIL Open Font License 1.1. The manifest pins each corresponding license
 URL, byte size, and SHA-256; the six verified license records total 26,188
-bytes. Actual redistribution notices are produced only when Lot 2 chooses the
-final bundled subset.
+bytes. This set is rejected for cross-OS use but remains locked so its negative
+evidence is reproducible. Actual redistribution notices are produced only when
+Lot 2 chooses the final bundled subset.
+
+`spikes/g1/font_candidates_static.json` is the replacement authority. It adds
+the official Noto distribution commit
+`11caf4e14799c87eadf02026f2bd17eec5d50adb` and separates proportional Regular
+and SemiBold instead of asking each OS to instantiate one variable file.
+
+| Role | File | Bytes | SHA-256 |
+| --- | --- | ---: | --- |
+| proportional regular | `NotoSans-Regular.ttf` | 621,572 | `478c558ea716033cd60c03438f628dfa75694dcf6b5f6d505a2f05fd2b4f3823` |
+| proportional semibold | `NotoSans-SemiBold.ttf` | 625,052 | `a4e91fd530ac2b4ef5367240144ff37d7d65d66cf76f2e9a2187b93c676f92d0` |
+| monospace regular | `NotoSansMono-Regular.ttf` | 596,428 | `65b5e2b2c4a1fba9ae8be1f026cb35b03dcb8886d9b2a4147054fde12f7e767d` |
+| Arabic/RTL fallback | `NotoSansArabic-Regular.ttf` | 234,892 | `bdff3e5659d67e67def05b33f749683b9376ae819d65d3dd62ac4640b3aaef48` |
+| CJK fallback | `NotoSansCJKsc-Regular.otf` | 16,437,364 | `2c76254f6fc379fddfce0a7e84fb5385bb135d3e399294f6eeb6680d0365b74b` |
+| symbols fallback | `NotoSansSymbols2-Regular.ttf` | 1,233,128 | `7d5fb73b7ca67a6798101741f5d280a3d016a56a197afcd4199dbb57b4b82a21` |
+| monochrome emoji fallback | `NotoEmoji.ttf` | 1,982,596 | `de6c18832938afc99caf132b39d6a30a19bac7f2e812e28db2535b4608d27551` |
+
+The replacement totals 21,731,032 bytes. Its four unique OFL records total
+24,371 bytes. CJK represents 75.6% of the font payload. Emoji remains a
+variable upstream file but is fixed to CSS weight 400; its four exercised
+glyphs must still pass the replacement native comparison.
 
 ## Resource and network policy evidence
 
@@ -113,10 +135,30 @@ equivalence. It demonstrates that adopting fixed fonts will create a new
 canonical baseline and therefore requires the owner's visual approval before
 Lot 2 changes production defaults.
 
-The frozen ADR-002 thresholds are not amended. A native Windows run of the same
-immutable fixture, font manifest, probe, Chromium revision, and PDFium version
-is the only missing measurement needed to validate them across two operating
-systems.
+The first native Windows archive has SHA-256
+`f2e5e636c3e5676f38b270b5e970d2c38ddded0ae9933d234ea15691e0b63014`.
+It records source commit `4107aea0d7d28a8bf9728d4a27854c5210393380`, a clean
+status, Python 3.9.13, Playwright 1.60.0, PDFium 5.11.0, the exact browser and
+font hashes, zero network requests/responses, and an exact same-Windows repeat.
+All 18 payload hashes match the internal manifest values; its unusable `ea/`
+path prefixes are a runner-relative-path defect, not content corruption.
+
+The variable-font Windows/Linux comparison failed. Page 1 changed `4.2511%`
+of pixels with SSIM `0.57125`; page 2 changed `5.8090%` with SSIM `0.42945`.
+Extracted text also differed. PDF inspection explains the geometry change:
+Windows embedded separate `NotoSans` and `NotoSans-SemiBold` instances while
+Linux embedded only `NotoSans-Regular` from the variable file.
+
+The static replacement then loaded all seven declared custom faces on Linux,
+recorded profile fingerprint
+`57528ca5490e3a7f255c85960417e313ebba91d08573b9fa78c9d34dcba4e450`,
+HTML fingerprint
+`a2fb435001bec8878f675623960cf121795bdd2c41411645316a46929f7cf1ed`,
+and page hashes `b0d7c56f72438ff29b0e7a2bd4541cc8cdb2996465e7018b89aa03e5dbe3e8d5`
+and `f0973141ad31f24c66b4edbf95778627b162e11b09531926797414f28aa5bd86`.
+Its Linux repeat passed with SSIM `1.0`, zero changed pixels/region, identical
+text, geometry, profile, and HTML. The frozen ADR-002 thresholds are not
+amended. The static replacement now requires the same native Windows run.
 
 ## Windows artifact selection
 
@@ -152,12 +194,12 @@ The native portable candidate then staged and exercised only revision 1223.
 | Task | G1 state | Evidence / next dependency |
 | --- | --- | --- |
 | SPIKE-REN-001 | accepted | exact Python 3.9-compatible engine pair and native Windows/Linux payload hashes recorded |
-| SPIKE-REN-002 | accepted | six exact font files, roles, upstream commits, sizes, hashes, and OFL records locked |
-| SPIKE-REN-003 | pending | Linux current/candidate renders exist; run the prepared native Windows bundle |
+| SPIKE-REN-002 | accepted research/revised candidate | rejected variable set and seven-file static replacement have exact roles, commits, sizes, hashes, and OFL records |
+| SPIKE-REN-003 | pending replacement | first native pair failed ADR-002; static candidate repeats exactly on Linux; rerun Windows bundle |
 | SPIKE-REN-004 | accepted feasibility | local embedding and total network denial observed on Linux and Windows; production corpus belongs to Lot 2 |
 | SPIKE-REN-005 | accepted feasibility | JavaScript/service workers disabled and untrusted fragment literalized; trusted static HTML implementation belongs to Lot 2 |
-| SPIKE-REN-006 | pending | canonical profile/HTML/assets are fingerprinted and repeat exactly on Linux; Windows equality pending |
-| SPIKE-REN-007 | pending | comparator and actionable diffs exist; native Windows/Linux page comparison pending |
+| SPIKE-REN-006 | pending replacement | first pair had equal fingerprints but divergent rendering; static profile/HTML/assets repeat exactly on Linux |
+| SPIKE-REN-007 | pending replacement | first pair produced actionable failure diffs; compare the static Windows/Linux pages without weakening thresholds |
 | SPIKE-PKG-001 | direction accepted | portable ZIP selected under ADR-007; exact release-candidate tests remain later gates |
 | SPIKE-PKG-002 | accepted | only-shell direction built/exercised natively and 38.2% obsolete compressed browser payload quantified |
 
@@ -168,7 +210,7 @@ Commands ran from the repository on Linux x86_64 unless stated otherwise.
 | Command | Exit | Result |
 | --- | ---: | --- |
 | system `python3 -m unittest tests.test_g1_spikes -v` | 1 | expected dependency failure: system Python lacks `markdown`; no test changed |
-| `python3 spikes/g1/fetch_font_candidates.py --output-dir /tmp/libremark-g1-font-fetch-test` | 0 | fresh download verified all six fonts and six license records by size and SHA-256 |
+| first variable-font fetch | 0 | six fonts and six license records verified by size and SHA-256 |
 | create `/tmp/libremark-g1-visual-venv`; install exact Markdown/Playwright/Pillow/PDFium | 0 | clean target-version visual environment |
 | target Playwright `install --only-shell chromium` into `/tmp/libremark-playwright-1223` | 0 | Chromium 148.0.7778.96 revision 1223 plus FFmpeg 1011 |
 | first sandboxed current visual probe | 1 | container syscall restriction: Chromium `sandbox_host_linux` operation not permitted |
@@ -177,7 +219,11 @@ Commands ran from the repository on Linux x86_64 unless stated otherwise.
 | repeated candidate visual probe | 0 | fingerprints and page PNG hashes repeated exactly |
 | current/candidate `appearance` comparison | 0 | report produced with `review` result |
 | candidate/repeat threshold comparison | 0 | structural and visual result `pass` |
-| target-environment `unittest tests.test_g1_spikes -v` | 0 | seven focused tests passed |
+| inspect Windows archive and recompute its 18 payload hashes | 0 | ZIP hash `f2e5e636...b63014`; content intact; `ea/` relative-path defect identified |
+| variable-font Windows/Linux threshold comparison | 1 | correctly rejected by structural and visual criteria |
+| static candidate fetch and two Linux probes | 0 each | seven fonts/four licenses verified; all glyphs custom; zero render-time network |
+| static candidate/repeat threshold comparison | 0 | structural and visual result `pass`, SSIM 1.0 and zero delta |
+| target-environment `unittest tests.test_g1_spikes -v` | 0 | nine focused tests passed |
 
 Temporary JSON evidence hashes:
 
@@ -191,7 +237,16 @@ Temporary JSON evidence hashes:
   `69c0452b4244d2175daa75caba09518e317305ad354e4ab018eb1fe439d216e2`;
 - repeated-candidate comparison:
   `76076bef3aa877a80182130afff20829d564cc98200d4e334464a54e5fba5d6f`.
+- exact-version static candidate evidence:
+  `338dfbe251bc0bf5d2f1d39c947b1550b850effbcc6b7deaa97f02b92fb4b9a2`;
+- exact-version static repeated-candidate evidence:
+  `3c2b86ec737ea554a9a085f1f209ac0b652559a2644b116eb7db6ebc58852135`;
+- static repeated-candidate comparison:
+  `76076bef3aa877a80182130afff20829d564cc98200d4e334464a54e5fba5d6f`.
+- rejected variable-font Windows/Linux comparison:
+  `2d26a25621e879f80bead208af22326ad32199943b56c599a443221fd1916174`.
 
-All generated evidence remains under `/tmp/libremark-g1-visual` and all font,
-license, browser, and environment payloads remain under `/tmp`. None is a
+All generated evidence remains under `/tmp`; the supplied Windows ZIP remains
+outside the repository under `/shared/repos/LibreMarkPDF-artifact`. No font,
+license, browser, PDF, PNG, diff, or archive is a
 source-controlled product resource or an official artifact.
