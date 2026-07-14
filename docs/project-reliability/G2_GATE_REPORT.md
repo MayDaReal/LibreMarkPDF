@@ -215,3 +215,18 @@ boundary without hiding their original exception cause.
 Permission behavior is simulated at the core boundary because the Linux test
 process has elevated group capabilities; native Windows still needs the real
 unwritable-destination case in its candidate evidence.
+
+## Incremental evidence — segmented Linux suite
+
+The interactive executor stops a monolithic browser suite before its final
+summary (while a Chromium test is still running), and leaves no process behind.
+That result is recorded as incomplete rather than as a passing full suite. The
+browser-free portion was rerun as one deterministic segment and completed.
+
+| Command | Exit | Result |
+| --- | ---: | --- |
+| `PLAYWRIGHT_BROWSERS_PATH="$HOME/.cache/ms-playwright" venv-linux/bin/python -m unittest discover -s tests -v` | incomplete | Interactive window ended during `test_locked_engine_emits_tagged_pdf_and_outline`; no test failure or surviving process was reported. |
+| `venv-linux/bin/python -m unittest tests.test_cli tests.test_community tests.test_g2_harness tests.test_core.TestHeaderFooterConfig tests.test_core.TestMarkdownConversion tests.test_core.TestDeterministicCoreContract tests.test_core.TestResourcePolicy -v` | 0 | 51 browser-free CLI, community, harness, core, and resource tests passed. |
+
+The individual locked-Chromium tests recorded earlier remain valid; a complete
+uninterrupted full-suite execution is still required before G2 closure.
