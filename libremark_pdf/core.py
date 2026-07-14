@@ -489,35 +489,58 @@ def _read_css(css_path: Optional[_PathInput]) -> str:
     return _font_face_css() + "\n" + css
 
 
-def _render_pdf(
-    full_html: str,
-    output_path: Path,
-    header_footer: HeaderFooterConfig,
-    render_date: Optional[str] = None,
-) -> None:
-    try:
-        from playwright.sync_api import sync_playwright
-    except ImportError as exc:
-        raise ConversionError(
-            "The 'playwright' package is not installed. Run: pip install playwright"
-        ) from exc
+class _BrowserRenderer:
+    """One locked browser process with an isolated context per document."""
 
-    display_hf = not header_footer.is_empty()
-    margin = MARGIN_WITH_HEADER_FOOTER if display_hf else MARGIN_NO_HEADER_FOOTER
+    def __init__(self) -> None:
+        self._playwright = None
+        self._browser = None
 
-    with sync_playwright() as p:
-        context = None
+    def __enter__(self) -> "_BrowserRenderer":
         try:
-            browser = p.chromium.launch(args=["--disable-font-subpixel-positioning"])
-        except Exception as exc:
-            # Browser backends expose several exception types; normalize this
-            # user-facing boundary while preserving the original cause.
+            from playwright.sync_api import sync_playwright
+        except ImportError as exc:
             raise ConversionError(
-                "Could not launch the headless browser. Run "
+                "The 'playwright' package is not installed. Run: pip install playwright"
+            ) from exc
+        self._playwright = sync_playwright().start()
+        try:
+            self._browser = self._playwright.chromium.launch(
+                args=["--disable-font-subpixel-positioning"]
+            )
+        except Exception as exc:
+            self._playwright.stop()
+            self._playwright = None
+            raise ConversionError(
+                "BROWSER_UNAVAILABLE: could not launch the headless browser. Run "
                 "'python -m playwright install chromium' once, then retry."
             ) from exc
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback) -> None:
         try:
-            context = browser.new_context(
+            if self._browser is not None:
+                self._browser.close()
+        finally:
+            if self._playwright is not None:
+                self._playwright.stop()
+            self._browser = None
+            self._playwright = None
+
+    def render(
+        self,
+        full_html: str,
+        output_path: Path,
+        header_footer: HeaderFooterConfig,
+        render_date: Optional[str],
+    ) -> None:
+        if self._browser is None:
+            raise ConversionError("BROWSER_UNAVAILABLE: browser session is not active")
+        display_hf = not header_footer.is_empty()
+        margin = MARGIN_WITH_HEADER_FOOTER if display_hf else MARGIN_NO_HEADER_FOOTER
+        context = None
+        try:
+            context = self._browser.new_context(
                 locale="en-US", timezone_id="UTC", color_scheme="light",
                 java_script_enabled=False, service_workers="block",
             )
@@ -525,8 +548,8 @@ def _render_pdf(
             observed_requests = []
 
             def abort_request(route):
-                # Data URIs are already validated and embedded by the core;
-                # they are not network requests and include the locked fonts.
+                # Data URIs are validated and embedded by the core; every other
+                # request is retained as evidence then denied.
                 if route.request.url.startswith("data:"):
                     route.continue_()
                     return
@@ -534,7 +557,7 @@ def _render_pdf(
                 route.abort()
 
             page.route("**/*", abort_request)
-            page.set_content(full_html, wait_until="load")
+            page.set_content(full_html, wait_until="load", timeout=RENDER_TIMEOUT_MS)
             page.emulate_media(media="print")
             page.pdf(
                 path=str(output_path),
@@ -543,13 +566,11 @@ def _render_pdf(
                 display_header_footer=display_hf,
                 header_template=(
                     build_header_template(header_footer, render_date)
-                    if display_hf
-                    else "<div></div>"
+                    if display_hf else "<div></div>"
                 ),
                 footer_template=(
                     build_footer_template(header_footer, render_date)
-                    if display_hf
-                    else "<div></div>"
+                    if display_hf else "<div></div>"
                 ),
                 print_background=True,
             )
@@ -558,7 +579,17 @@ def _render_pdf(
         finally:
             if context is not None:
                 context.close()
-            browser.close()
+
+
+def _render_pdf(
+    full_html: str,
+    output_path: Path,
+    header_footer: HeaderFooterConfig,
+    render_date: Optional[str] = None,
+) -> None:
+    """Render one document through a short-lived browser session."""
+    with _BrowserRenderer() as renderer:
+        renderer.render(full_html, output_path, header_footer, render_date)
 
 
 def _atomic_render_pdf(
@@ -566,6 +597,7 @@ def _atomic_render_pdf(
     output_path: Path,
     header_footer: HeaderFooterConfig,
     render_date: Optional[str],
+    renderer: Optional[_BrowserRenderer] = None,
 ) -> None:
     """Render into a sibling temporary file, then atomically publish it."""
     temp_path = None
@@ -575,7 +607,10 @@ def _atomic_render_pdf(
             delete=False,
         ) as handle:
             temp_path = Path(handle.name)
-        _render_pdf(full_html, temp_path, header_footer, render_date)
+        if renderer is None:
+            _render_pdf(full_html, temp_path, header_footer, render_date)
+        else:
+            renderer.render(full_html, temp_path, header_footer, render_date)
         if not temp_path.exists() or temp_path.stat().st_size == 0:
             raise ConversionError("INVALID_OUTPUT: renderer did not create a PDF")
         os.replace(str(temp_path), str(output_path))
@@ -597,6 +632,7 @@ def convert_markdown_text_to_pdf(
     trusted_html: bool = False,
     overwrite: bool = False,
     resource_root: Optional[_PathInput] = None,
+    _renderer: Optional[_BrowserRenderer] = None,
 ) -> Path:
     """Convert Markdown text to a PDF and return its output path."""
     output_path = Path(output_path)
@@ -623,7 +659,7 @@ def convert_markdown_text_to_pdf(
     full_html = build_full_html(body_html, title, css_text, profile.fingerprint)
 
     hf = header_footer if header_footer is not None else HeaderFooterConfig()
-    _atomic_render_pdf(full_html, output_path, hf, resolved_date)
+    _atomic_render_pdf(full_html, output_path, hf, resolved_date, renderer=_renderer)
     return output_path
 
 
@@ -635,6 +671,7 @@ def convert_markdown_to_pdf(
     render_date: Optional[str] = None,
     trusted_html: bool = False,
     overwrite: bool = False,
+    _renderer: Optional[_BrowserRenderer] = None,
 ) -> Path:
     """Convert one Markdown file, defaulting to a sibling `.pdf` output."""
     input_path = Path(input_path)
@@ -655,7 +692,7 @@ def convert_markdown_to_pdf(
     return convert_markdown_text_to_pdf(
         markdown_text, resolved_output, css_path=css_path, header_footer=header_footer,
         render_date=render_date, trusted_html=trusted_html, overwrite=overwrite,
-        resource_root=input_path.resolve().parent,
+        resource_root=input_path.resolve().parent, _renderer=_renderer,
     )
 
 
@@ -675,7 +712,10 @@ def convert_batch(
     for raw_path in input_paths:
         input_path = Path(raw_path)
         target = Path(output_dir) / (input_path.stem + ".pdf") if output_dir else input_path.with_suffix(".pdf")
-        key = str(target.absolute())
+        try:
+            key = str(target.resolve())
+        except OSError:
+            key = str(target.absolute())
         if key in seen_targets:
             duplicate_targets.add(key)
         seen_targets.add(key)
@@ -695,35 +735,52 @@ def convert_batch(
         elif target.exists() and not overwrite:
             plan_errors[key] = "OUTPUT_EXISTS: refusing to overwrite: {0}".format(target)
 
-    results = []
-    for input_path, target, key in planned:
+    renderer = None
+    renderer_manager = None
+    renderer_error = None
+    if any(key not in plan_errors for _input_path, _target, key in planned):
         try:
-            if key in plan_errors:
-                raise ConversionError(plan_errors[key])
-            result_path = convert_markdown_to_pdf(
-                input_path, target, css_path=css_path, header_footer=header_footer,
-                render_date=render_date, trusted_html=trusted_html, overwrite=overwrite,
-            )
-            results.append(
-                {
-                    "input": str(input_path),
-                    "output": str(result_path),
-                    "status": "ok",
-                    "error": None,
-                    "error_code": None,
-                }
-            )
+            renderer_manager = _BrowserRenderer()
+            renderer = renderer_manager.__enter__()
         except Exception as exc:
-            # A failed item must not abort the remaining batch.
-            results.append(
-                {
-                    "input": str(input_path),
-                    "output": None,
-                    "status": "error",
-                    "error": str(exc),
-                    "error_code": error_code(exc),
-                }
-            )
+            renderer_error = exc
+
+    results = []
+    try:
+        for input_path, target, key in planned:
+            try:
+                if key in plan_errors:
+                    raise ConversionError(plan_errors[key])
+                if renderer_error is not None:
+                    raise renderer_error
+                result_path = convert_markdown_to_pdf(
+                    input_path, target, css_path=css_path, header_footer=header_footer,
+                    render_date=render_date, trusted_html=trusted_html, overwrite=overwrite,
+                    _renderer=renderer,
+                )
+                results.append(
+                    {
+                        "input": str(input_path),
+                        "output": str(result_path),
+                        "status": "ok",
+                        "error": None,
+                        "error_code": None,
+                    }
+                )
+            except Exception as exc:
+                # A failed item must not abort the remaining batch.
+                results.append(
+                    {
+                        "input": str(input_path),
+                        "output": None,
+                        "status": "error",
+                        "error": str(exc),
+                        "error_code": error_code(exc),
+                    }
+                )
+    finally:
+        if renderer_manager is not None and renderer is not None:
+            renderer_manager.__exit__(None, None, None)
     return results
 
 

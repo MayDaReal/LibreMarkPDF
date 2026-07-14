@@ -203,6 +203,33 @@ class TestDeterministicCoreContract(unittest.TestCase):
             self.assertEqual([item["status"] for item in results], ["error", "error"])
             self.assertTrue(all("DUPLICATE_OUTPUT" in item["error"] for item in results))
 
+    def test_batch_reuses_one_browser_and_closes_it(self):
+        class FakeRenderer:
+            entered = 0
+            exited = 0
+
+            def __enter__(self):
+                type(self).entered += 1
+                return self
+
+            def __exit__(self, exc_type, exc_value, traceback):
+                type(self).exited += 1
+
+            def render(self, full_html, output_path, header_footer, render_date):
+                output_path.write_bytes(b"%PDF-1.4\nmock")
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            first = root / "one.md"
+            second = root / "two.md"
+            first.write_text("# One", encoding="utf-8")
+            second.write_text("# Two", encoding="utf-8")
+            with mock.patch.object(core, "_BrowserRenderer", FakeRenderer):
+                results = core.convert_batch([first, second], output_dir=root)
+            self.assertEqual([item["status"] for item in results], ["ok", "ok"])
+            self.assertEqual(FakeRenderer.entered, 1)
+            self.assertEqual(FakeRenderer.exited, 1)
+
 
 class TestResourcePolicy(unittest.TestCase):
     _PNG = b"\x89PNG\r\n\x1a\nsmall-png"

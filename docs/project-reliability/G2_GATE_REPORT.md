@@ -90,3 +90,21 @@ per-item/count/total limits, and static SVG inspection.
 The isolated-build failure is environment evidence only. A clean, offline build
 environment preseeded with the locked build requirements remains required for
 release evidence.
+
+## Incremental evidence — batch browser lifecycle
+
+`convert_batch()` now completes the destination preflight before publishing any
+output, starts at most one locked browser process for renderable entries, opens
+one fresh safe context per document, and always closes the shared process. A
+failed item remains isolated and still produces one result record. During the
+first real-batch attempt, `Page.pdf(timeout=...)` failed because Playwright
+1.60's Python binding does not accept that parameter; the argument was removed
+while the page-content timeout remains enforced. This is a compatibility defect
+found by the real renderer test, not a waived test.
+
+| Command | Exit | Result |
+| --- | ---: | --- |
+| `venv-linux/bin/python -m unittest tests.test_core.TestDeterministicCoreContract tests.test_cli -v` | 0 | 14 focused batch lifecycle, output, profile, and CLI tests passed. |
+| `PLAYWRIGHT_BROWSERS_PATH="$HOME/.cache/ms-playwright" venv-linux/bin/python -m unittest tests.test_core.TestEndToEndConversion.test_convert_batch_reports_per_file_status -v` | 1 | Initial real batch exposed unsupported `Page.pdf(timeout=...)`; valid input reported an error. |
+| same command after removing unsupported argument | 0 | Real locked-Chromium batch returned `ok` for the valid input and an independent error for the missing input. |
+| two fresh `RenderProfile('2026-07-14').fingerprint` processes | 0 / 0 | Both emitted `e356cf02cc87a1a64b82f97e3e4f8fdadb6c0e413eeb15772365b94ccf8b4ff0`. |
