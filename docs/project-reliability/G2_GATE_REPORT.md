@@ -343,6 +343,17 @@ window limitation, not a test skip or a partial accepted corpus.
 - exact-candidate Linux evidence: `/tmp/libremark-g2-linux-1822a7c/actual/evidence.json`, SHA-256 `f042289deae91377d28e243f7e871a87cb3178a03d542f8750dc785b828b6812`;
 - exact-candidate Linux comparison: `/tmp/libremark-g2-linux-1822a7c/comparison-report.json`, SHA-256 `9cead242bba7fddd6d9380a0cd47f75e34cf30e7b8db814344ae92ecf1f197f0`.
 
+The final monolithic Linux `unittest discover` attempt again reached the
+locked tagged-PDF integration test after the browser-free and earlier browser
+tests reported `ok`, but the interactive executor ended before the suite
+summary.  It is recorded as incomplete, not as a full-suite pass.  The two
+remaining targeted locked-engine checks completed independently:
+
+| Command | Exit | Result |
+| --- | ---: | --- |
+| `PLAYWRIGHT_BROWSERS_PATH="$HOME/.cache/ms-playwright" venv-linux/bin/python -m unittest discover -s tests -v` | incomplete | Executor ended during `test_locked_engine_emits_tagged_pdf_and_outline`; no final summary was produced. |
+| `PLAYWRIGHT_BROWSERS_PATH="$HOME/.cache/ms-playwright" venv-linux/bin/python -m unittest tests.test_core.TestEndToEndConversion.test_locked_engine_emits_tagged_pdf_and_outline tests.test_core.TestEndToEndConversion.test_render_preview_png_returns_valid_png_bytes -v` | 0 | Both locked Chromium checks passed in 24.069 seconds. |
+
 ## Incremental evidence — atomic output publication failures
 
 Temporary output creation and final atomic replacement are now normalized at
