@@ -645,18 +645,28 @@ def _atomic_render_pdf(
     """Render into a sibling temporary file, then atomically publish it."""
     temp_path = None
     try:
-        with tempfile.NamedTemporaryFile(
-            mode="wb", suffix=".pdf", prefix=".libremark-", dir=output_path.parent,
-            delete=False,
-        ) as handle:
-            temp_path = Path(handle.name)
+        try:
+            with tempfile.NamedTemporaryFile(
+                mode="wb", suffix=".pdf", prefix=".libremark-", dir=output_path.parent,
+                delete=False,
+            ) as handle:
+                temp_path = Path(handle.name)
+        except OSError as exc:
+            raise ConversionError(
+                "OUTPUT_UNAVAILABLE: cannot create temporary output in: {0}".format(output_path.parent)
+            ) from exc
         if renderer is None:
             _render_pdf(full_html, temp_path, header_footer, render_date)
         else:
             renderer.render(full_html, temp_path, header_footer, render_date)
         if not temp_path.exists() or temp_path.stat().st_size == 0:
             raise ConversionError("INVALID_OUTPUT: renderer did not create a PDF")
-        os.replace(str(temp_path), str(output_path))
+        try:
+            os.replace(str(temp_path), str(output_path))
+        except OSError as exc:
+            raise ConversionError(
+                "OUTPUT_REPLACE_FAILED: cannot publish output: {0}".format(output_path)
+            ) from exc
         temp_path = None
     finally:
         if temp_path is not None:

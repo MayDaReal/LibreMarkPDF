@@ -263,3 +263,20 @@ that standard static SVG with no observed non-data request.
 This does not create or approve goldens. A full uninterrupted Linux corpus run,
 explicit human golden review, and the matching native Windows run remain
 required before any VIS item is accepted.
+
+## Incremental evidence — atomic output publication failures
+
+Temporary output creation and final atomic replacement are now normalized at
+the core boundary as `OUTPUT_UNAVAILABLE` and `OUTPUT_REPLACE_FAILED`.
+Characterization tests simulate each operating-system failure after an existing
+destination has been created. Both retain the old destination bytes and leave
+no `.libremark-*.pdf` temporary file. This is additional Linux-independent
+contract evidence; a real native Windows unwritable-destination case remains
+part of the candidate evidence bundle.
+
+| Command | Exit | Result |
+| --- | ---: | --- |
+| `venv-linux/bin/python -m unittest tests.test_core.TestDeterministicCoreContract -v` | 0 | 19 deterministic, batch, output, and edge-condition tests passed. |
+| `/tmp/libremark-python39-venv/bin/python -m py_compile libremark_pdf/core.py tests/test_core.py` | 0 | Changed output path compiles with Python 3.9.23. |
+| `venv-linux/bin/python -m ruff check libremark_pdf/core.py tests/test_core.py` | 0 | `All checks passed!` |
+| `git diff --check` | 0 | No whitespace errors. |

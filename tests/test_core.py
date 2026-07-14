@@ -249,6 +249,31 @@ class TestDeterministicCoreContract(unittest.TestCase):
             self.assertEqual(output.read_bytes(), b"old")
             self.assertEqual(list(Path(tmp).glob(".libremark-*.pdf")), [])
 
+    def test_temporary_creation_failure_has_stable_code_and_preserves_output(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            output = Path(tmp) / "out.pdf"
+            output.write_bytes(b"old")
+            with mock.patch.object(core.tempfile, "NamedTemporaryFile", side_effect=PermissionError("denied")):
+                with self.assertRaisesRegex(core.ConversionError, "OUTPUT_UNAVAILABLE"):
+                    core.convert_markdown_text_to_pdf("# New", output, overwrite=True)
+            self.assertEqual(output.read_bytes(), b"old")
+            self.assertEqual(list(Path(tmp).glob(".libremark-*.pdf")), [])
+
+    def test_atomic_replacement_failure_has_stable_code_and_cleans_temporary(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            output = Path(tmp) / "out.pdf"
+            output.write_bytes(b"old")
+
+            def write_pdf(_html, temporary, _header_footer, _render_date):
+                temporary.write_bytes(b"new")
+
+            with mock.patch.object(core, "_render_pdf", side_effect=write_pdf):
+                with mock.patch.object(core.os, "replace", side_effect=PermissionError("denied")):
+                    with self.assertRaisesRegex(core.ConversionError, "OUTPUT_REPLACE_FAILED"):
+                        core.convert_markdown_text_to_pdf("# New", output, overwrite=True)
+            self.assertEqual(output.read_bytes(), b"old")
+            self.assertEqual(list(Path(tmp).glob(".libremark-*.pdf")), [])
+
     def test_renderer_failure_has_stable_error_code_and_keeps_message(self):
         class Page:
             def route(self, pattern, callback):
