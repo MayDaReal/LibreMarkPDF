@@ -79,7 +79,13 @@ class TestTemplateBuilding(unittest.TestCase):
     def test_empty_field_produces_empty_span(self):
         cfg = core.HeaderFooterConfig.none()
         html = core.build_header_template(cfg)
-        self.assertIn("<span></span><span></span><span></span>", html)
+        self.assertEqual(html.count('style="text-align:'), 3)
+
+    def test_center_slot_uses_geometric_grid_centering(self):
+        cfg = core.HeaderFooterConfig(top_left="long left", top_center="middle")
+        html = core.build_header_template(cfg)
+        self.assertIn("grid-template-columns:1fr auto 1fr", html)
+        self.assertIn('style="text-align:center">middle</span>', html)
 
 
 class TestMarkdownConversion(unittest.TestCase):
@@ -130,6 +136,18 @@ class TestMarkdownConversion(unittest.TestCase):
 
 
 class TestDeterministicCoreContract(unittest.TestCase):
+    def test_prepare_render_document_is_renderer_free_and_canonical(self):
+        document = core.prepare_render_document(
+            "# Canonical\n\nBody", render_date="2026-07-14"
+        )
+        self.assertEqual(document.render_date, "2026-07-14")
+        self.assertIn("<h1>Canonical</h1>", document.full_html)
+        self.assertIn(document.profile.fingerprint, document.full_html)
+
+    def test_prepare_render_document_rejects_non_iso_date(self):
+        with self.assertRaisesRegex(core.ConversionError, "INVALID_DATE"):
+            core.prepare_render_document("# Date", render_date="20260714")
+
     def test_resource_path_supports_source_and_pyinstaller_layouts(self):
         self.assertTrue(core.resource_path("style.css").is_file())
         with tempfile.TemporaryDirectory() as tmp:

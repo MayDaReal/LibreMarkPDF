@@ -43,6 +43,7 @@ class RenderProfile:
     profile_version: str = "default@1"
     theme_name: str = "bundled-default"
     theme_hash: Optional[str] = None
+    header_footer: tuple = ()
 
     def canonical_json(self) -> str:
         payload = {
@@ -60,6 +61,7 @@ class RenderProfile:
             "profile_version": self.profile_version,
             "raw_html_policy": self.raw_html_policy,
             "renderer_flags": ["--disable-font-subpixel-positioning"],
+            "header_footer": list(self.header_footer),
             "resource_hashes": _renderer_resource_hashes(self.theme_hash),
             "resource_limits": {
                 "count": MAX_RESOURCE_COUNT,
@@ -400,17 +402,17 @@ def _token_template_to_html(template: str, render_date: Optional[str] = None) ->
 _TEMPLATE_CONTAINER_STYLE = (
     "font-size:8px; color:#59636e; width:100%; "
     "padding:0 18mm; margin:0; box-sizing:border-box; "
-    "font-family: Helvetica, Arial, sans-serif; "
-    "display:flex; justify-content:space-between; align-items:center;"
+    "font-family:'G1 Noto Sans', 'G1 Noto Sans Arabic', 'G1 Noto Sans CJK SC', sans-serif; "
+    "display:grid; grid-template-columns:1fr auto 1fr; align-items:center;"
 )
 
 
 def _build_template(left: str, center: str, right: str, render_date: Optional[str] = None) -> str:
     return (
         f'<div style="{_TEMPLATE_CONTAINER_STYLE}">'
-        f"<span>{_token_template_to_html(left, render_date)}</span>"
-        f"<span>{_token_template_to_html(center, render_date)}</span>"
-        f"<span>{_token_template_to_html(right, render_date)}</span>"
+        f'<span style="text-align:left">{_token_template_to_html(left, render_date)}</span>'
+        f'<span style="text-align:center">{_token_template_to_html(center, render_date)}</span>'
+        f'<span style="text-align:right">{_token_template_to_html(right, render_date)}</span>'
         f"</div>"
     )
 
@@ -466,6 +468,15 @@ MARGIN_WITH_HEADER_FOOTER = {
 
 class ConversionError(Exception):
     """Conversion failure with an actionable message safe for front ends."""
+
+
+@dataclass(frozen=True)
+class RenderDocument:
+    """Fully resolved deterministic document passed to the locked renderer."""
+
+    full_html: str
+    profile: RenderProfile
+    render_date: str
 
 
 def error_code(exc: BaseException) -> str:
@@ -623,6 +634,45 @@ def _atomic_render_pdf(
                 pass
 
 
+def prepare_render_document(
+    markdown_text: str,
+    css_path: Optional[_PathInput] = None,
+    render_date: Optional[str] = None,
+    trusted_html: bool = False,
+    resource_root: Optional[_PathInput] = None,
+    header_footer: Optional[HeaderFooterConfig] = None,
+) -> RenderDocument:
+    """Resolve deterministic HTML and profile inputs without launching Chromium."""
+    if render_date is not None:
+        if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", render_date):
+            raise ConversionError("INVALID_DATE: use YYYY-MM-DD")
+        try:
+            date.fromisoformat(render_date)
+        except ValueError as exc:
+            raise ConversionError("INVALID_DATE: use YYYY-MM-DD") from exc
+    resolved_date = render_date or _today_str()
+    css_text = _read_css(css_path)
+    hf = header_footer if header_footer is not None else HeaderFooterConfig()
+    profile = RenderProfile(
+        resolved_date,
+        raw_html_policy="trusted-static" if trusted_html else "safe",
+        theme_name="custom-css" if css_path else "bundled-default",
+        theme_hash=hashlib.sha256(css_text.encode("utf-8")).hexdigest(),
+        header_footer=(
+            hf.top_left, hf.top_center, hf.top_right,
+            hf.bottom_left, hf.bottom_center, hf.bottom_right,
+        ),
+    )
+    body_html = markdown_to_html(markdown_text, trusted_html=trusted_html)
+    body_html = embed_local_resources(body_html, resource_root or Path.cwd())
+    title = extract_title(body_html)
+    return RenderDocument(
+        build_full_html(body_html, title, css_text, profile.fingerprint),
+        profile,
+        resolved_date,
+    )
+
+
 def convert_markdown_text_to_pdf(
     markdown_text: str,
     output_path: _PathInput,
@@ -640,26 +690,23 @@ def convert_markdown_text_to_pdf(
     if output_path.exists() and not overwrite:
         raise ConversionError(f"OUTPUT_EXISTS: refusing to overwrite: {output_path}")
 
-    css_text = _read_css(css_path)
-    if render_date is not None:
-        try:
-            date.fromisoformat(render_date)
-        except ValueError as exc:
-            raise ConversionError("INVALID_DATE: use YYYY-MM-DD") from exc
-    resolved_date = render_date or _today_str()
-    profile = RenderProfile(
-        resolved_date,
-        raw_html_policy="trusted-static" if trusted_html else "safe",
-        theme_name="custom-css" if css_path else "bundled-default",
-        theme_hash=hashlib.sha256(css_text.encode("utf-8")).hexdigest(),
-    )
-    body_html = markdown_to_html(markdown_text, trusted_html=trusted_html)
-    body_html = embed_local_resources(body_html, resource_root or Path.cwd())
-    title = extract_title(body_html)
-    full_html = build_full_html(body_html, title, css_text, profile.fingerprint)
-
     hf = header_footer if header_footer is not None else HeaderFooterConfig()
-    _atomic_render_pdf(full_html, output_path, hf, resolved_date, renderer=_renderer)
+    document = prepare_render_document(
+        markdown_text,
+        css_path=css_path,
+        render_date=render_date,
+        trusted_html=trusted_html,
+        resource_root=resource_root,
+        header_footer=hf,
+    )
+
+    _atomic_render_pdf(
+        document.full_html,
+        output_path,
+        hf,
+        document.render_date,
+        renderer=_renderer,
+    )
     return output_path
 
 

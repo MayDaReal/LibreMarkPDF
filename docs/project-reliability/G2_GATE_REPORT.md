@@ -108,3 +108,28 @@ found by the real renderer test, not a waived test.
 | `PLAYWRIGHT_BROWSERS_PATH="$HOME/.cache/ms-playwright" venv-linux/bin/python -m unittest tests.test_core.TestEndToEndConversion.test_convert_batch_reports_per_file_status -v` | 1 | Initial real batch exposed unsupported `Page.pdf(timeout=...)`; valid input reported an error. |
 | same command after removing unsupported argument | 0 | Real locked-Chromium batch returned `ok` for the valid input and an independent error for the missing input. |
 | two fresh `RenderProfile('2026-07-14').fingerprint` processes | 0 / 0 | Both emitted `e356cf02cc87a1a64b82f97e3e4f8fdadb6c0e413eeb15772365b94ccf8b4ff0`. |
+
+## Incremental evidence — canonical comparison harness
+
+The new comparison tool has no renderer implementation: it creates documents
+only through `libremark_pdf.core`, then uses pinned PDFium 5.11.0 at the frozen
+144 DPI to inspect page count, dimensions, text order hash, image inventory,
+PDF URI inventory, and pixels. It compares canonical pre-render HTML and
+profile fingerprints exactly; every semantic, pagination, structural, or
+threshold mismatch fails and retains a page diff. The normal command has no
+golden-update option. A separate writer requires a non-empty review ticket,
+named human reviewer, and explanation before it can replace expected data.
+
+| Command | Exit | Result |
+| --- | ---: | --- |
+| `venv-linux/bin/python -m unittest tests.test_core.TestHeaderFooterConfig tests.test_core.TestTemplateBuilding tests.test_core.TestDeterministicCoreContract tests.test_g2_harness -v` | 0 | 26 focused core and harness tests passed. |
+| `venv-linux/bin/python -m ruff check libremark_pdf/core.py tools/g2_visual_harness.py tools/update_g2_goldens.py tests/test_core.py tests/test_g2_harness.py` | 0 | Syntax/undefined-name policy passed. |
+| `git diff --check` | 0 | No whitespace errors. |
+| first `/tmp` corpus invocation | 1 | Direct execution initially failed before rendering: `tools/g2_visual_harness.py` did not place the repository root on `sys.path`. Corrected without changing rendering behavior. |
+| corrected `/tmp` corpus invocation | incomplete | Four fixtures rendered through the shared core before the interactive command window ended; no `evidence.json`, report, expected manifest, or repository PDF was created. This is an execution-window limit, not accepted full-corpus evidence. |
+
+No expected data or raster golden is committed. A full Linux run must use an
+uninterrupted worker, write its artifacts outside the repository, and then be
+submitted with before/after images and a named human appearance review before
+the explicit golden writer is permitted. The harness and corpus therefore
+remain in progress, and G2 remains open.
