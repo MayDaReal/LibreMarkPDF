@@ -306,6 +306,14 @@ class TestEndToEndConversion(unittest.TestCase):
             self.assertTrue(output.exists())
             self.assertGreater(output.stat().st_size, 0)
 
+    def test_locked_engine_emits_tagged_pdf_and_outline(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            output = Path(tmp) / "accessible.pdf"
+            core.convert_markdown_text_to_pdf("# Heading\n\nBody.", output)
+            pdf = output.read_bytes()
+            self.assertIn(b"/StructTreeRoot", pdf)
+            self.assertIn(b"/Outlines", pdf)
+
     def test_convert_batch_reports_per_file_status(self):
         with tempfile.TemporaryDirectory() as tmp:
             good = Path(tmp) / "good.md"

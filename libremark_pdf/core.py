@@ -584,6 +584,8 @@ class _BrowserRenderer:
                     if display_hf else "<div></div>"
                 ),
                 print_background=True,
+                tagged=True,
+                outline=True,
             )
             if observed_requests:
                 raise ConversionError("NETWORK_BLOCKED: renderer attempted a network request")

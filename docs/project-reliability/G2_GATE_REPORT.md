@@ -133,3 +133,18 @@ uninterrupted worker, write its artifacts outside the repository, and then be
 submitted with before/after images and a named human appearance review before
 the explicit golden writer is permitted. The harness and corpus therefore
 remain in progress, and G2 remains open.
+
+## Incremental evidence — tagged PDF and outline
+
+Inspection of the locked Playwright 1.60 `Page.pdf()` signature confirmed that
+both `tagged` and `outline` are available. The core requests both options for
+every document. This is not inferred from API presence alone: the emitted PDF
+was inspected for `/StructTreeRoot` and `/Outlines`.
+
+| Command | Exit | Result |
+| --- | ---: | --- |
+| locked-engine `Page.pdf(tagged=True, outline=True)` probe | 0 | `/StructTreeRoot=True`, `/Outlines=True`; 12,532-byte probe PDF under `/tmp`. |
+| `PLAYWRIGHT_BROWSERS_PATH="$HOME/.cache/ms-playwright" venv-linux/bin/python -m unittest tests.test_core.TestEndToEndConversion.test_locked_engine_emits_tagged_pdf_and_outline -v` | 0 | Core-produced PDF contained both required structural markers. |
+
+This is Linux evidence only. The same structural test is mandatory in the
+native Windows candidate run before REN-014 or G2 is accepted.
