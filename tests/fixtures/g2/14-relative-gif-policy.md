@@ -1,3 +1,3 @@
-# GIF policy
+# GIF data URI
 
-GIF validation is covered by a negative policy fixture in the core suite.
+![One-pixel GIF](data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==)

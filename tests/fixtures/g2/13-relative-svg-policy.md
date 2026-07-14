@@ -1,3 +1,3 @@
-# SVG policy
+# Relative SVG
 
-SVG validation is covered by a negative policy fixture in the core suite.
+![Blue square](resources/blue-square.svg)

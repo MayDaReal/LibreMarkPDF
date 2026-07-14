@@ -27,9 +27,10 @@
     {"id": "25-header-date", "markdown": "25-header-date.md", "header_footer": {"bottom_left": "{date}", "bottom_center": "Page {page} / {total}"}},
     {"id": "26-small", "markdown": "26-small.md"},
     {"id": "27-large", "markdown": "27-large.md"},
-    {"id": "28-path-space", "markdown": "28-path-space.md"},
-    {"id": "29-unicode-path", "markdown": "29-unicode-path.md"},
-    {"id": "30-duplicate-stem", "markdown": "30-duplicate-stem.md"}
+    {"id": "28-path-space", "markdown": "paths/space name.md"},
+    {"id": "29-unicode-path", "markdown": "paths/épreuve.md"},
+    {"id": "30-duplicate-stem-one", "markdown": "duplicates/first/report.md"},
+    {"id": "31-duplicate-stem-two", "markdown": "duplicates/second/report.md"}
   ],
   "schema": 1
 }

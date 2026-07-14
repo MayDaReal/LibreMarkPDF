@@ -1,3 +1,3 @@
-# Relative PNG
+# PNG data URI
 
-![LibreMark logo](../../../assets/libremark-pdf-logo-16.png)
+![One-pixel PNG](data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScLAmQAAAABJRU5ErkJggg==)

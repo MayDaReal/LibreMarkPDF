@@ -6,8 +6,10 @@ ADR-002 fixed 144 DPI.  It never writes expected data.
 """
 
 import argparse
+import base64
 import hashlib
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -32,6 +34,33 @@ LARGEST_REGION_MAXIMUM_PERCENT = 0.05
 def sha256_file(path):
     """Return the SHA-256 for one immutable input or evidence file."""
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def embedded_image_hashes(html):
+    """Return ordered hashes for image payloads already embedded by core.
+
+    This records fixture images as immutable rendering inputs without assigning
+    browser-visible paths to the expected-data manifest.
+    """
+    hashes = []
+    for value in re.findall(r"<img\b[^>]*\bsrc=[\"'](data:image/[^\"']+)[\"']", html, re.I):
+        try:
+            payload = value.split(",", 1)[1]
+            decoded = base64.b64decode(payload, validate=True)
+        except (IndexError, ValueError):
+            raise ValueError("Malformed embedded image in canonical HTML")
+        hashes.append(hashlib.sha256(decoded).hexdigest())
+    return hashes
+
+
+def text_geometry_sha256(text_page):
+    """Hash extracted text order and PDFium character boxes at fixed precision."""
+    boxes = []
+    for index in range(text_page.count_chars()):
+        box = text_page.get_charbox(index)
+        boxes.append([round(float(value), 4) for value in box])
+    payload = json.dumps(boxes, separators=(",", ":"), ensure_ascii=False)
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
 class RegionSet:
@@ -172,7 +201,8 @@ def pdf_evidence(pdf_path, raster_dir):
     for index in range(len(document)):
         page = document[index]
         width, height = page.get_size()
-        text = page.get_textpage().get_text_range()
+        text_page = page.get_textpage()
+        text = text_page.get_text_range()
         objects = list(page.get_objects())
         image_count = sum(1 for item in objects if str(item.type).lower().endswith("image"))
         bitmap = page.render(scale=RASTER_DPI / 72.0)
@@ -183,6 +213,7 @@ def pdf_evidence(pdf_path, raster_dir):
             "height_points": round(height, 4),
             "image": image_path.name,
             "image_count": image_count,
+            "text_geometry_sha256": text_geometry_sha256(text_page),
             "text_sha256": hashlib.sha256(text.encode("utf-8")).hexdigest(),
             "width_points": round(width, 4),
         })
@@ -246,9 +277,14 @@ def generate_actual(manifest_path, actual_dir):
             page_dir = actual_dir / (fixture["id"] + "-pages")
             entry = {"canonical_html_sha256": hashlib.sha256(
                         document.full_html.encode("utf-8")).hexdigest(),
+                     "embedded_image_sha256": embedded_image_hashes(document.full_html),
                      "fixture": fixture["id"], "markdown_sha256": fixture["markdown_sha256"],
                      "pdf_sha256": sha256_file(pdf_path),
-                     "profile_fingerprint": document.profile.fingerprint}
+                     "profile_canonical_sha256": hashlib.sha256(
+                        document.profile.canonical_json().encode("utf-8")).hexdigest(),
+                     "profile_fingerprint": document.profile.fingerprint,
+                     "renderer_resource_hashes": json.loads(
+                        document.profile.canonical_json())["resource_hashes"]}
             entry.update(pdf_evidence(pdf_path, page_dir))
             evidence["fixtures"].append(entry)
     (actual_dir / "evidence.json").write_text(
@@ -272,14 +308,16 @@ def compare(expected_path, actual_dir, report_path, diff_dir):
             failures.append({"fixture": fixture_id, "reason": "fixture-set-mismatch"})
             continue
         checks = {key: reference.get(key) == candidate.get(key) for key in
-                  ("markdown_sha256", "canonical_html_sha256", "profile_fingerprint",
-                   "page_count", "links")}
+                  ("markdown_sha256", "canonical_html_sha256", "embedded_image_sha256",
+                   "profile_canonical_sha256", "profile_fingerprint",
+                   "renderer_resource_hashes", "page_count", "links")}
         page_results = []
         if len(reference["pages"]) != len(candidate["pages"]):
             checks["pagination"] = False
         for index, (left, right) in enumerate(zip(reference["pages"], candidate["pages"])):
             structural = all(left.get(key) == right.get(key) for key in
-                             ("width_points", "height_points", "text_sha256", "image_count"))
+                             ("width_points", "height_points", "text_geometry_sha256",
+                              "text_sha256", "image_count"))
             reference_image = Path(expected_path).parent / "rasters" / fixture_id / left["image"]
             candidate_image = actual_dir / (fixture_id + "-pages") / right["image"]
             metrics = raster_metrics(Image.open(reference_image), Image.open(candidate_image))

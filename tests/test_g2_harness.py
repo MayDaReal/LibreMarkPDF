@@ -1,6 +1,7 @@
 """Unit coverage for the non-mutating Gate G2 visual comparison harness."""
 
 import importlib.util
+import json
 import sys
 import tempfile
 import unittest
@@ -24,6 +25,8 @@ class TestG2VisualHarness(unittest.TestCase):
         )
         self.assertEqual(manifest["schema"], 1)
         self.assertGreaterEqual(len(fixtures), 30)
+        self.assertTrue(any(" " in str(item["markdown"]) for item in fixtures))
+        self.assertTrue(any("é" in str(item["markdown"]) for item in fixtures))
 
     def test_identical_rasters_meet_frozen_thresholds(self):
         image = Image.new("RGB", (4, 4), "white")
@@ -43,6 +46,14 @@ class TestG2VisualHarness(unittest.TestCase):
         self.assertNotIn("--update-goldens", source)
         self.assertNotIn("--write-expected", source)
 
+    def test_embedded_image_hashes_are_payload_not_path_hashes(self):
+        html = (
+            '<img src="data:image/png;base64,YWJj">'
+            '<img alt="same" src="data:image/gif;base64,YWJj">'
+        )
+        expected = "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+        self.assertEqual(g2_visual_harness.embedded_image_hashes(html), [expected, expected])
+
     def test_missing_expected_data_fails_without_writing_it(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -53,3 +64,40 @@ class TestG2VisualHarness(unittest.TestCase):
             with self.assertRaises(FileNotFoundError):
                 g2_visual_harness.compare(expected, actual, root / "report.json", root / "diff")
             self.assertFalse(expected.exists())
+
+    def test_text_geometry_difference_fails_unconditionally(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            expected_root = root / "expected"
+            actual_root = root / "actual"
+            expected_raster = expected_root / "rasters" / "sample"
+            actual_raster = actual_root / "sample-pages"
+            expected_raster.mkdir(parents=True)
+            actual_raster.mkdir(parents=True)
+            Image.new("RGB", (2, 2), "white").save(expected_raster / "page-001.png")
+            Image.new("RGB", (2, 2), "white").save(actual_raster / "page-001.png")
+            common = {
+                "canonical_html_sha256": "html", "embedded_image_sha256": [],
+                "fixture": "sample", "links": [], "markdown_sha256": "markdown",
+                "page_count": 1, "profile_canonical_sha256": "profile-json",
+                "profile_fingerprint": "profile", "renderer_resource_hashes": {},
+            }
+            expected = dict(common, pages=[{
+                "height_points": 842.0, "image": "page-001.png", "image_count": 0,
+                "text_geometry_sha256": "left", "text_sha256": "text", "width_points": 595.0,
+            }])
+            actual = dict(common, pages=[{
+                "height_points": 842.0, "image": "page-001.png", "image_count": 0,
+                "text_geometry_sha256": "right", "text_sha256": "text", "width_points": 595.0,
+            }])
+            (expected_root / "expected.json").write_text(
+                json.dumps({"schema": 1, "fixtures": [expected]}), encoding="utf-8"
+            )
+            (actual_root / "evidence.json").write_text(
+                json.dumps({"schema": 1, "fixtures": [actual]}), encoding="utf-8"
+            )
+            report = g2_visual_harness.compare(
+                expected_root / "expected.json", actual_root, root / "report.json", root / "diff"
+            )
+            self.assertEqual(report["result"], "fail")
+            self.assertFalse(report["fixtures"][0]["pages"][0]["structural_pass"])

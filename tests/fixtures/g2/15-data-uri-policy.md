@@ -1,3 +1,3 @@
-# Data URI policy
+# PNG data URI
 
-Data URIs are validated before Chromium receives this document.
+![One-pixel PNG](data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScLAmQAAAABJRU5ErkJggg==)

@@ -142,6 +142,11 @@ class TestMarkdownConversion(unittest.TestCase):
         html = core.markdown_to_html("`✅`")
         self.assertIn("<code>✅</code>", html)
 
+    def test_emoji_in_alternative_text_stays_literal(self):
+        html = core.markdown_to_html("Visible ✅\n\n![Status ✅](icon.png)")
+        self.assertIn('alt="Status ✅"', html)
+        self.assertEqual(html.count('class="emoji"'), 1)
+
 
 class TestDeterministicCoreContract(unittest.TestCase):
     def test_prepare_render_document_is_renderer_free_and_canonical(self):
@@ -353,6 +358,20 @@ class TestResourcePolicy(unittest.TestCase):
                     '<img src="data:image/svg+xml;base64,{0}">'.format(payload), tmp
                 )
 
+    def test_standard_static_svg_is_embedded_but_external_href_is_rejected(self):
+        safe = b'<svg xmlns="http://www.w3.org/2000/svg"><rect width="1" height="1"/></svg>'
+        unsafe = (b'<svg xmlns="http://www.w3.org/2000/svg" '
+                  b'href="https://example.invalid/image.png"/>')
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "safe.svg").write_bytes(safe)
+            self.assertIn("data:image/svg+xml;base64,", core.embed_local_resources(
+                '<img src="safe.svg">', root
+            ))
+            (root / "unsafe.svg").write_bytes(unsafe)
+            with self.assertRaisesRegex(core.ConversionError, "active or network-capable"):
+                core.embed_local_resources('<img src="unsafe.svg">', root)
+
     def test_symbolic_link_escape_is_rejected(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp) / "root"
@@ -369,6 +388,19 @@ class TestResourcePolicy(unittest.TestCase):
 
 
 class TestEndToEndConversion(unittest.TestCase):
+    def test_standard_static_svg_renders_offline(self):
+        svg = b'<svg xmlns="http://www.w3.org/2000/svg" width="8" height="8"><rect width="8" height="8"/></svg>'
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source = root / "document.md"
+            source.write_text("![Static SVG](image.svg)", encoding="utf-8")
+            (root / "image.svg").write_bytes(svg)
+            output = root / "document.pdf"
+            with core._BrowserRenderer() as renderer:
+                core.convert_markdown_to_pdf(source, output, _renderer=renderer)
+                self.assertEqual(renderer.last_observed_requests, [])
+            self.assertGreater(output.stat().st_size, 0)
+
     def test_safe_and_trusted_static_rendering_observe_zero_requests(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

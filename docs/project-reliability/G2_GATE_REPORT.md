@@ -230,3 +230,36 @@ browser-free portion was rerun as one deterministic segment and completed.
 
 The individual locked-Chromium tests recorded earlier remain valid; a complete
 uninterrupted full-suite execution is still required before G2 closure.
+
+## Incremental evidence — canonical corpus strengthening and static SVG
+
+The corpus now has 31 fixtures. It contains a genuinely multi-page table,
+embedded PNG/JPEG/GIF coverage, a local static SVG, and inputs whose actual
+paths include spaces, Unicode, and duplicate Markdown stems. The comparison
+manifest now records ordered hashes of embedded image payloads, a canonical
+profile JSON hash, renderer CSS/font/icon hashes, and a PDFium character-box
+geometry hash in addition to the pre-existing HTML, text, page, link, image,
+pagination, and raster checks. A geometry mismatch is an unconditional
+structural failure in the harness unit test.
+
+Characterization found that the SVG filter rejected the standard
+`xmlns="http://www.w3.org/2000/svg"` declaration because it treated every HTTP
+string as a network capability. The narrow correction permits XML namespaces
+but continues to reject external `href`/`src`/`xlink:href`, scripts, event
+handlers, `@import`, and CSS `url()` content. The locked browser then rendered
+that standard static SVG with no observed non-data request.
+
+| Command | Exit | Result |
+| --- | ---: | --- |
+| initial canonical preparation of all fixtures | 1 | Revealed the standard SVG namespace false positive and the out-of-root PNG fixture; no PDF, expected data, or golden was written. |
+| `venv-linux/bin/python -m unittest tests.test_core.TestResourcePolicy tests.test_g2_harness -v` | 0 | 13 SVG/resource and harness checks passed after the narrow SVG correction. |
+| canonical preparation loop over `tests/fixtures/g2/manifest.json` | 0 | All 31 fixtures prepared through the core with fixed inputs and profile fingerprints. |
+| `PLAYWRIGHT_BROWSERS_PATH="$HOME/.cache/ms-playwright" venv-linux/bin/python -m unittest tests.test_core.TestEndToEndConversion.test_standard_static_svg_renders_offline -v` | 0 | Locked Chromium rendered a standard static SVG and observed `[]` non-data requests. |
+| `venv-linux/bin/python -m unittest tests.test_core.TestMarkdownConversion tests.test_core.TestResourcePolicy tests.test_g2_harness -v` | 0 | 25 core/resource/harness checks passed, including alternative-text and geometry-failure assertions. |
+| `/tmp/libremark-python39-venv/bin/python -m py_compile libremark_pdf/core.py tests/test_core.py tools/g2_visual_harness.py tests/test_g2_harness.py` | 0 | Changed code compiles with Python 3.9.23. |
+| `venv-linux/bin/python -m ruff check libremark_pdf/core.py tests/test_core.py tools/g2_visual_harness.py tests/test_g2_harness.py` | 0 | `All checks passed!` |
+| `git diff --check` | 0 | No whitespace errors. |
+
+This does not create or approve goldens. A full uninterrupted Linux corpus run,
+explicit human golden review, and the matching native Windows run remain
+required before any VIS item is accepted.

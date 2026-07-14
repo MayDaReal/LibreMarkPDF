@@ -265,7 +265,8 @@ def _validate_image_bytes(data: bytes, suffix: str) -> None:
             raise _resource_error("SVG signature does not match its extension")
         if re.search(
             rb"(?is)<\s*(script|iframe|object|embed|foreignObject)\b|\bon\w+\s*=|"
-            rb"(?:https?:|//|file:)|@import|url\s*\(",
+            rb"\b(?:href|src|xlink:href)\s*=\s*['\"]?\s*(?:https?:|//|file:)|"
+            rb"@import|url\s*\(",
             data,
         ):
             raise _resource_error("SVG contains active or network-capable content")
