@@ -51,6 +51,12 @@ class TestG2VisualHarness(unittest.TestCase):
         self.assertIn("--generate-only", source)
         self.assertIn('"result": "generated"', source)
 
+    def test_golden_writer_can_reuse_only_complete_reviewed_evidence(self):
+        source = (ROOT / "tools" / "update_g2_goldens.py").read_text(encoding="utf-8")
+        self.assertIn("--actual-dir", source)
+        self.assertIn("require_complete=True", source)
+        self.assertIn("source_evidence_sha256", source)
+
     def test_checkpoint_collection_rejects_an_incomplete_final_corpus(self):
         manifest = ROOT / "tests" / "fixtures" / "g2" / "manifest.json"
         with tempfile.TemporaryDirectory() as temporary:
