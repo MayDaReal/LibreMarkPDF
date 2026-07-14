@@ -318,6 +318,31 @@ temporary candidate rasters, browser payloads, and diff output remain outside
 source control.  VIS-001 through VIS-007 are accepted for Linux.  VIS-008 and
 the G2 decision remain open pending the same-commit native Windows evidence.
 
+The exact execution and return-bundle specification for that remaining lane is
+[`G2_WINDOWS_EXECUTION_PROMPT.md`](G2_WINDOWS_EXECUTION_PROMPT.md).  It targets
+commit `1822a7c538558622a088ef464f15ddee408eef1d`, the first candidate that
+contains the approved expected data.  The native agent must not replace its
+locked browser payload or download a browser while executing the offline lane.
+
+## Incremental evidence — exact Linux/Windows candidate pair
+
+The canonical corpus was recaptured from the exact Windows candidate commit
+`1822a7c538558622a088ef464f15ddee408eef1d`, with candidate PDFs, checkpoints,
+and report retained only under `/tmp/libremark-g2-linux-1822a7c`.  The first
+long renderer process was interrupted by the interactive executor after four
+checkpoints.  Resumable fixture invocations completed the remaining entries;
+`--collect-only` then required all 31 before comparison.  This is a runner
+window limitation, not a test skip or a partial accepted corpus.
+
+| Command | Exit | Result |
+| --- | ---: | --- |
+| `PLAYWRIGHT_BROWSERS_PATH="$HOME/.cache/ms-playwright" venv-linux/bin/python tools/g2_visual_harness.py --manifest tests/fixtures/g2/manifest.json --actual-dir /tmp/libremark-g2-linux-1822a7c/actual --report /tmp/libremark-g2-linux-1822a7c/generate-report.json --diff-dir /tmp/libremark-g2-linux-1822a7c/diff --generate-only` | incomplete | First attempt published checkpoints `01`–`04` only before the executor window ended. |
+| resumable `tools/g2_visual_harness.py --generate-only --fixture <remaining-ID>` invocations using the same command inputs | 0 | Completed all 31 expected checkpoint entries without writing expected data. |
+| `venv-linux/bin/python tools/g2_visual_harness.py --manifest tests/fixtures/g2/manifest.json --expected tests/goldens/g2/expected.json --actual-dir /tmp/libremark-g2-linux-1822a7c/actual --report /tmp/libremark-g2-linux-1822a7c/comparison-report.json --diff-dir /tmp/libremark-g2-linux-1822a7c/diff --collect-only` | 0 | Strict comparison passed for 31 fixtures and 34 pages. |
+
+- exact-candidate Linux evidence: `/tmp/libremark-g2-linux-1822a7c/actual/evidence.json`, SHA-256 `f042289deae91377d28e243f7e871a87cb3178a03d542f8750dc785b828b6812`;
+- exact-candidate Linux comparison: `/tmp/libremark-g2-linux-1822a7c/comparison-report.json`, SHA-256 `9cead242bba7fddd6d9380a0cd47f75e34cf30e7b8db814344ae92ecf1f197f0`.
+
 ## Incremental evidence — atomic output publication failures
 
 Temporary output creation and final atomic replacement are now normalized at

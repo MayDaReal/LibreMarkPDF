@@ -34,7 +34,7 @@ their archive is immutable.
 | VIS-005 | comparison owner | harness/tests | VIS-003/004 | no structural metrics → strict structure plus frozen raster thresholds | harness metric tests | page report/diff | accepted on Linux; strict semantic/pagination/geometry checks and frozen metrics passed → VIS-008 |
 | VIS-006 | comparison owner | harness/tests | VIS-005 | opaque failures → retained page diagnostics | harness comparison test | report/diff paths | accepted on Linux; page-level report and retained failure diffs implemented → VIS-008 |
 | VIS-007 | comparison owner | update script/docs/tests | VIS-002 | tests can mutate expectations → explicit reviewed update only | no-mutation test | separate-command guard | accepted on Linux; tag-backed MayDaReal review, source-evidence hash and separate writer verified → VIS-008 |
-| VIS-008 | Windows + integration owner | evidence prompt/manifest/report | VIS-001–007 | G1 spike only → same-commit native corpus evidence | native Windows prompt | reviewed Windows archive | awaiting native environment → G2 decision |
+| VIS-008 | Windows + integration owner | `G2_WINDOWS_EXECUTION_PROMPT.md`, evidence archive | VIS-001–007 | G1 spike only → same-commit native corpus evidence | prompt commands | reviewed Windows archive | exact native prompt and bundle manifest prepared; awaiting native Windows x64 execution for `1822a7c...` → G2 decision |
 | VIS-009 | platform owner | platform evidence | VIS-008 | optional platform matrix undefined → candidate-only extension | platform-specific | native candidate record | not applicable before candidate lanes |
 
 Gate decision remains **not passed** until every mandatory row is accepted and
