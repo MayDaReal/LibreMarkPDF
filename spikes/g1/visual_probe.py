@@ -26,6 +26,7 @@ HERE = Path(__file__).resolve().parent
 FIXTURE = HERE / "fixtures" / "visual-representative.md"
 FONT_MANIFEST = HERE / "font_candidates_static.json"
 TEST_DATE = "2026-01-15"
+DEFAULT_CHROMIUM_ARGS = ["--disable-font-subpixel-positioning"]
 LEGACY_FONT_CSS = {
     "NotoSans.ttf": ("G1 Noto Sans", "100 900"),
     "NotoSansMono.ttf": ("G1 Noto Sans Mono", "100 900"),
@@ -169,6 +170,12 @@ def main() -> int:
     parser.add_argument("--output-dir", required=True, type=Path)
     parser.add_argument("--font-manifest", default=FONT_MANIFEST, type=Path)
     parser.add_argument(
+        "--chromium-arg",
+        action="append",
+        default=list(DEFAULT_CHROMIUM_ARGS),
+        help="Repeatable Chromium launch argument recorded in the render profile.",
+    )
+    parser.add_argument(
         "--font-root",
         type=Path,
         help="Directory produced by fetch_font_candidates.py.",
@@ -208,7 +215,7 @@ def main() -> int:
     pdf_path = args.output_dir / "visual-{}.pdf".format(args.profile)
     with sync_playwright() as playwright:
         browser_path = browser_executable(Path(playwright.chromium.executable_path))
-        browser = playwright.chromium.launch()
+        browser = playwright.chromium.launch(args=args.chromium_arg)
         context = browser.new_context(
             java_script_enabled=False,
             locale="en-US",
@@ -299,6 +306,7 @@ def main() -> int:
             )
 
     profile_data = {
+        "chromium_args": args.chromium_arg,
         "date": TEST_DATE,
         "font_manifest_sha256": sha256_file(manifest_path) if font_dir else None,
         "html_fingerprint": html_fingerprint,

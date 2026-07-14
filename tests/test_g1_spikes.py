@@ -8,7 +8,11 @@ from PIL import Image
 
 from spikes.g1.fetch_font_candidates import iter_assets, load_manifest
 from spikes.g1.visual_compare import changed_regions, global_ssim, page_metrics
-from spikes.g1.visual_probe import font_face, output_is_outside_repository
+from spikes.g1.visual_probe import (
+    DEFAULT_CHROMIUM_ARGS,
+    font_face,
+    output_is_outside_repository,
+)
 
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -60,7 +64,13 @@ class TestFontCandidateManifest(unittest.TestCase):
             encoding="utf-8"
         )
         self.assertIn("CSS.getPlatformFontsForNode", probe)
+        self.assertIn('"chromium_args": args.chromium_arg', probe)
+        self.assertIn("playwright.chromium.launch(args=args.chromium_arg)", probe)
         self.assertIn('not item["isCustomFont"]', probe)
+        self.assertEqual(
+            DEFAULT_CHROMIUM_ARGS,
+            ["--disable-font-subpixel-positioning"],
+        )
 
 
 class TestVisualMetrics(unittest.TestCase):

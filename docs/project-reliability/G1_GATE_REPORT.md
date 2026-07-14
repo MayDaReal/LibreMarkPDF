@@ -1,9 +1,10 @@
 # Gate G1 integration decision
 
 Decision date: 2026-07-14
-Decision: **NOT PASSED — first cross-OS font candidate failed; Lot 2 is not authorized**
+Decision: **NOT PASSED — two cross-OS profiles failed; Lot 2 is not authorized**
 Integrator: repository integration owner
-Integration base: `4107aea0d7d28a8bf9728d4a27854c5210393380`
+Reviewed evidence source commits: `4107aea0d7d28a8bf9728d4a27854c5210393380`,
+`93fbf83404339999064e7b09b18399ea9dfb4606`
 Audited continuity identifier: `89f27f26c961b5b2776928e26b1f168ed2c87550`
 
 The frozen baseline was read and was not edited. Production core, GUI, CLI,
@@ -17,15 +18,16 @@ Git. Unrelated brand work was not staged, deleted, or incorporated.
 
 | G1 criterion | Decision | Evidence / remaining dependency |
 | --- | --- | --- |
-| Renderer/browser, fonts, resources, thresholds, and Windows format selected from measurements | pending replacement measurement | the first variable-font Windows/Linux pair failed ADR-002; a static Regular/SemiBold replacement repeats exactly on Linux and now requires native Windows measurement and owner review |
+| Renderer/browser, fonts, resources, thresholds, and Windows format selected from measurements | pending final profile measurement and owner decision | variable and unflagged static Windows/Linux pairs failed ADR-002; integer glyph positioning restores preliminary structural equality, but requires an exact flagged Windows run and the one permitted threshold review |
 | Clean reproducible install and pure tests; dependency roles distinct; no renderer drift | pass | native Windows CPython 3.9 hash-locked install and clean Linux constrained install passed; roles are separated; engine/archive hashes and manual renderer-update policy prevent silent drift |
 | Contributor/security policies actionable without private knowledge | pass | OSS-001..008 documents/templates exist and focused tests pass; administrator settings remain explicitly unverified with a documented reporting fallback |
 | Locked target engine and font licenses recorded | pass | Playwright 1.60.0 / Chromium 1223 plus both the rejected variable set and seven-file static replacement have immutable commits, byte sizes, SHA-256 values, roles, and OFL records |
 | Every unresolved architecture question has an owner | pass | Windows visual operator, renderer, packaging/core, QAS, administrator, integrator, and human-owner responsibilities are named |
 
-The first native Windows archive was reviewed and is internally intact, but
-its Windows/Linux comparison failed. The remaining G1 blocker is replacement
-static-font Windows/Linux evidence and owner appearance review. A
+Both native Windows archives were reviewed and are internally intact, but
+their Windows/Linux comparisons failed the frozen contract. The remaining G1
+blockers are exact flagged-profile Windows/Linux evidence, the explicit owner
+threshold decision, and owner appearance review. A
 windowed/signed release candidate, controlled
 release performance, hosted workflow URLs/settings, installed-wheel resources,
 SBOM/provenance, and production renderer enforcement remain owned later-gate
@@ -41,11 +43,11 @@ production behavior is unchanged.
 | --- | --- | --- | --- |
 | SPIKE-REN-001 | accepted | Playwright 1.60.0, Chromium/headless shell 148.0.7778.96 rev 1223, FFmpeg 1011; native Windows/Linux executable hashes | production migration and golden review in Lot 2 |
 | SPIKE-REN-002 | accepted research/revised candidate | rejected six-file variable set retained; seven-file static replacement totals 21,731,032 bytes with four unique OFL records | CJK is 75.6% of replacement payload; final bundled subset requires Lot 2 review |
-| SPIKE-REN-003 | pending replacement | first native pair exists but failed; static candidate repeats exactly on Linux | execute the revised `run_windows_visual_evidence.ps1` and return its ZIP/hash |
+| SPIKE-REN-003 | pending final profile | variable and unflagged static native pairs exist but failed; each platform repeats exactly | execute the runner with the selected integer-positioning profile and return its ZIP/hash |
 | SPIKE-REN-004 | accepted feasibility | local data resources render; Linux/Windows probes record zero responses and hostile request abortion | full path/type/size/traversal corpus is Lot 2 implementation evidence |
 | SPIKE-REN-005 | accepted feasibility | JavaScript disabled, service workers blocked, untrusted fragment literalized | trusted static HTML and CSS policy implementation remains Lot 2 |
-| SPIKE-REN-006 | accepted locally/replacement pending | first cross-OS fingerprints matched despite render failure; static profile/HTML fingerprints repeat exactly on Linux | confirm the new fingerprints on native Windows |
-| SPIKE-REN-007 | pending replacement | first pair failed at 4.2511%/5.8090% changed pixels and SSIM 0.57125/0.42945; static Linux repeat passes exactly | compare native Windows static pages without weakening ADR-002 |
+| SPIKE-REN-006 | accepted locally/final profile pending | both failed pairs had equal logical inputs; flagged profile/HTML fingerprints repeat exactly on Linux | confirm the flagged profile fingerprint on native Windows |
+| SPIKE-REN-007 | pending owner decision | static pair failed at 4.5371%/6.2990% and SSIM 0.60230/0.46773; preliminary integer positioning gives exact text/page dimensions and aligned-layout glyph-edge variance | measure the exact flagged pair, then approve or reject the one ADR-002 amendment without hiding negative evidence |
 | SPIKE-PKG-001 | direction accepted/task partial | native onefile/portable hashes, size, CLI/GUI/preview, offline, paths, Defender, extraction, and timings; ADR-007 selects portable ZIP | exact windowed/console release candidate and controlled performance belong later gates |
 | SPIKE-PKG-002 | accepted | revision-1223 only-shell candidate built/exercised; 73,153,275 compressed bytes (38.2%) of obsolete full-browser payload quantified | verify final release-candidate contents later |
 
@@ -117,6 +119,10 @@ Exact renderer/font/visual commands and temporary hashes are in
 | variable-font Windows/Linux `cross-os` comparator | 1 | expected gate rejection: 4.2511%/5.8090% changed pixels, SSIM 0.57125/0.42945, and differing extracted text |
 | static candidate fetch and two Linux probes | 0 each | seven fonts/four licenses verified; zero network requests during render; all glyphs custom |
 | static Linux repeat comparator | 0 | SSIM 1.0, zero changed pixels/region, exact text and fingerprints |
+| native Windows static archive, SHA-256 `53e96d0ab0fa7288475c882b293f2102dc6644359a6f0d104722a33a96e4c62a` | 0 | 1,630,905 bytes; commit `93fbf834`, clean status, exact dependencies/assets, all 18 internal hashes valid, offline confirmation, zero probe requests, exact Windows repeat |
+| unflagged static Windows/Linux `cross-os` comparator | 1 | gate rejection: 4.5371%/6.2990% changed pixels, SSIM 0.60230/0.46773, and differing extracted text; report SHA-256 `c5f7c72598485dd3dec447d9225bf886a43d2e010f955fe2015ffdb50cb6f4b8` |
+| Linux static probe with `--disable-font-subpixel-positioning` | 0 | exact Windows text hashes and geometry; profile records the flag; two Linux executions produced identical page hashes |
+| preliminary flagged-Linux/unflagged-Windows comparator | 1 | structural pass, but frozen raster failure: 3.1196%/4.0963%, SSIM 0.71837/0.70820, largest regions 0.01732%/0.02224%; fingerprints intentionally differ until Windows rerun |
 | compileall and `ruff check libremark_pdf tests tools spikes` | 0 | Python 3.9-targeted focused checks pass |
 | 47-test browser-free command | 0 | all pass; earlier clean run retained 31% branch-aware product coverage |
 | `python tools/check_source_hygiene.py` | 0 | 107 source paths accepted |
@@ -127,15 +133,15 @@ Exact renderer/font/visual commands and temporary hashes are in
 
 ## Current risk and next dependency
 
-G1 must remain **not passed** until the replacement static-font native Windows
-ZIP is reviewed. The first ZIP proved that the variable fonts are interpreted
-differently: Windows embedded Regular and SemiBold instances while Linux
-embedded only the Regular instance, changing line wrapping and extracted text.
-The Windows operator must use the exact new source commit, CPython 3.9 locked
-versions, the existing revision-1223 browser payload, and a new evidence
-directory outside the repository. Font preparation occurs
-before network disconnection; `Run` performs verification and rendering without
-dependency or browser downloads. The integrator then compares Windows candidate
-pages against the retained Linux candidate evidence and presents the
-current-versus-candidate images for explicit owner approval. Only that reviewed
-result can change this report to **PASSED** and authorize Lot 2.
+G1 must remain **not passed**. The second ZIP proved that static weights alone
+do not remove platform text positioning: its exact per-platform repeats still
+diverge structurally across Windows and Linux. Integer glyph positioning makes
+the retained pair structurally equal and confines the remaining diff to small,
+distributed glyph-edge regions. ADR-002 permits one threshold amendment for
+this antialiasing case, but only after an exact same-profile native pair and
+explicit owner approval. The Windows operator must use the next committed
+source, CPython 3.9 locked versions, revision-1223 browser payload, and a new
+external evidence directory while offline. The integrator will compare it to
+the retained flagged Linux evidence and present both the threshold proposal and
+current-versus-candidate pages. Only those reviewed results can mark G1 passed
+and authorize Lot 2.

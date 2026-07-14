@@ -151,12 +151,17 @@ target-revision probes recorded the expected local safety properties; the
 Windows report also measures diagnostic onefile and portable candidates. The
 first six-file variable-font candidate and its licenses are locked by immutable
 commit and SHA-256. Its native Windows/Linux comparison failed because Windows
-materialized Regular/SemiBold instances while Linux used only Regular. A
-seven-file static replacement is now locked and repeats exactly on Linux.
+materialized Regular/SemiBold instances while Linux used only Regular. The
+seven-file static replacement also failed the frozen raster and structural
+thresholds despite exact same-Windows and same-Linux repeats. A measured
+`--disable-font-subpixel-positioning` profile restores identical extracted text
+and page dimensions between the retained Windows PDF and Linux, leaving aligned
+glyph-edge antialiasing variance for the one permitted ADR-002 threshold review.
 ADR-007 selects the portable ZIP because onefile has not met its additional
-proof burden. The remaining G1 spike work is the revised native Windows
-static-font run, Windows/Linux threshold report, and owner review of the fixed-font
-appearance. Windowed entry points and controlled release-candidate performance
+proof burden. The remaining G1 spike work is a native Windows run from the
+revised flagged profile, the explicit owner threshold decision, and owner
+review of the fixed-font appearance. Windowed entry points and controlled
+release-candidate performance
 remain later-gate implementation evidence.
 
 ## Lot 1B — Package and quality foundations
@@ -281,11 +286,13 @@ G1 decision (updated 2026-07-14): **not passed**. Evidence is indexed in
 [`G1_GATE_REPORT.md`](G1_GATE_REPORT.md). Renderer, browser, font files and
 licenses, resource policy, visual thresholds, and the portable Windows format
 are now selected. Dependency and community criteria pass with their release-
-gate limitations recorded. The first candidate-font Windows/Linux comparison
-failed the frozen thresholds and is retained as negative evidence. The only
-remaining G1 blocking evidence is the revised native Windows static-font run,
-its comparison with the Linux pages, and explicit owner review of the
-fixed-font appearance. Lot 2 is
+gate limitations recorded. Both the variable-font and static-font
+Windows/Linux comparisons failed the frozen thresholds and are retained as
+negative evidence. The static result led to an integer-positioning profile
+whose preliminary comparison has exact extracted text and page dimensions but
+expected cross-OS antialiasing variance. The remaining blockers are a native
+Windows run from that exact profile, the one permitted explicit threshold
+decision, and owner review of the fixed-font appearance. Lot 2 is
 not authorized by this interim decision.
 Report and lock hashes are recorded in
 [`G1_EVIDENCE_MANIFEST.sha256`](G1_EVIDENCE_MANIFEST.sha256).

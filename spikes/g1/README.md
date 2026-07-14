@@ -39,14 +39,19 @@ variable-font candidate. `visual_probe.py` accepts the corresponding
 `visual_probe.py` renders the representative fixture with either the unchanged
 current font stack or the candidate embedded fonts. It denies HTTP/HTTPS,
 disables JavaScript and service workers, records renderer/font/asset hashes,
-extracts text, and rasterizes every PDF page at 144 DPI. Generated evidence must
-be outside the repository.
+extracts text, and rasterizes every PDF page at 144 DPI. The selected spike
+profile launches Chromium with `--disable-font-subpixel-positioning` and records
+the launch-argument list in the profile fingerprint. This setting restored
+cross-OS structural equality in the retained static-font experiment; it is not
+yet production behavior. Generated evidence must be outside the repository.
 
 `visual_compare.py` checks page geometry, extracted-text hashes, logical
 fingerprints, global grayscale SSIM, changed-pixel percentage, and largest
 eight-connected changed region against ADR-002. `appearance` mode records the
 deliberate current-versus-candidate typography change for human review;
-`cross-os` mode enforces the frozen thresholds.
+`cross-os` mode enforces the frozen thresholds. Those thresholds remain
+unchanged until the exact flagged Windows pair exists and the owner explicitly
+accepts or rejects the one amendment allowed by ADR-002.
 
 On Windows, run the preparation phase while downloads are permitted, disable
 the test host's network, and then run the evidence phase with the existing

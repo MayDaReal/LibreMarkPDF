@@ -1,9 +1,9 @@
-b62f6179c06aaff484973f3b65ed0850cf8b96ceab8b81146c5f9f07894e00b9  G1_EXECUTION_BOARD.md
-7ea521dc8e8495b2b7f4cbfc28eb4984fe17c3bcf2303157dd3cdefe2d6c8fcf  G1_GATE_REPORT.md
+8d5f44302eddbf052e95e654ff9b9b17cbc48a1d32309f5a86e43ea7eccbd914  G1_EXECUTION_BOARD.md
+b50810da219d6bd4d4a1a554ebc414de688f23f4d99ae2bb30bc133357d0fccf  G1_GATE_REPORT.md
 af196603b12133e27475b5ab3fa9d40658887ca5c9c848b0a2087bf5ca178a19  G1_IDENTITY_RESEARCH.md
 6c3546a34ba4896d9c4d7945535e215ba608aae34125d2ba22d41d3f3e4833c7  G1_QAS_EVIDENCE.md
-6a5bf3b5dba7a199558098412734f7c2fe8022df21f4431b1ae6da9717d7e964  G1_RENDERER_SPIKE_REPORT.md
-c8a127950d420e946e6838fc2b9e794f31aa8cada744e170525f4b984da33725  G1_WINDOWS_NATIVE_EVIDENCE.md
+67adb43c49dbf66c0e6afff27956cae45bd03765eb9ce23d91026aa089c79c52  G1_RENDERER_SPIKE_REPORT.md
+cf1eddde5dff843a9fc24d5ae62ced85881351efb464945cd741da2a70c27314  G1_WINDOWS_NATIVE_EVIDENCE.md
 cfb6b7de3d272bd57eac79c38e68fad3c6836f1930353cd789dad9251fd87c9d  ../../requirements/locks/windows-x64-py39.txt
 5a07e8f0039649f257d40efd357de71cd13d908eefec6102e605b4dd6407e00f  ../../spikes/g1/fetch_font_candidates.py
 65e776d619ef8e1a08b4c2322711812f29f35f687e19de156f8761973a2b3998  ../../spikes/g1/fixtures/visual-representative.md
@@ -11,4 +11,4 @@ df85fe9f1a2c2daf68b80cce434a46a8f11a312ba7b20cc9d8eb9400418575be  ../../spikes/g
 a6c3529fd009c36f44400642d5eadd1be1aad9b729875054be7a4c7f2805f031  ../../spikes/g1/font_candidates_static.json
 59948db63da1a3b5b13e22ecfdbe1aa93551adebce0a5fccfbef1f5c1e6e4a10  ../../spikes/g1/run_windows_visual_evidence.ps1
 c470717efb8933072f1acd0c2e25bf67bbe1c6003c6cd4b60eddacdbb476c5b6  ../../spikes/g1/visual_compare.py
-e44c3bbf0d47badd0b18e70842b2c2084dd71c4fdfa9d06b4a35f58c17232620  ../../spikes/g1/visual_probe.py
+a3ff77f99fce29540a976c059854b6bcda50d21014f85c4ae01e09e7108b9677  ../../spikes/g1/visual_probe.py

@@ -2,7 +2,9 @@
 
 Status: **Windows evidence package only — not a G1 decision**
 Evidence dates: 2026-07-13 to 2026-07-14 (Europe/Paris)
-Source commit: `50f134121366e4922774bd67c6e5e7554108d09b`
+Packaging source commit: `50f134121366e4922774bd67c6e5e7554108d09b`
+Visual source commits: `4107aea0d7d28a8bf9728d4a27854c5210393380`,
+`93fbf83404339999064e7b09b18399ea9dfb4606`
 Native lane: Windows x64, PyInstaller candidate
 Evidence root: `%TEMP%\LibreMark G1 Windows 20260713` (outside the repository)
 
@@ -679,3 +681,49 @@ additional bytes (about 0.47%) in this build and passed the measured functional,
 empty-cache, Unicode-path, firewall-offline, and Defender checks. This is a
 factual candidate recommendation, not an official-format declaration: the
 integrator must still resolve the blockers above before release selection.
+
+## 7. Native visual-archive follow-ups
+
+Two later visual archives supplement section 3 without changing its packaging
+claims. The first variable-font archive is recorded in the renderer report and
+failed cross-OS because the operating systems instantiated its weights
+differently.
+
+The second archive,
+`LibreMark G1 Windows visual static 93fbf83.zip`, is 1,630,905 bytes with
+SHA-256
+`53e96d0ab0fa7288475c882b293f2102dc6644359a6f0d104722a33a96e4c62a`.
+Its `Run` command exited 0 from clean commit
+`93fbf83404339999064e7b09b18399ea9dfb4606`. It records Windows 11 Pro x64
+build 26200, CPython 3.9.13, Playwright 1.60.0, Pillow 11.3.0, PDFium 5.11.0,
+Chromium 148.0.7778.96 revision 1223, the static manifest SHA-256
+`a6c3529fd009c36f44400642d5eadd1be1aad9b729875054be7a4c7f2805f031`,
+and all seven custom faces. All 18 payload hashes validate. Candidate evidence
+SHA-256 is
+`1c6dd786ba47ce18bc78100046065390aeeca14584128352df158af9c40e11fb`;
+repeat-comparison SHA-256 is
+`be4753ee3ec162523f0e21c75a3f26dd71f935c172c4d276a6d7468a46140ac3`.
+
+The owner confirmed that the Realtek physical adapter was disconnected for the
+whole Run, DNS resolution of `example.com` failed, and TCP 443 was unavailable.
+Only local Hyper-V and VirtualBox adapters remained active. The probe recorded
+no attempted or completed network requests. The Windows repeat passed with
+SSIM 1.0, zero changed pixels/regions, and exact text, geometry, and
+fingerprints on both pages.
+
+Independent Linux integration reproduced the exact locked dependencies and
+font/browser assets. The cross-OS comparator exited 1: page 1 changed 4.5371%
+with SSIM 0.60230; page 2 changed 6.2990% with SSIM 0.46773. Extracted text
+differed. Report SHA-256 is
+`c5f7c72598485dd3dec447d9225bf886a43d2e010f955fe2015ffdb50cb6f4b8`.
+Rerasterizing both PDFs with one Linux PDFium produced the same metrics, so the
+failure is in Chromium's platform text layout, not archive rasterization.
+
+A follow-up Linux spike with `--disable-font-subpixel-positioning` restored
+exact Windows extracted-text hashes and page dimensions, with the retained diff
+showing aligned layout. The remaining raster
+differences are distributed around glyph edges, with largest regions only
+0.01732% and 0.02224%. Because the retained Windows run did not record that
+flag in its profile, this is diagnostic evidence rather than a gate pass. The
+next dependency is an exact flagged Windows run, followed by the explicit
+owner decision on ADR-002's one permitted antialiasing-threshold amendment.
