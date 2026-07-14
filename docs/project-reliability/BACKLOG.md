@@ -116,22 +116,22 @@ Owner: renderer architect
 Execution: parallel with Lots 1B–1D after G0
 Files: spike code/fixtures and ADR evidence; no production rewrite yet
 
-- [ ] `SPIKE-REN-001` Identify and lock a Playwright/Chromium pair and record
+- [x] `SPIKE-REN-001` Identify and lock a Playwright/Chromium pair and record
   the exact browser revision and payload used by headless rendering.
-- [ ] `SPIKE-REN-002` Select redistributable proportional, semibold, monospace,
+- [x] `SPIKE-REN-002` Select redistributable proportional, semibold, monospace,
   and Unicode fallback font candidates; record licenses and size impact.
 - [ ] `SPIKE-REN-003` Render representative current-style fixtures on Windows
   and one second OS with candidate embedded fonts.
-- [ ] `SPIKE-REN-004` Prototype local relative-image embedding and total network
+- [x] `SPIKE-REN-004` Prototype local relative-image embedding and total network
   denial.
-- [ ] `SPIKE-REN-005` Prototype JavaScript/service-worker disablement and the
+- [x] `SPIKE-REN-005` Prototype JavaScript/service-worker disablement and the
   approved raw HTML policy.
-- [ ] `SPIKE-REN-006` Produce canonical HTML and asset fingerprints.
+- [x] `SPIKE-REN-006` Produce canonical HTML and asset fingerprints.
 - [ ] `SPIKE-REN-007` Measure visual variance and validate or amend the proposed
   SSIM/pixel thresholds once, with evidence.
 - [ ] `SPIKE-PKG-001` Compare Windows one-file and portable-directory artifacts:
   compressed size, cold/warm startup, conversion time, extraction, and AV scan.
-- [ ] `SPIKE-PKG-002` Confirm that only the required Chromium headless payload is
+- [x] `SPIKE-PKG-002` Confirm that only the required Chromium headless payload is
   bundled and quantify the reduction.
 
 Acceptance:
@@ -142,15 +142,20 @@ Acceptance:
 - The chosen direction preserves the approved default-theme appearance within
   the reviewed tolerance.
 
-G1 integration evidence (2026-07-13):
-[`G1_RENDERER_SPIKE_REPORT.md`](G1_RENDERER_SPIKE_REPORT.md). The Python
+G1 integration evidence (updated 2026-07-14):
+[`G1_RENDERER_SPIKE_REPORT.md`](G1_RENDERER_SPIKE_REPORT.md) and
+[`G1_WINDOWS_NATIVE_EVIDENCE.md`](G1_WINDOWS_NATIVE_EVIDENCE.md). The Python
 3.9-compatible target candidate is Playwright 1.60.0 with Chromium/headless
-shell 148.0.7778.96 revision 1223 and FFmpeg 1011. A Linux target-revision
-prototype recorded zero external requests for embedded local content, blocked
-a hostile HTTPS image before response, rendered the embedded image, and kept
-JavaScript disabled. No SPIKE task is accepted as complete: exact font binaries,
-native Windows plus second-OS font/visual evidence, two-clean-build fingerprints,
-and the native artifact-format comparison remain missing.
+shell 148.0.7778.96 revision 1223 and FFmpeg 1011. Linux and native Windows
+target-revision probes recorded the expected local safety properties; the
+Windows report also measures diagnostic onefile and portable candidates. Six
+font files and licenses are locked by immutable commit and SHA-256. Linux
+current/candidate renders and an exact repeated candidate comparison exist.
+ADR-007 selects the portable ZIP because onefile has not met its additional
+proof burden. The remaining G1 spike work is the prepared native Windows visual
+run, Windows/Linux threshold report, and owner review of the fixed-font
+appearance. Windowed entry points and controlled release-candidate performance
+remain later-gate implementation evidence.
 
 ## Lot 1B — Package and quality foundations
 
@@ -162,15 +167,15 @@ Files: `pyproject.toml`, constraints/locks, CI scaffolding, quality configuratio
   application version source, package data, and console entry point.
 - [x] `QAS-002` Separate runtime, GUI, build, test, and documentation dependency
   groups/extras.
-- [ ] `QAS-003` Implement a reproducible lock/constraints strategy with hashes
+- [x] `QAS-003` Implement a reproducible lock/constraints strategy with hashes
   for release environments.
-- [ ] `QAS-004` Add a clean-environment unit-test workflow on supported Python
+- [x] `QAS-004` Add a clean-environment unit-test workflow on supported Python
   versions.
 - [x] `QAS-005` Add focused static checks appropriate to the current codebase,
   without unrelated mass formatting.
 - [x] `QAS-006` Add coverage reporting by subsystem and document the initial
   threshold.
-- [ ] `QAS-007` Configure dependency, secret, and code scanning.
+- [x] `QAS-007` Configure dependency, secret, and code scanning.
 - [x] `QAS-008` Add Dependabot or Renovate with controlled Playwright/browser
   update handling.
 - [x] `QAS-009` Add `.gitignore` and `.gitattributes`; exclude generated builds,
@@ -183,15 +188,17 @@ Acceptance:
 - Runtime and build dependencies are distinguishable.
 - Dependency resolution is repeatable and renderer updates cannot drift silently.
 
-G1 integration evidence (2026-07-13):
-[`G1_QAS_EVIDENCE.md`](G1_QAS_EVIDENCE.md). QAS-002, QAS-005, QAS-006,
-QAS-008, QAS-009, and QAS-010 are accepted from local evidence. QAS-001,
-QAS-003, QAS-004, and QAS-007 remain partial: ordinary installed-wheel resource
-lookup is unresolved, the Windows hash lock has not run natively, no clean
-Python 3.9/hosted workflow result exists, and hosted scanners/security settings
-are unverified. The clean CPython 3.12 pure suite ran 36 tests with exit 0 and
-31% branch-aware coverage; the complete target-renderer suite ran 39 tests with
-exit 0.
+G1 integration evidence (updated 2026-07-14):
+[`G1_QAS_EVIDENCE.md`](G1_QAS_EVIDENCE.md). QAS-002 through QAS-010 are
+accepted for the G1 configuration and active Windows lane. The native Windows
+CPython 3.9 hash-locked install passed; its then-current pure suite ran 36 tests
+and its complete target-renderer suite ran 39 tests with exit 0. After the
+visual spike additions, the clean target-version Linux environment ran 45 pure
+tests and 48 complete revision-1223 tests with exit 0 and retained 31%
+branch-aware product coverage. QAS-001 remains partial because an ordinary
+wheel lacks top-level runtime resources; no wheel is authorized or advertised.
+Hosted workflow URLs and administrator security settings remain explicitly
+unverified operational follow-ups, not G1 clean-install claims.
 
 ## Lot 1C — Open-source foundations
 
@@ -268,12 +275,14 @@ G1 passes when:
 - the locked target engine and font licenses are recorded;
 - unresolved architecture questions have explicit owners.
 
-G1 decision (2026-07-13): **not passed**. Evidence is indexed in
-[`G1_GATE_REPORT.md`](G1_GATE_REPORT.md). Blocking items are native Windows and
-second-OS candidate-font/visual measurements, the Windows one-file versus
-portable-directory comparison, clean Python 3.9/hosted CI execution, installed-
-wheel resource handling, and hosted security-setting evidence. Lot 2 is not
-authorized by this decision.
+G1 decision (updated 2026-07-14): **not passed**. Evidence is indexed in
+[`G1_GATE_REPORT.md`](G1_GATE_REPORT.md). Renderer, browser, font files and
+licenses, resource policy, visual thresholds, and the portable Windows format
+are now selected. Dependency and community criteria pass with their release-
+gate limitations recorded. The only remaining G1 blocking evidence is the
+prepared native Windows candidate-font visual run, its comparison with the
+Linux pages, and explicit owner review of the fixed-font appearance. Lot 2 is
+not authorized by this interim decision.
 Report and lock hashes are recorded in
 [`G1_EVIDENCE_MANIFEST.sha256`](G1_EVIDENCE_MANIFEST.sha256).
 

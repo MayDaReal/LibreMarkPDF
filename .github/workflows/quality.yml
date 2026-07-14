@@ -27,12 +27,12 @@ jobs:
       - name: Python 3.9 syntax and focused static checks
         run: |
           python -m compileall -q libremark_pdf tests tools
-          ruff check libremark_pdf tests tools
+          ruff check libremark_pdf tests tools spikes
       - name: Pure browser-free tests with coverage
         run: |
           coverage run -m unittest \
             tests.test_cli tests.test_community tests.test_i18n tests.test_packaging \
-            tests.test_quality_foundations \
+            tests.test_quality_foundations tests.test_g1_spikes \
             tests.test_core.TestTitleExtraction \
             tests.test_core.TestHeaderFooterConfig \
             tests.test_core.TestTemplateBuilding \
