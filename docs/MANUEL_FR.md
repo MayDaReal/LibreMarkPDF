@@ -33,7 +33,7 @@ n’affiche rien.
 | Jeton | Valeur |
 | --- | --- |
 | `{titre}` ou `{title}` | Premier titre de niveau 1 (`#`) |
-| `{date}` | Date locale du rendu au format `AAAA-MM-JJ` |
+| `{date}` | Date UTC du rendu au format `AAAA-MM-JJ` (ou `--render-date`) |
 | `{page}` | Numéro de la page courante |
 | `{total}` | Nombre total de pages |
 
@@ -66,7 +66,7 @@ python -m libremark_pdf convert report.md --css print.css \
 La CLI ne pose aucune question. Le code de sortie `0` signifie que toutes les
 conversions demandées ont réussi. Avec `--json`, stdout contient un objet pour
 un fichier ou un objet `{"results": [...]}` pour un lot. Chaque résultat contient
-`input`, `output`, `status` et `error`.
+`input`, `output`, `status`, `error` et `error_code`.
 
 Pour afficher toutes les options :
 
@@ -83,16 +83,18 @@ conversion.
 ## Fichiers et sécurité
 
 - Utilisez des fichiers Markdown encodés en UTF-8.
-- Un CSS personnalisé s’applique à tout le document : utilisez une source de
-  confiance.
-- Le prototype actuel peut remplacer un PDF existant portant le nom de sortie.
-  Conservez une sauvegarde tant que la protection contre l’écrasement n’est pas
-  implémentée.
-- La sécurisation du rendu n’est pas terminée. Considérez pour le moment le
-  HTML brut, les ressources liées et le Markdown tiers comme du contenu fiable.
-- La construction télécharge les paquets Python et Chromium. La conversion est
-  conçue pour employer des ressources locales, mais le blocage strict du réseau
-  n’est pas encore validé dans ce prototype.
+- Un CSS personnalisé s’applique à tout le document, mais ne peut pas utiliser
+  de ressources `@import` ou `url(...)`.
+- Un PDF existant est refusé sauf si l’appel CLI passe `--overwrite` ; le
+  remplacement n’est publié qu’après un rendu réussi.
+- Par défaut, le HTML brut est rendu comme texte. L’option de compatibilité CLI
+  `--trusted-html` n’autorise qu’un sous-ensemble statique : jamais de scripts,
+  gestionnaires d’événements, cadres, chargeurs de ressources ou URL réseau/
+  `file:`.
+- Les images Markdown doivent être des PNG, JPEG, GIF ou SVG statiques locaux
+  approuvés ; elles sont validées et intégrées avant le rendu.
+- Utilisez `--render-date AAAA-MM-JJ` pour rendre `{date}` reproductible ; sans
+  cette option, la date UTC courante est utilisée.
 
 ## Résolution des problèmes
 

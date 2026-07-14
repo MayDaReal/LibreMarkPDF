@@ -72,6 +72,9 @@ python -m libremark_pdf convert report.md -o output.pdf \
 
 # Convert a batch and return machine-readable results
 python -m libremark_pdf convert a.md b.md --out-dir pdfs --json
+
+# Reproducible date and explicit replacement of an existing PDF
+python -m libremark_pdf convert report.md --render-date 2026-07-14 --overwrite
 ```
 
 Run `python -m libremark_pdf convert --help` for every option. A successful
@@ -86,7 +89,7 @@ default footer is `Page {page} / {total}`.
 | Token | Value |
 | --- | --- |
 | `{titre}` or `{title}` | First level-one heading |
-| `{date}` | Local render date in `YYYY-MM-DD` format |
+| `{date}` | UTC render date in `YYYY-MM-DD` format (or `--render-date`) |
 | `{page}` | Current page number |
 | `{total}` | Total page count |
 
@@ -126,17 +129,22 @@ Skill┘                                           └> PDFium ─> preview PNG
 ```
 
 `libremark_pdf/core.py` is the only reusable conversion engine. Runtime files
-are in `style.css`, `icons/`, `assets/`, and the generated `browsers/` tree.
+are in `style.css`, `icons/`, `assets/`, `fonts/`, and the generated `browsers/`
+tree.
 See [`AGENTS.md`](AGENTS.md) for contribution rules and
 [`docs/project-reliability/README.md`](docs/project-reliability/README.md) for
 the gated reliability program and its reading paths.
 
 ## Current security limitations
 
-Until the safe-rendering backlog is complete, treat Markdown, raw HTML, linked
-resources, and custom CSS as trusted input. Network denial, local-resource
-sandboxing, script blocking, atomic output, and collision protection are target
-requirements but are not yet fully implemented.
+Default conversion treats raw HTML as literal Markdown text, validates and
+embeds approved local images, blocks active/network-capable HTML and CSS, and
+does not replace existing output without `--overwrite`. The exceptional
+`--trusted-html` CLI mode allows only the documented static HTML subset; it
+still blocks scripts, event handlers, frames, resource loaders, and network or
+`file:` URLs. Custom CSS cannot load resources. These controls do not make
+untrusted documents harmless in every respect; review document content before
+conversion.
 
 ## License
 

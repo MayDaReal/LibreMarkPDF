@@ -9,6 +9,8 @@ a = Analysis(
     datas=[
         ("style.css", "."),
         ("icons", "icons"),
+        ("fonts", "fonts"),
+        ("licenses", "licenses"),
         ("assets", "assets"),
         ("browsers", "browsers"),
     ],

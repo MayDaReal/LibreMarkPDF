@@ -7,8 +7,8 @@
   --base-text-weight-medium: 500;
   --base-text-weight-normal: 400;
   --base-text-weight-semibold: 600;
-  --fontStack-monospace: "DejaVu Sans Mono", Consolas, "Liberation Mono", monospace;
-  --fontStack-sansSerif: "Helvetica Neue", Helvetica, Arial, "DejaVu Sans", sans-serif;
+  --fontStack-monospace: "G1 Noto Sans Mono", monospace;
+  --fontStack-sansSerif: "G1 Noto Sans", "G1 Noto Sans Arabic", "G1 Noto Sans CJK SC", "G1 Noto Emoji", "G1 Noto Sans Symbols 2", sans-serif;
   --fgColor-accent: Highlight;
   /* Forced light theme values (PDF renderer doesn't evaluate prefers-color-scheme) */
   color-scheme: light;

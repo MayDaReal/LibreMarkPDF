@@ -55,6 +55,40 @@ version = {attr = "libremark_pdf.__version__"}
 [tool.setuptools.packages.find]
 include = ["libremark_pdf*"]
 
+[tool.setuptools.data-files]
+"libremark_pdf" = ["style.css"]
+"libremark_pdf/icons" = [
+  "icons/icons_check.png",
+  "icons/icons_no_entry.png",
+  "icons/icons_orange.png",
+  "icons/icons_repeat.png",
+  "icons/icons_warning.png",
+]
+"libremark_pdf/assets" = [
+  "assets/libremark-pdf-logo-128.png",
+  "assets/libremark-pdf-logo-16.png",
+  "assets/libremark-pdf-logo-256.png",
+  "assets/libremark-pdf-logo-32.png",
+  "assets/libremark-pdf-logo-48.png",
+  "assets/libremark-pdf-logo-64.png",
+  "assets/libremark-pdf.ico",
+]
+"libremark_pdf/fonts" = [
+  "fonts/NotoEmoji.ttf",
+  "fonts/NotoSans-Regular.ttf",
+  "fonts/NotoSans-SemiBold.ttf",
+  "fonts/NotoSansArabic-Regular.ttf",
+  "fonts/NotoSansCJKsc-Regular.otf",
+  "fonts/NotoSansMono-Regular.ttf",
+  "fonts/NotoSansSymbols2-Regular.ttf",
+]
+"libremark_pdf/licenses" = [
+  "licenses/NotoCJK-OFL.txt",
+  "licenses/NotoDistribution-OFL.txt",
+  "licenses/NotoEmoji-OFL.txt",
+  "licenses/NotoSansSymbols2-OFL.txt",
+]
+
 [tool.coverage.run]
 branch = true
 source = ["libremark_pdf"]

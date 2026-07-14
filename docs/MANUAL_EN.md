@@ -29,7 +29,7 @@ nothing.
 | Token | Value |
 | --- | --- |
 | `{title}` or `{titre}` | First level-one (`#`) heading |
-| `{date}` | Local render date in `YYYY-MM-DD` format |
+| `{date}` | UTC render date in `YYYY-MM-DD` format (or `--render-date`) |
 | `{page}` | Current page number |
 | `{total}` | Total page count |
 
@@ -62,7 +62,7 @@ python -m libremark_pdf convert report.md --css print.css \
 The CLI never prompts. Exit `0` means every requested conversion succeeded.
 With `--json`, stdout contains one result object for a single file or a
 `{"results": [...]}` object for a batch. Each result contains `input`, `output`,
-`status`, and `error`.
+`status`, `error`, and `error_code`.
 
 Run the complete reference with:
 
@@ -79,14 +79,17 @@ conversion.
 ## Files and safety
 
 - Use UTF-8 Markdown.
-- Custom CSS applies to the complete document; use CSS from a trusted source.
-- The current prototype may replace an existing PDF with the selected output
-  name. Keep a backup until overwrite protection is implemented.
-- The safe-rendering work is not complete. Treat raw HTML, linked resources,
-  and Markdown from third parties as trusted input for now.
-- Building downloads Python packages and Chromium. Normal conversion is
-  designed to use local resources, but strict network blocking is not yet
-  verified in this prototype.
+- Custom CSS applies to the complete document but cannot use `@import` or
+  `url(...)` resources.
+- Existing output is refused unless the CLI caller passes `--overwrite`; a
+  replacement is published only after successful rendering.
+- Default conversion renders raw HTML literally. The CLI-only `--trusted-html`
+  compatibility option permits a narrow static subset, never scripts, event
+  handlers, frames, resource loaders, or network/`file:` URLs.
+- Markdown images must be approved local PNG, JPEG, GIF, or static SVG files;
+  they are validated and embedded before rendering.
+- Use `--render-date YYYY-MM-DD` when a reproducible `{date}` value is needed;
+  otherwise it uses the current UTC date.
 
 ## Troubleshooting
 

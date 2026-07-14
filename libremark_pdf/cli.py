@@ -69,6 +69,22 @@ def _add_common_arguments(parser: argparse.ArgumentParser) -> None:
         default=None,
         help="Path to a CSS file. Defaults to the bundled style.css.",
     )
+    parser.add_argument(
+        "--overwrite",
+        action="store_true",
+        help="Replace an existing output only after a successful conversion.",
+    )
+    parser.add_argument(
+        "--trusted-html",
+        action="store_true",
+        help="Allow the approved static raw-HTML subset; active and network content remains blocked.",
+    )
+    parser.add_argument(
+        "--render-date",
+        metavar="YYYY-MM-DD",
+        default=None,
+        help="Fixed date used for {date} header/footer tokens.",
+    )
     parser.add_argument("--header-left", default=None, metavar="TEXT")
     parser.add_argument("--header-center", default=None, metavar="TEXT")
     parser.add_argument("--header-right", default=None, metavar="TEXT")
@@ -121,6 +137,9 @@ def cmd_convert(args: argparse.Namespace) -> int:
                 args.output,
                 css_path=args.css,
                 header_footer=header_footer,
+                render_date=args.render_date,
+                trusted_html=args.trusted_html,
+                overwrite=args.overwrite,
             )
             results.append(
                 {
@@ -128,6 +147,7 @@ def cmd_convert(args: argparse.Namespace) -> int:
                     "output": str(output_path),
                     "status": "ok",
                     "error": None,
+                    "error_code": None,
                 }
             )
         except Exception as exc:
@@ -139,11 +159,14 @@ def cmd_convert(args: argparse.Namespace) -> int:
                     "output": None,
                     "status": "error",
                     "error": str(exc),
+                    "error_code": core.error_code(exc),
                 }
             )
     else:
         results = core.convert_batch(
-            args.inputs, output_dir=args.out_dir, css_path=args.css, header_footer=header_footer
+            args.inputs, output_dir=args.out_dir, css_path=args.css, header_footer=header_footer,
+            render_date=args.render_date, trusted_html=args.trusted_html,
+            overwrite=args.overwrite,
         )
 
     failed = any(result["status"] != "ok" for result in results)

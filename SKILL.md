@@ -43,17 +43,19 @@ Tokens are `{title}`/`{titre}`, `{date}`, `{page}`, and `{total}`.
 
 Exit `0` means every requested conversion succeeded. A single input returns one
 object; a batch returns `{"results": [...]}`. Each result contains `input`,
-`output`, `status`, and `error`. Confirm every status is `"ok"` and every
+`output`, `status`, `error`, and `error_code`. Confirm every status is `"ok"` and every
 reported output exists before reporting success.
 
 For generated Markdown text, write a UTF-8 temporary `.md` file, choose an
 explicit PDF output, then remove only the temporary source created for the task.
 
-## Current safety boundary
+## Safety boundary
 
-The prototype does not yet enforce the target network, raw-HTML, resource, or
-overwrite policies. Convert only trusted Markdown and CSS, avoid remote
-resources, and do not overwrite a valuable existing PDF.
+Default conversion literalizes raw HTML, validates and embeds approved local
+images, blocks CSS resource loaders, and refuses existing output unless
+`--overwrite` is explicit. `--trusted-html` is a narrow static compatibility
+mode: active content, network access, and `file:` URLs remain blocked. Use
+`--render-date YYYY-MM-DD` for reproducible date tokens.
 
 ```bash
 python -m libremark_pdf convert --help

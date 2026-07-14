@@ -38,3 +38,55 @@ The approved static font evidence is locally available outside the repository
 at `/tmp/libremark-g1-font-static-5264143/fonts/`; its presence and hashes must
 be independently verified before any production resource copy. No fonts,
 browsers, PDFs, caches, or generated output were added to Git.
+
+## In-progress core increment
+
+The seven G1-approved static font files and their four retained OFL records
+were copied only after a local SHA-256 comparison against
+`spikes/g1/font_candidates_static.json`; all seven hashes match the accepted
+manifest. The core now embeds those files as data URIs, fixes the G1 integer
+font-positioning renderer flag, neutralizes raw HTML by default, validates the
+approved trusted-static subset, embeds validated local images, and publishes
+PDFs atomically. This increment has not yet completed its required packaging,
+GUI/manual synchronization, canonical harness, or Windows evidence.
+
+| Command | Exit | Result |
+| --- | ---: | --- |
+| `venv-linux/bin/python -m unittest tests.test_core.TestMarkdownConversion tests.test_core.TestDeterministicCoreContract tests.test_core.TestResourcePolicy tests.test_cli -v` | 0 | 19 focused core/security/CLI tests passed. |
+| `venv-linux/bin/python -m ruff check libremark_pdf tests` | 1 | the declared Linux virtual environment does not contain Ruff; no linter result is claimed. |
+| `venv-linux/bin/python -m unittest tests.test_core tests.test_cli -v` | 1 | expected environment failure: incomplete repository browser payload selected without explicit compatible browser path. |
+| `/bin/bash -lc 'PLAYWRIGHT_BROWSERS_PATH="$HOME/.cache/ms-playwright" venv-linux/bin/python -m unittest tests.test_core.TestEndToEndConversion.test_convert_markdown_text_to_pdf_creates_a_file -v'` | 0 | real locked Chromium conversion passed after allowing validated `data:` resources through the deny-network route. |
+| `/bin/bash -lc 'PLAYWRIGHT_BROWSERS_PATH="$HOME/.cache/ms-playwright" venv-linux/bin/python -m unittest tests.test_core.TestEndToEndConversion.test_render_preview_png_returns_valid_png_bytes -v'` | 0 | real Chromium/PDFium preview conversion passed. |
+
+Failed experiment: the first all-resource route aborted `data:` requests as
+though they were network traffic. This prevented the embedded font faces from
+loading and stalled rendering. The route now permits only already validated
+`data:` URIs and records/aborts every other request. This is retained as a
+security-design correction, not treated as network evidence by itself.
+
+## Incremental evidence — deterministic resources and trust boundary
+
+The render profile now has canonical sorted JSON and a SHA-256 fingerprint over
+the locked renderer inputs, fixed date, locale/timezone, render flags, margins,
+resource limits, raw-HTML/network policy, static-font/icon hashes, and the
+effective CSS hash. The same profile data is injected into canonical renderer
+HTML. Safe mode literalizes raw HTML. The ADR-004 trusted-static mode rejects
+active elements, event handlers, refreshes, `srcset`, `file:`/network sources,
+and CSS resource loaders. Image inputs are constrained to local PNG/JPEG/GIF/
+SVG or validated data URIs, including symlink containment, type signatures,
+per-item/count/total limits, and static SVG inspection.
+
+| Command | Exit | Result |
+| --- | ---: | --- |
+| `venv-linux/bin/python -m pip install 'ruff==0.14.2'` | 0 | Declared test pin installed from the locally available package cache after the prior absence check. |
+| `venv-linux/bin/python -m ruff check libremark_pdf tests` | 0 | `All checks passed!` |
+| `venv-linux/bin/python -m unittest tests.test_core.TestMarkdownConversion tests.test_core.TestDeterministicCoreContract tests.test_core.TestResourcePolicy -v` | 0 | 20 focused safe-mode/resource/output tests passed. |
+| `venv-linux/bin/python -m unittest tests.test_core.TestDeterministicCoreContract tests.test_core.TestResourcePolicy -v` | 0 | 13 focused fingerprint, source/wheel/_MEIPASS resource, and resource-policy tests passed. |
+| `venv-linux/bin/python -m ruff check libremark_pdf tests && git diff --check` | 0 | Ruff and whitespace validation passed. |
+| isolated `pip wheel --no-deps` from a temporary source copy | 1 | Expected offline limitation: PEP 517 isolation tried to fetch locked `setuptools==82.0.1` and DNS was unavailable. |
+| `pip wheel --no-build-isolation --no-deps` then temporary-prefix install | 0 | Wheel contains CSS, icons, assets, seven static fonts, and four license records. |
+| temporary-prefix resource lookup outside source tree | 0 | Installed wheel resolved CSS/icons/fonts; `NotoSans-Regular.ttf` SHA-256 was `478c558ea716033cd60c03438f628dfa75694dcf6b5f6d505a2f05fd2b4f3823`. |
+
+The isolated-build failure is environment evidence only. A clean, offline build
+environment preseeded with the locked build requirements remains required for
+release evidence.

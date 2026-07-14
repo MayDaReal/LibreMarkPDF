@@ -8,6 +8,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
@@ -30,6 +31,9 @@ class TestTitleExtraction(unittest.TestCase):
     def test_html_tags_inside_title_are_stripped(self):
         html = "<h1>Hello <em>World</em></h1>"
         self.assertEqual(core.extract_title(html), "Hello World")
+
+    def test_title_entities_are_decoded(self):
+        self.assertEqual(core.extract_title("<h1>A &amp; B</h1>"), "A & B")
 
 
 class TestHeaderFooterConfig(unittest.TestCase):
@@ -98,6 +102,154 @@ class TestMarkdownConversion(unittest.TestCase):
     def test_full_document_escapes_title(self):
         html = core.build_full_html("<p>Body</p>", "A & B < C", "")
         self.assertIn("<title>A &amp; B &lt; C</title>", html)
+
+    def test_safe_mode_neutralizes_raw_html(self):
+        html = core.markdown_to_html("<script>alert(1)</script>")
+        self.assertIn("&lt;script&gt;", html)
+        self.assertNotIn("<script>", html)
+
+    def test_trusted_static_mode_rejects_active_html(self):
+        with self.assertRaisesRegex(core.ConversionError, "FORBIDDEN_HTML"):
+            core.markdown_to_html("<img src=x onerror=alert(1)>", trusted_html=True)
+
+    def test_trusted_static_mode_rejects_network_resource(self):
+        with self.assertRaisesRegex(core.ConversionError, "FORBIDDEN_HTML_URL"):
+            core.markdown_to_html("<img src=https://example.invalid/x.png>", trusted_html=True)
+
+    def test_trusted_static_mode_rejects_active_css_and_refresh(self):
+        for value in (
+            "<style>p { background: url(data:image/png;base64,AA==) }</style>",
+            '<meta http-equiv="refresh" content="0;url=https://example.invalid">',
+        ):
+            with self.assertRaisesRegex(core.ConversionError, "FORBIDDEN_"):
+                core.markdown_to_html(value, trusted_html=True)
+
+    def test_emoji_in_code_stays_literal(self):
+        html = core.markdown_to_html("`✅`")
+        self.assertIn("<code>✅</code>", html)
+
+
+class TestDeterministicCoreContract(unittest.TestCase):
+    def test_resource_path_supports_source_and_pyinstaller_layouts(self):
+        self.assertTrue(core.resource_path("style.css").is_file())
+        with tempfile.TemporaryDirectory() as tmp:
+            frozen = Path(tmp)
+            (frozen / "style.css").write_text("body{}", encoding="utf-8")
+            with mock.patch.object(sys, "_MEIPASS", str(frozen), create=True):
+                self.assertEqual(core.resource_path("style.css"), frozen / "style.css")
+
+    def test_resource_path_supports_installed_wheel_data_layout(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            prefix = Path(tmp)
+            target = prefix / "libremark_pdf" / "style.css"
+            target.parent.mkdir()
+            target.write_text("body{}", encoding="utf-8")
+            with mock.patch.object(core, "__file__", str(prefix / "missing" / "core.py")):
+                with mock.patch.object(sys, "prefix", str(prefix)):
+                    self.assertEqual(core.resource_path("style.css"), target)
+
+    def test_render_profile_has_stable_canonical_fingerprint(self):
+        first = core.RenderProfile("2026-07-14")
+        second = core.RenderProfile("2026-07-14")
+        self.assertEqual(first.canonical_json(), second.canonical_json())
+        self.assertEqual(first.fingerprint, second.fingerprint)
+
+    def test_render_profile_theme_hash_changes_fingerprint(self):
+        first = core.RenderProfile("2026-07-14", theme_hash="a")
+        second = core.RenderProfile("2026-07-14", theme_hash="b")
+        self.assertNotEqual(first.fingerprint, second.fingerprint)
+
+    def test_css_network_references_are_rejected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            css = Path(tmp) / "unsafe.css"
+            css.write_text("@import url(https://example.invalid/x.css);", encoding="utf-8")
+            with self.assertRaisesRegex(core.ConversionError, "FORBIDDEN_CSS_URL"):
+                core._read_css(css)
+
+    def test_css_data_resources_are_rejected_until_embedded_support_exists(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            css = Path(tmp) / "unsafe.css"
+            css.write_text("p { background: url(data:image/png;base64,AA==) }", encoding="utf-8")
+            with self.assertRaisesRegex(core.ConversionError, "FORBIDDEN_CSS_URL"):
+                core._read_css(css)
+
+    def test_existing_output_requires_explicit_overwrite(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            output = Path(tmp) / "out.pdf"
+            output.write_bytes(b"old")
+            with self.assertRaisesRegex(core.ConversionError, "OUTPUT_EXISTS"):
+                core.convert_markdown_text_to_pdf("# New", output)
+            self.assertEqual(output.read_bytes(), b"old")
+
+    def test_atomic_failure_preserves_previous_output_and_cleans_temporary(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            output = Path(tmp) / "out.pdf"
+            output.write_bytes(b"old")
+            with mock.patch.object(core, "_render_pdf", side_effect=RuntimeError("renderer failed")):
+                with self.assertRaisesRegex(RuntimeError, "renderer failed"):
+                    core.convert_markdown_text_to_pdf("# New", output, overwrite=True)
+            self.assertEqual(output.read_bytes(), b"old")
+            self.assertEqual(list(Path(tmp).glob(".libremark-*.pdf")), [])
+
+    def test_batch_duplicate_destinations_are_rejected_per_input(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            first = Path(tmp) / "one" / "same.md"
+            second = Path(tmp) / "two" / "same.md"
+            first.parent.mkdir()
+            second.parent.mkdir()
+            first.write_text("# One", encoding="utf-8")
+            second.write_text("# Two", encoding="utf-8")
+            results = core.convert_batch([first, second], output_dir=tmp)
+            self.assertEqual([item["status"] for item in results], ["error", "error"])
+            self.assertTrue(all("DUPLICATE_OUTPUT" in item["error"] for item in results))
+
+
+class TestResourcePolicy(unittest.TestCase):
+    _PNG = b"\x89PNG\r\n\x1a\nsmall-png"
+
+    def test_local_png_is_embedded(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "image.png").write_bytes(self._PNG)
+            html = core.embed_local_resources('<img src="image.png">', root)
+            self.assertIn("data:image/png;base64,", html)
+            self.assertNotIn('src="image.png"', html)
+
+    def test_traversal_and_external_urls_are_rejected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            for value in ("../outside.png", "https://example.invalid/x.png", "file:///tmp/x.png", "//example.invalid/x.png"):
+                with self.assertRaisesRegex(core.ConversionError, "FORBIDDEN_RESOURCE"):
+                    core.embed_local_resources('<img src="{0}">'.format(value), tmp)
+
+    def test_malformed_image_is_rejected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "wrong.png").write_bytes(b"not-a-png")
+            with self.assertRaisesRegex(core.ConversionError, "FORBIDDEN_RESOURCE"):
+                core.embed_local_resources('<img src="wrong.png">', root)
+
+    def test_data_svg_with_active_content_is_rejected(self):
+        payload = b'<svg xmlns="http://www.w3.org/2000/svg"><script/></svg>'
+        encoded = core.base64.b64encode(payload).decode("ascii")
+        with tempfile.TemporaryDirectory() as tmp:
+            with self.assertRaisesRegex(core.ConversionError, "FORBIDDEN_RESOURCE"):
+                core.embed_local_resources(
+                    '<img src="data:image/svg+xml;base64,{0}">'.format(encoded), tmp
+                )
+
+    def test_symbolic_link_escape_is_rejected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "root"
+            root.mkdir()
+            outside = Path(tmp) / "outside.png"
+            outside.write_bytes(self._PNG)
+            link = root / "escaped.png"
+            try:
+                link.symlink_to(outside)
+            except OSError as exc:
+                self.skipTest("symbolic links are unavailable: {0}".format(exc))
+            with self.assertRaisesRegex(core.ConversionError, "FORBIDDEN_RESOURCE"):
+                core.embed_local_resources('<img src="escaped.png">', root)
 
 
 class TestEndToEndConversion(unittest.TestCase):
