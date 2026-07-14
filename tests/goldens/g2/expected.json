@@ -1,0 +1,1328 @@
+{
+  "fixtures": [
+    {
+      "canonical_html_sha256": "afb1a0b3b58f58e7f2defa10e168f53eff44dfc579c1cbfcf49cb16df268b97e",
+      "embedded_image_sha256": [],
+      "fixture": "01-headings",
+      "links": [],
+      "markdown_sha256": "41f409f24f883548d52b11db7be7e6a475a46c44e6b53e0e964297b561d6210e",
+      "page_count": 1,
+      "pages": [
+        {
+          "height_points": 842.88,
+          "image": "page-001.png",
+          "image_count": 0,
+          "text_geometry_sha256": "4f44d8753e3b3bf2e942583a622ca058a02e4cfc7ced9617e3251cdccb70e021",
+          "text_sha256": "94e358d962326e53e7c1a0f30fe7be9700fe505e13db4b8b2402fbfcf568ab05",
+          "width_points": 595.92
+        }
+      ],
+      "pdf_sha256": "409c194ee7b1fbb0aae4da89caf5e6beca298adf2683f2f83bcbe81265ba6d90",
+      "profile_canonical_sha256": "e2207f2ccefb3ba6d539d659048384ec973d03b46258f29880eb616d87159a0c",
+      "profile_fingerprint": "e2207f2ccefb3ba6d539d659048384ec973d03b46258f29880eb616d87159a0c",
+      "renderer_resource_hashes": {
+        "css": "25390f85412dc4d0f3495dd096b471fc0ce93aecb66b2ccb8853635f96bc86c1",
+        "fonts": {
+          "NotoEmoji.ttf": "de6c18832938afc99caf132b39d6a30a19bac7f2e812e28db2535b4608d27551",
+          "NotoSans-Regular.ttf": "478c558ea716033cd60c03438f628dfa75694dcf6b5f6d505a2f05fd2b4f3823",
+          "NotoSans-SemiBold.ttf": "a4e91fd530ac2b4ef5367240144ff37d7d65d66cf76f2e9a2187b93c676f92d0",
+          "NotoSansArabic-Regular.ttf": "bdff3e5659d67e67def05b33f749683b9376ae819d65d3dd62ac4640b3aaef48",
+          "NotoSansCJKsc-Regular.otf": "2c76254f6fc379fddfce0a7e84fb5385bb135d3e399294f6eeb6680d0365b74b",
+          "NotoSansMono-Regular.ttf": "65b5e2b2c4a1fba9ae8be1f026cb35b03dcb8886d9b2a4147054fde12f7e767d",
+          "NotoSansSymbols2-Regular.ttf": "7d5fb73b7ca67a6798101741f5d280a3d016a56a197afcd4199dbb57b4b82a21"
+        },
+        "icons": {
+          "icons_check.png": "9a88bb05844bec005a0370679d0fc54613d6409d46a0c28a905b776b1f99ad71",
+          "icons_no_entry.png": "40929d801f16dd40fbf38d4ef508e9c6a382318d7da18f1e3f986737f811c6a9",
+          "icons_orange.png": "9f6e8605f7517f5946305618580010a12ecfbebf5d4220e5df9866ebebfa7806",
+          "icons_repeat.png": "bb58fd5130e908e2593653d2751273add54a3a78ace19a0e6f41c1f12b479119",
+          "icons_warning.png": "aefc9e61e2f58fc9ee09015ba90d3601e387f35d62822101d32aec7441e89fbd"
+        }
+      },
+      "schema": 1
+    },
+    {
+      "canonical_html_sha256": "8caa0469b9ab2a1e45dff067c0db97ad0deea400f3848570710a44e9c56ca408",
+      "embedded_image_sha256": [],
+      "fixture": "02-emphasis",
+      "links": [],
+      "markdown_sha256": "6e61cb177943031a85fdf3578abab599ca276228f6e16e5eba71ecf650bfc276",
+      "page_count": 1,
+      "pages": [
+        {
+          "height_points": 842.88,
+          "image": "page-001.png",
+          "image_count": 0,
+          "text_geometry_sha256": "3d1ac33fc2ce4479bd120080612c38a51f385300ea397914098baad8fa105df9",
+          "text_sha256": "309df111e4b1b1a9e93748cd9dfe770959a0000c4a5fd119a02702bf786c3f2c",
+          "width_points": 595.92
+        }
+      ],
+      "pdf_sha256": "6ccff02ced09118675a8a2e555d8e8c79f984855c22781f42e8c734d955e9fc3",
+      "profile_canonical_sha256": "e2207f2ccefb3ba6d539d659048384ec973d03b46258f29880eb616d87159a0c",
+      "profile_fingerprint": "e2207f2ccefb3ba6d539d659048384ec973d03b46258f29880eb616d87159a0c",
+      "renderer_resource_hashes": {
+        "css": "25390f85412dc4d0f3495dd096b471fc0ce93aecb66b2ccb8853635f96bc86c1",
+        "fonts": {
+          "NotoEmoji.ttf": "de6c18832938afc99caf132b39d6a30a19bac7f2e812e28db2535b4608d27551",
+          "NotoSans-Regular.ttf": "478c558ea716033cd60c03438f628dfa75694dcf6b5f6d505a2f05fd2b4f3823",
+          "NotoSans-SemiBold.ttf": "a4e91fd530ac2b4ef5367240144ff37d7d65d66cf76f2e9a2187b93c676f92d0",
+          "NotoSansArabic-Regular.ttf": "bdff3e5659d67e67def05b33f749683b9376ae819d65d3dd62ac4640b3aaef48",
+          "NotoSansCJKsc-Regular.otf": "2c76254f6fc379fddfce0a7e84fb5385bb135d3e399294f6eeb6680d0365b74b",
+          "NotoSansMono-Regular.ttf": "65b5e2b2c4a1fba9ae8be1f026cb35b03dcb8886d9b2a4147054fde12f7e767d",
+          "NotoSansSymbols2-Regular.ttf": "7d5fb73b7ca67a6798101741f5d280a3d016a56a197afcd4199dbb57b4b82a21"
+        },
+        "icons": {
+          "icons_check.png": "9a88bb05844bec005a0370679d0fc54613d6409d46a0c28a905b776b1f99ad71",
+          "icons_no_entry.png": "40929d801f16dd40fbf38d4ef508e9c6a382318d7da18f1e3f986737f811c6a9",
+          "icons_orange.png": "9f6e8605f7517f5946305618580010a12ecfbebf5d4220e5df9866ebebfa7806",
+          "icons_repeat.png": "bb58fd5130e908e2593653d2751273add54a3a78ace19a0e6f41c1f12b479119",
+          "icons_warning.png": "aefc9e61e2f58fc9ee09015ba90d3601e387f35d62822101d32aec7441e89fbd"
+        }
+      },
+      "schema": 1
+    },
+    {
+      "canonical_html_sha256": "d22382240a9e204a9a69cf79a3abe0e404e347e1c01afa0ed21ab17d9921fbeb",
+      "embedded_image_sha256": [],
+      "fixture": "03-nested-lists",
+      "links": [],
+      "markdown_sha256": "6cc918d46fa09456eb04b74425bf33aeb4671ed0bd34b39137365dca0526f28a",
+      "page_count": 1,
+      "pages": [
+        {
+          "height_points": 842.88,
+          "image": "page-001.png",
+          "image_count": 0,
+          "text_geometry_sha256": "a0870b889d416d4fd4451b5adc128858aaf64e15ea9a4e40ac336ef8cfb8125d",
+          "text_sha256": "97bcf765a01a593402946e75be32b8522921bef6d8c2c3280a59437c7234dc61",
+          "width_points": 595.92
+        }
+      ],
+      "pdf_sha256": "47a91afe2cd91e36a97fbb10eb957e14681bddbec374adfc41aeb11b3b2c4bab",
+      "profile_canonical_sha256": "e2207f2ccefb3ba6d539d659048384ec973d03b46258f29880eb616d87159a0c",
+      "profile_fingerprint": "e2207f2ccefb3ba6d539d659048384ec973d03b46258f29880eb616d87159a0c",
+      "renderer_resource_hashes": {
+        "css": "25390f85412dc4d0f3495dd096b471fc0ce93aecb66b2ccb8853635f96bc86c1",
+        "fonts": {
+          "NotoEmoji.ttf": "de6c18832938afc99caf132b39d6a30a19bac7f2e812e28db2535b4608d27551",
+          "NotoSans-Regular.ttf": "478c558ea716033cd60c03438f628dfa75694dcf6b5f6d505a2f05fd2b4f3823",
+          "NotoSans-SemiBold.ttf": "a4e91fd530ac2b4ef5367240144ff37d7d65d66cf76f2e9a2187b93c676f92d0",
+          "NotoSansArabic-Regular.ttf": "bdff3e5659d67e67def05b33f749683b9376ae819d65d3dd62ac4640b3aaef48",
+          "NotoSansCJKsc-Regular.otf": "2c76254f6fc379fddfce0a7e84fb5385bb135d3e399294f6eeb6680d0365b74b",
+          "NotoSansMono-Regular.ttf": "65b5e2b2c4a1fba9ae8be1f026cb35b03dcb8886d9b2a4147054fde12f7e767d",
+          "NotoSansSymbols2-Regular.ttf": "7d5fb73b7ca67a6798101741f5d280a3d016a56a197afcd4199dbb57b4b82a21"
+        },
+        "icons": {
+          "icons_check.png": "9a88bb05844bec005a0370679d0fc54613d6409d46a0c28a905b776b1f99ad71",
+          "icons_no_entry.png": "40929d801f16dd40fbf38d4ef508e9c6a382318d7da18f1e3f986737f811c6a9",
+          "icons_orange.png": "9f6e8605f7517f5946305618580010a12ecfbebf5d4220e5df9866ebebfa7806",
+          "icons_repeat.png": "bb58fd5130e908e2593653d2751273add54a3a78ace19a0e6f41c1f12b479119",
+          "icons_warning.png": "aefc9e61e2f58fc9ee09015ba90d3601e387f35d62822101d32aec7441e89fbd"
+        }
+      },
+      "schema": 1
+    },
+    {
+      "canonical_html_sha256": "9b1afa02e1bbc98037696bea3a09f441ab089fce1e6775a05eebf28fbc0be3d5",
+      "embedded_image_sha256": [],
+      "fixture": "04-sane-lists",
+      "links": [],
+      "markdown_sha256": "4631f32a843315079c9086836d3006affc3ebb8518c3f058015d942f63c8b5de",
+      "page_count": 1,
+      "pages": [
+        {
+          "height_points": 842.88,
+          "image": "page-001.png",
+          "image_count": 0,
+          "text_geometry_sha256": "25ac5397f02641628ad63f9e4a372c408cf77f43ea0e967327740f2de46e814d",
+          "text_sha256": "99a6396745d012f67565c2abaebd839ff9c8458cdb154d7d818a4853c10b14c0",
+          "width_points": 595.92
+        }
+      ],
+      "pdf_sha256": "45042a4a5d43fc84a16eb89595eb6aa541cd21bdd29b88b5fe5f9eea6193dc27",
+      "profile_canonical_sha256": "e2207f2ccefb3ba6d539d659048384ec973d03b46258f29880eb616d87159a0c",
+      "profile_fingerprint": "e2207f2ccefb3ba6d539d659048384ec973d03b46258f29880eb616d87159a0c",
+      "renderer_resource_hashes": {
+        "css": "25390f85412dc4d0f3495dd096b471fc0ce93aecb66b2ccb8853635f96bc86c1",
+        "fonts": {
+          "NotoEmoji.ttf": "de6c18832938afc99caf132b39d6a30a19bac7f2e812e28db2535b4608d27551",
+          "NotoSans-Regular.ttf": "478c558ea716033cd60c03438f628dfa75694dcf6b5f6d505a2f05fd2b4f3823",
+          "NotoSans-SemiBold.ttf": "a4e91fd530ac2b4ef5367240144ff37d7d65d66cf76f2e9a2187b93c676f92d0",
+          "NotoSansArabic-Regular.ttf": "bdff3e5659d67e67def05b33f749683b9376ae819d65d3dd62ac4640b3aaef48",
+          "NotoSansCJKsc-Regular.otf": "2c76254f6fc379fddfce0a7e84fb5385bb135d3e399294f6eeb6680d0365b74b",
+          "NotoSansMono-Regular.ttf": "65b5e2b2c4a1fba9ae8be1f026cb35b03dcb8886d9b2a4147054fde12f7e767d",
+          "NotoSansSymbols2-Regular.ttf": "7d5fb73b7ca67a6798101741f5d280a3d016a56a197afcd4199dbb57b4b82a21"
+        },
+        "icons": {
+          "icons_check.png": "9a88bb05844bec005a0370679d0fc54613d6409d46a0c28a905b776b1f99ad71",
+          "icons_no_entry.png": "40929d801f16dd40fbf38d4ef508e9c6a382318d7da18f1e3f986737f811c6a9",
+          "icons_orange.png": "9f6e8605f7517f5946305618580010a12ecfbebf5d4220e5df9866ebebfa7806",
+          "icons_repeat.png": "bb58fd5130e908e2593653d2751273add54a3a78ace19a0e6f41c1f12b479119",
+          "icons_warning.png": "aefc9e61e2f58fc9ee09015ba90d3601e387f35d62822101d32aec7441e89fbd"
+        }
+      },
+      "schema": 1
+    },
+    {
+      "canonical_html_sha256": "fdbdfa1a83196af04e6621bb4bda486fb56fa0c3745b7a8cfc862e60fa167dc1",
+      "embedded_image_sha256": [],
+      "fixture": "05-narrow-table",
+      "links": [],
+      "markdown_sha256": "c635ee7c2c5b4678916c9d0ce320539830925f0bf7e7ebc4d20a26d740123592",
+      "page_count": 1,
+      "pages": [
+        {
+          "height_points": 842.88,
+          "image": "page-001.png",
+          "image_count": 0,
+          "text_geometry_sha256": "d98e914297dad5ef978e4dd74fd69151fa9bde1445d8870aabe4e2dad0ad5af3",
+          "text_sha256": "2ce2ce8799422027f1d37a92bddc02cdee3647f6831ed90aa4c14b9810d74e05",
+          "width_points": 595.92
+        }
+      ],
+      "pdf_sha256": "67abf0d6b0ec1d04626eb5b80756f471753ed6c785e629749b22a53c9944522d",
+      "profile_canonical_sha256": "e2207f2ccefb3ba6d539d659048384ec973d03b46258f29880eb616d87159a0c",
+      "profile_fingerprint": "e2207f2ccefb3ba6d539d659048384ec973d03b46258f29880eb616d87159a0c",
+      "renderer_resource_hashes": {
+        "css": "25390f85412dc4d0f3495dd096b471fc0ce93aecb66b2ccb8853635f96bc86c1",
+        "fonts": {
+          "NotoEmoji.ttf": "de6c18832938afc99caf132b39d6a30a19bac7f2e812e28db2535b4608d27551",
+          "NotoSans-Regular.ttf": "478c558ea716033cd60c03438f628dfa75694dcf6b5f6d505a2f05fd2b4f3823",
+          "NotoSans-SemiBold.ttf": "a4e91fd530ac2b4ef5367240144ff37d7d65d66cf76f2e9a2187b93c676f92d0",
+          "NotoSansArabic-Regular.ttf": "bdff3e5659d67e67def05b33f749683b9376ae819d65d3dd62ac4640b3aaef48",
+          "NotoSansCJKsc-Regular.otf": "2c76254f6fc379fddfce0a7e84fb5385bb135d3e399294f6eeb6680d0365b74b",
+          "NotoSansMono-Regular.ttf": "65b5e2b2c4a1fba9ae8be1f026cb35b03dcb8886d9b2a4147054fde12f7e767d",
+          "NotoSansSymbols2-Regular.ttf": "7d5fb73b7ca67a6798101741f5d280a3d016a56a197afcd4199dbb57b4b82a21"
+        },
+        "icons": {
+          "icons_check.png": "9a88bb05844bec005a0370679d0fc54613d6409d46a0c28a905b776b1f99ad71",
+          "icons_no_entry.png": "40929d801f16dd40fbf38d4ef508e9c6a382318d7da18f1e3f986737f811c6a9",
+          "icons_orange.png": "9f6e8605f7517f5946305618580010a12ecfbebf5d4220e5df9866ebebfa7806",
+          "icons_repeat.png": "bb58fd5130e908e2593653d2751273add54a3a78ace19a0e6f41c1f12b479119",
+          "icons_warning.png": "aefc9e61e2f58fc9ee09015ba90d3601e387f35d62822101d32aec7441e89fbd"
+        }
+      },
+      "schema": 1
+    },
+    {
+      "canonical_html_sha256": "efafe668e4ce636ba9db689eef43a5c49eeeadb7f6d62a92c5530e4283106bdc",
+      "embedded_image_sha256": [],
+      "fixture": "06-wide-table",
+      "links": [],
+      "markdown_sha256": "2d5f4dd807fb4d9c28b7e85ed5f20c7b312643d11a959748f949ce24933b1786",
+      "page_count": 1,
+      "pages": [
+        {
+          "height_points": 842.88,
+          "image": "page-001.png",
+          "image_count": 0,
+          "text_geometry_sha256": "41617706f16ead5e220642084883a1afcc2aac59319a22d8b917d463c2e98f1b",
+          "text_sha256": "d20b200c2459c2cd9fe6fba656818ac29d3c612b636fe36f68cb3ee031748475",
+          "width_points": 595.92
+        }
+      ],
+      "pdf_sha256": "4b2f5ba1cf1c5889733f4fd9b4fad05d366d4e3e8f37a1136ecd7558b7d1ec58",
+      "profile_canonical_sha256": "e2207f2ccefb3ba6d539d659048384ec973d03b46258f29880eb616d87159a0c",
+      "profile_fingerprint": "e2207f2ccefb3ba6d539d659048384ec973d03b46258f29880eb616d87159a0c",
+      "renderer_resource_hashes": {
+        "css": "25390f85412dc4d0f3495dd096b471fc0ce93aecb66b2ccb8853635f96bc86c1",
+        "fonts": {
+          "NotoEmoji.ttf": "de6c18832938afc99caf132b39d6a30a19bac7f2e812e28db2535b4608d27551",
+          "NotoSans-Regular.ttf": "478c558ea716033cd60c03438f628dfa75694dcf6b5f6d505a2f05fd2b4f3823",
+          "NotoSans-SemiBold.ttf": "a4e91fd530ac2b4ef5367240144ff37d7d65d66cf76f2e9a2187b93c676f92d0",
+          "NotoSansArabic-Regular.ttf": "bdff3e5659d67e67def05b33f749683b9376ae819d65d3dd62ac4640b3aaef48",
+          "NotoSansCJKsc-Regular.otf": "2c76254f6fc379fddfce0a7e84fb5385bb135d3e399294f6eeb6680d0365b74b",
+          "NotoSansMono-Regular.ttf": "65b5e2b2c4a1fba9ae8be1f026cb35b03dcb8886d9b2a4147054fde12f7e767d",
+          "NotoSansSymbols2-Regular.ttf": "7d5fb73b7ca67a6798101741f5d280a3d016a56a197afcd4199dbb57b4b82a21"
+        },
+        "icons": {
+          "icons_check.png": "9a88bb05844bec005a0370679d0fc54613d6409d46a0c28a905b776b1f99ad71",
+          "icons_no_entry.png": "40929d801f16dd40fbf38d4ef508e9c6a382318d7da18f1e3f986737f811c6a9",
+          "icons_orange.png": "9f6e8605f7517f5946305618580010a12ecfbebf5d4220e5df9866ebebfa7806",
+          "icons_repeat.png": "bb58fd5130e908e2593653d2751273add54a3a78ace19a0e6f41c1f12b479119",
+          "icons_warning.png": "aefc9e61e2f58fc9ee09015ba90d3601e387f35d62822101d32aec7441e89fbd"
+        }
+      },
+      "schema": 1
+    },
+    {
+      "canonical_html_sha256": "3196b7ea61d8debb22a84b18542067b8cf13c5839271729d63f5aba586a917a6",
+      "embedded_image_sha256": [],
+      "fixture": "07-long-table",
+      "links": [],
+      "markdown_sha256": "e8feecb1484cdb946261db57b428dd50d2c3d05186a1c29cc530401383d90dc2",
+      "page_count": 1,
+      "pages": [
+        {
+          "height_points": 842.88,
+          "image": "page-001.png",
+          "image_count": 0,
+          "text_geometry_sha256": "82a39e4f0d80c4eb5ccd0efe5244e875e11d0c88cd9dbeff8041ccac2822fa16",
+          "text_sha256": "59e5e8bdeea1982477a5948b610fed04158292af29d5c7ff4dfe3222ec735134",
+          "width_points": 595.92
+        }
+      ],
+      "pdf_sha256": "9c5d41e73ac173c91a7527ecb6ab7e58fa9b0dd24818501282989bf14f50e9dc",
+      "profile_canonical_sha256": "e2207f2ccefb3ba6d539d659048384ec973d03b46258f29880eb616d87159a0c",
+      "profile_fingerprint": "e2207f2ccefb3ba6d539d659048384ec973d03b46258f29880eb616d87159a0c",
+      "renderer_resource_hashes": {
+        "css": "25390f85412dc4d0f3495dd096b471fc0ce93aecb66b2ccb8853635f96bc86c1",
+        "fonts": {
+          "NotoEmoji.ttf": "de6c18832938afc99caf132b39d6a30a19bac7f2e812e28db2535b4608d27551",
+          "NotoSans-Regular.ttf": "478c558ea716033cd60c03438f628dfa75694dcf6b5f6d505a2f05fd2b4f3823",
+          "NotoSans-SemiBold.ttf": "a4e91fd530ac2b4ef5367240144ff37d7d65d66cf76f2e9a2187b93c676f92d0",
+          "NotoSansArabic-Regular.ttf": "bdff3e5659d67e67def05b33f749683b9376ae819d65d3dd62ac4640b3aaef48",
+          "NotoSansCJKsc-Regular.otf": "2c76254f6fc379fddfce0a7e84fb5385bb135d3e399294f6eeb6680d0365b74b",
+          "NotoSansMono-Regular.ttf": "65b5e2b2c4a1fba9ae8be1f026cb35b03dcb8886d9b2a4147054fde12f7e767d",
+          "NotoSansSymbols2-Regular.ttf": "7d5fb73b7ca67a6798101741f5d280a3d016a56a197afcd4199dbb57b4b82a21"
+        },
+        "icons": {
+          "icons_check.png": "9a88bb05844bec005a0370679d0fc54613d6409d46a0c28a905b776b1f99ad71",
+          "icons_no_entry.png": "40929d801f16dd40fbf38d4ef508e9c6a382318d7da18f1e3f986737f811c6a9",
+          "icons_orange.png": "9f6e8605f7517f5946305618580010a12ecfbebf5d4220e5df9866ebebfa7806",
+          "icons_repeat.png": "bb58fd5130e908e2593653d2751273add54a3a78ace19a0e6f41c1f12b479119",
+          "icons_warning.png": "aefc9e61e2f58fc9ee09015ba90d3601e387f35d62822101d32aec7441e89fbd"
+        }
+      },
+      "schema": 1
+    },
+    {
+      "canonical_html_sha256": "8416a4a58f280716157b851902ea0bf42fd962c8d98512d4696234414b040398",
+      "embedded_image_sha256": [],
+      "fixture": "08-multipage-table",
+      "links": [],
+      "markdown_sha256": "e865779442037b7c4c32b62311b6ee68c8e35537fa30c109214248550a43b221",
+      "page_count": 3,
+      "pages": [
+        {
+          "height_points": 842.88,
+          "image": "page-001.png",
+          "image_count": 0,
+          "text_geometry_sha256": "4c4ea8fc7572b39cf819e2248bf95948e787cd9f641c5c8486c62e3819f498f9",
+          "text_sha256": "2c6018042107a7d70ad884b660c018b8a98cb41e8ef65c55c0d74cd1dd630edd",
+          "width_points": 595.92
+        },
+        {
+          "height_points": 842.88,
+          "image": "page-002.png",
+          "image_count": 0,
+          "text_geometry_sha256": "69312e8cd76908282ff3983c4ef866ec0245a52ca9c945804e73a7e74daca8c2",
+          "text_sha256": "4fbab2d31d5e51cb236ffef02b72e253b6cc19252e3edb1a3244495bb2c0c9dc",
+          "width_points": 595.92
+        },
+        {
+          "height_points": 842.88,
+          "image": "page-003.png",
+          "image_count": 0,
+          "text_geometry_sha256": "08eab7d3832a455db460a76ac27a43de1fb467312dc869f5e07eb489d4917de5",
+          "text_sha256": "2cf88a00ba0580d7f1b6e31b4d89e5a8e5670b245c06f80d0006c431c3bef77a",
+          "width_points": 595.92
+        }
+      ],
+      "pdf_sha256": "dbc607a29aba614783db602b9a915d38413a5eae2ceeb7fcfd788c968cb86f58",
+      "profile_canonical_sha256": "e2207f2ccefb3ba6d539d659048384ec973d03b46258f29880eb616d87159a0c",
+      "profile_fingerprint": "e2207f2ccefb3ba6d539d659048384ec973d03b46258f29880eb616d87159a0c",
+      "renderer_resource_hashes": {
+        "css": "25390f85412dc4d0f3495dd096b471fc0ce93aecb66b2ccb8853635f96bc86c1",
+        "fonts": {
+          "NotoEmoji.ttf": "de6c18832938afc99caf132b39d6a30a19bac7f2e812e28db2535b4608d27551",
+          "NotoSans-Regular.ttf": "478c558ea716033cd60c03438f628dfa75694dcf6b5f6d505a2f05fd2b4f3823",
+          "NotoSans-SemiBold.ttf": "a4e91fd530ac2b4ef5367240144ff37d7d65d66cf76f2e9a2187b93c676f92d0",
+          "NotoSansArabic-Regular.ttf": "bdff3e5659d67e67def05b33f749683b9376ae819d65d3dd62ac4640b3aaef48",
+          "NotoSansCJKsc-Regular.otf": "2c76254f6fc379fddfce0a7e84fb5385bb135d3e399294f6eeb6680d0365b74b",
+          "NotoSansMono-Regular.ttf": "65b5e2b2c4a1fba9ae8be1f026cb35b03dcb8886d9b2a4147054fde12f7e767d",
+          "NotoSansSymbols2-Regular.ttf": "7d5fb73b7ca67a6798101741f5d280a3d016a56a197afcd4199dbb57b4b82a21"
+        },
+        "icons": {
+          "icons_check.png": "9a88bb05844bec005a0370679d0fc54613d6409d46a0c28a905b776b1f99ad71",
+          "icons_no_entry.png": "40929d801f16dd40fbf38d4ef508e9c6a382318d7da18f1e3f986737f811c6a9",
+          "icons_orange.png": "9f6e8605f7517f5946305618580010a12ecfbebf5d4220e5df9866ebebfa7806",
+          "icons_repeat.png": "bb58fd5130e908e2593653d2751273add54a3a78ace19a0e6f41c1f12b479119",
+          "icons_warning.png": "aefc9e61e2f58fc9ee09015ba90d3601e387f35d62822101d32aec7441e89fbd"
+        }
+      },
+      "schema": 1
+    },
+    {
+      "canonical_html_sha256": "2b40664e64b9254ab40721d497a938e07c8b91c6ea0466c7057e7963acad19fe",
+      "embedded_image_sha256": [],
+      "fixture": "09-inline-code",
+      "links": [],
+      "markdown_sha256": "73bb577a4dd5207132d743f468383dca2d6779d3c19a63c6285880f58dae4259",
+      "page_count": 1,
+      "pages": [
+        {
+          "height_points": 842.88,
+          "image": "page-001.png",
+          "image_count": 0,
+          "text_geometry_sha256": "bbd7d78f9137e29b6d010e1ef2276a7c3ecb0006cf3156d06f7ecd91c79293a0",
+          "text_sha256": "d91c996049937df08eaf18c40b386cb3ce1e7528643cf921fb80b24baaa6d72e",
+          "width_points": 595.92
+        }
+      ],
+      "pdf_sha256": "bcb611bc8a642b84f3cb72c9e4ac1800a451e3ce63d7f28edeee6231563989f8",
+      "profile_canonical_sha256": "e2207f2ccefb3ba6d539d659048384ec973d03b46258f29880eb616d87159a0c",
+      "profile_fingerprint": "e2207f2ccefb3ba6d539d659048384ec973d03b46258f29880eb616d87159a0c",
+      "renderer_resource_hashes": {
+        "css": "25390f85412dc4d0f3495dd096b471fc0ce93aecb66b2ccb8853635f96bc86c1",
+        "fonts": {
+          "NotoEmoji.ttf": "de6c18832938afc99caf132b39d6a30a19bac7f2e812e28db2535b4608d27551",
+          "NotoSans-Regular.ttf": "478c558ea716033cd60c03438f628dfa75694dcf6b5f6d505a2f05fd2b4f3823",
+          "NotoSans-SemiBold.ttf": "a4e91fd530ac2b4ef5367240144ff37d7d65d66cf76f2e9a2187b93c676f92d0",
+          "NotoSansArabic-Regular.ttf": "bdff3e5659d67e67def05b33f749683b9376ae819d65d3dd62ac4640b3aaef48",
+          "NotoSansCJKsc-Regular.otf": "2c76254f6fc379fddfce0a7e84fb5385bb135d3e399294f6eeb6680d0365b74b",
+          "NotoSansMono-Regular.ttf": "65b5e2b2c4a1fba9ae8be1f026cb35b03dcb8886d9b2a4147054fde12f7e767d",
+          "NotoSansSymbols2-Regular.ttf": "7d5fb73b7ca67a6798101741f5d280a3d016a56a197afcd4199dbb57b4b82a21"
+        },
+        "icons": {
+          "icons_check.png": "9a88bb05844bec005a0370679d0fc54613d6409d46a0c28a905b776b1f99ad71",
+          "icons_no_entry.png": "40929d801f16dd40fbf38d4ef508e9c6a382318d7da18f1e3f986737f811c6a9",
+          "icons_orange.png": "9f6e8605f7517f5946305618580010a12ecfbebf5d4220e5df9866ebebfa7806",
+          "icons_repeat.png": "bb58fd5130e908e2593653d2751273add54a3a78ace19a0e6f41c1f12b479119",
+          "icons_warning.png": "aefc9e61e2f58fc9ee09015ba90d3601e387f35d62822101d32aec7441e89fbd"
+        }
+      },
+      "schema": 1
+    },
+    {
+      "canonical_html_sha256": "d854774f54fda6aab9f0d760e43e451bafc99fe12711cbaf60a52028f957f602",
+      "embedded_image_sha256": [],
+      "fixture": "10-fenced-code",
+      "links": [],
+      "markdown_sha256": "1a5bb0dcf241ef81f2fed9f95f9a089d07a907728babe5ba6c8fd851a0f76fc7",
+      "page_count": 1,
+      "pages": [
+        {
+          "height_points": 842.88,
+          "image": "page-001.png",
+          "image_count": 0,
+          "text_geometry_sha256": "81c79f589a04b1178827768163dc9a7161e3323f782ac0d57bebe7aaf135e574",
+          "text_sha256": "cf4e1c2b7e99ae074a10a9d1e0f2a8c580d0530cd3c7816531d772e0794165be",
+          "width_points": 595.92
+        }
+      ],
+      "pdf_sha256": "5a0bab66c6a2c10921fff333bb8cc86ac32411c50aa1d8a8ba5a6a2219901ae1",
+      "profile_canonical_sha256": "e2207f2ccefb3ba6d539d659048384ec973d03b46258f29880eb616d87159a0c",
+      "profile_fingerprint": "e2207f2ccefb3ba6d539d659048384ec973d03b46258f29880eb616d87159a0c",
+      "renderer_resource_hashes": {
+        "css": "25390f85412dc4d0f3495dd096b471fc0ce93aecb66b2ccb8853635f96bc86c1",
+        "fonts": {
+          "NotoEmoji.ttf": "de6c18832938afc99caf132b39d6a30a19bac7f2e812e28db2535b4608d27551",
+          "NotoSans-Regular.ttf": "478c558ea716033cd60c03438f628dfa75694dcf6b5f6d505a2f05fd2b4f3823",
+          "NotoSans-SemiBold.ttf": "a4e91fd530ac2b4ef5367240144ff37d7d65d66cf76f2e9a2187b93c676f92d0",
+          "NotoSansArabic-Regular.ttf": "bdff3e5659d67e67def05b33f749683b9376ae819d65d3dd62ac4640b3aaef48",
+          "NotoSansCJKsc-Regular.otf": "2c76254f6fc379fddfce0a7e84fb5385bb135d3e399294f6eeb6680d0365b74b",
+          "NotoSansMono-Regular.ttf": "65b5e2b2c4a1fba9ae8be1f026cb35b03dcb8886d9b2a4147054fde12f7e767d",
+          "NotoSansSymbols2-Regular.ttf": "7d5fb73b7ca67a6798101741f5d280a3d016a56a197afcd4199dbb57b4b82a21"
+        },
+        "icons": {
+          "icons_check.png": "9a88bb05844bec005a0370679d0fc54613d6409d46a0c28a905b776b1f99ad71",
+          "icons_no_entry.png": "40929d801f16dd40fbf38d4ef508e9c6a382318d7da18f1e3f986737f811c6a9",
+          "icons_orange.png": "9f6e8605f7517f5946305618580010a12ecfbebf5d4220e5df9866ebebfa7806",
+          "icons_repeat.png": "bb58fd5130e908e2593653d2751273add54a3a78ace19a0e6f41c1f12b479119",
+          "icons_warning.png": "aefc9e61e2f58fc9ee09015ba90d3601e387f35d62822101d32aec7441e89fbd"
+        }
+      },
+      "schema": 1
+    },
+    {
+      "canonical_html_sha256": "1ad57e53857ab7e2869828789a88cb8e8f8f2a44903dee741b047c8097ec8cdf",
+      "embedded_image_sha256": [
+        "82893b06bfdc31cbfe0a6edb219b2ff5ad1032079d4fb5e5a36933662740ad20"
+      ],
+      "fixture": "11-relative-png",
+      "links": [],
+      "markdown_sha256": "f494ab4a8cd21a238b9ea9665eb325c421bf1410f4c52a3947061137337932ef",
+      "page_count": 1,
+      "pages": [
+        {
+          "height_points": 842.88,
+          "image": "page-001.png",
+          "image_count": 0,
+          "text_geometry_sha256": "ae0e8be47ef02c6d1bf42ec056ce67631f5bdb1aa243cad912ef4a36fd5aee73",
+          "text_sha256": "80a8dff033bfec44f12f0afa725f5d8ddfb9122e6edf037391f001c7ce6dbb17",
+          "width_points": 595.92
+        }
+      ],
+      "pdf_sha256": "6cdf20f69959afa518d189fe24bdc66c31537486e56d99e08d98889d2fc72211",
+      "profile_canonical_sha256": "e2207f2ccefb3ba6d539d659048384ec973d03b46258f29880eb616d87159a0c",
+      "profile_fingerprint": "e2207f2ccefb3ba6d539d659048384ec973d03b46258f29880eb616d87159a0c",
+      "renderer_resource_hashes": {
+        "css": "25390f85412dc4d0f3495dd096b471fc0ce93aecb66b2ccb8853635f96bc86c1",
+        "fonts": {
+          "NotoEmoji.ttf": "de6c18832938afc99caf132b39d6a30a19bac7f2e812e28db2535b4608d27551",
+          "NotoSans-Regular.ttf": "478c558ea716033cd60c03438f628dfa75694dcf6b5f6d505a2f05fd2b4f3823",
+          "NotoSans-SemiBold.ttf": "a4e91fd530ac2b4ef5367240144ff37d7d65d66cf76f2e9a2187b93c676f92d0",
+          "NotoSansArabic-Regular.ttf": "bdff3e5659d67e67def05b33f749683b9376ae819d65d3dd62ac4640b3aaef48",
+          "NotoSansCJKsc-Regular.otf": "2c76254f6fc379fddfce0a7e84fb5385bb135d3e399294f6eeb6680d0365b74b",
+          "NotoSansMono-Regular.ttf": "65b5e2b2c4a1fba9ae8be1f026cb35b03dcb8886d9b2a4147054fde12f7e767d",
+          "NotoSansSymbols2-Regular.ttf": "7d5fb73b7ca67a6798101741f5d280a3d016a56a197afcd4199dbb57b4b82a21"
+        },
+        "icons": {
+          "icons_check.png": "9a88bb05844bec005a0370679d0fc54613d6409d46a0c28a905b776b1f99ad71",
+          "icons_no_entry.png": "40929d801f16dd40fbf38d4ef508e9c6a382318d7da18f1e3f986737f811c6a9",
+          "icons_orange.png": "9f6e8605f7517f5946305618580010a12ecfbebf5d4220e5df9866ebebfa7806",
+          "icons_repeat.png": "bb58fd5130e908e2593653d2751273add54a3a78ace19a0e6f41c1f12b479119",
+          "icons_warning.png": "aefc9e61e2f58fc9ee09015ba90d3601e387f35d62822101d32aec7441e89fbd"
+        }
+      },
+      "schema": 1
+    },
+    {
+      "canonical_html_sha256": "7f8e9d46ea63a62961e1f9623abcc028197cf53e59632adecd44221cdf859e20",
+      "embedded_image_sha256": [
+        "7c5854d7352ef5fa482117f0b71761440eef9fa6ede2b3de64e4204578ba13c5"
+      ],
+      "fixture": "12-relative-jpeg-policy",
+      "links": [],
+      "markdown_sha256": "8dcdccb18fc0a6341a648ea55f45d677c3f355011682293a06e8b5a9b0f3bc88",
+      "page_count": 1,
+      "pages": [
+        {
+          "height_points": 842.88,
+          "image": "page-001.png",
+          "image_count": 0,
+          "text_geometry_sha256": "2028f788b04391aec47fdb24b411213c4b3150ad3ecc80d51d6dfcf092acf56d",
+          "text_sha256": "94267c2c03baf6a13ec8cd7a286091cab4ae700af869da537baf02f6e2614402",
+          "width_points": 595.92
+        }
+      ],
+      "pdf_sha256": "4af813c1fb86191534a460641fb738b5556d8eb21dd5c2e248b33c983512452f",
+      "profile_canonical_sha256": "e2207f2ccefb3ba6d539d659048384ec973d03b46258f29880eb616d87159a0c",
+      "profile_fingerprint": "e2207f2ccefb3ba6d539d659048384ec973d03b46258f29880eb616d87159a0c",
+      "renderer_resource_hashes": {
+        "css": "25390f85412dc4d0f3495dd096b471fc0ce93aecb66b2ccb8853635f96bc86c1",
+        "fonts": {
+          "NotoEmoji.ttf": "de6c18832938afc99caf132b39d6a30a19bac7f2e812e28db2535b4608d27551",
+          "NotoSans-Regular.ttf": "478c558ea716033cd60c03438f628dfa75694dcf6b5f6d505a2f05fd2b4f3823",
+          "NotoSans-SemiBold.ttf": "a4e91fd530ac2b4ef5367240144ff37d7d65d66cf76f2e9a2187b93c676f92d0",
+          "NotoSansArabic-Regular.ttf": "bdff3e5659d67e67def05b33f749683b9376ae819d65d3dd62ac4640b3aaef48",
+          "NotoSansCJKsc-Regular.otf": "2c76254f6fc379fddfce0a7e84fb5385bb135d3e399294f6eeb6680d0365b74b",
+          "NotoSansMono-Regular.ttf": "65b5e2b2c4a1fba9ae8be1f026cb35b03dcb8886d9b2a4147054fde12f7e767d",
+          "NotoSansSymbols2-Regular.ttf": "7d5fb73b7ca67a6798101741f5d280a3d016a56a197afcd4199dbb57b4b82a21"
+        },
+        "icons": {
+          "icons_check.png": "9a88bb05844bec005a0370679d0fc54613d6409d46a0c28a905b776b1f99ad71",
+          "icons_no_entry.png": "40929d801f16dd40fbf38d4ef508e9c6a382318d7da18f1e3f986737f811c6a9",
+          "icons_orange.png": "9f6e8605f7517f5946305618580010a12ecfbebf5d4220e5df9866ebebfa7806",
+          "icons_repeat.png": "bb58fd5130e908e2593653d2751273add54a3a78ace19a0e6f41c1f12b479119",
+          "icons_warning.png": "aefc9e61e2f58fc9ee09015ba90d3601e387f35d62822101d32aec7441e89fbd"
+        }
+      },
+      "schema": 1
+    },
+    {
+      "canonical_html_sha256": "72b14e640210df64e53b5bc7a0a1a2ae95272ba0e0119e0c37872241dfc1ce9b",
+      "embedded_image_sha256": [
+        "aeaac01324fba57292776b418293051962f7ddff9760fc84f3423f87fedb3586"
+      ],
+      "fixture": "13-relative-svg-policy",
+      "links": [],
+      "markdown_sha256": "3ecf9bf31e258a783c31a042b80c67e0a4dfbd01db9b5f32a04dcf51a8d96ea6",
+      "page_count": 1,
+      "pages": [
+        {
+          "height_points": 842.88,
+          "image": "page-001.png",
+          "image_count": 0,
+          "text_geometry_sha256": "ca833bc39c2d87c69ca504f6bbb40f7b39d37af0dc3f01a431f224e6b9931821",
+          "text_sha256": "25178125e2b75ac4fab0a8f99b4443bed62b8fafc3f067b581578208ad5f39bb",
+          "width_points": 595.92
+        }
+      ],
+      "pdf_sha256": "5bd7ed9686550b2972fb84b37ed8d0276085c948ec49f9cb6eb8f1d9355043e5",
+      "profile_canonical_sha256": "e2207f2ccefb3ba6d539d659048384ec973d03b46258f29880eb616d87159a0c",
+      "profile_fingerprint": "e2207f2ccefb3ba6d539d659048384ec973d03b46258f29880eb616d87159a0c",
+      "renderer_resource_hashes": {
+        "css": "25390f85412dc4d0f3495dd096b471fc0ce93aecb66b2ccb8853635f96bc86c1",
+        "fonts": {
+          "NotoEmoji.ttf": "de6c18832938afc99caf132b39d6a30a19bac7f2e812e28db2535b4608d27551",
+          "NotoSans-Regular.ttf": "478c558ea716033cd60c03438f628dfa75694dcf6b5f6d505a2f05fd2b4f3823",
+          "NotoSans-SemiBold.ttf": "a4e91fd530ac2b4ef5367240144ff37d7d65d66cf76f2e9a2187b93c676f92d0",
+          "NotoSansArabic-Regular.ttf": "bdff3e5659d67e67def05b33f749683b9376ae819d65d3dd62ac4640b3aaef48",
+          "NotoSansCJKsc-Regular.otf": "2c76254f6fc379fddfce0a7e84fb5385bb135d3e399294f6eeb6680d0365b74b",
+          "NotoSansMono-Regular.ttf": "65b5e2b2c4a1fba9ae8be1f026cb35b03dcb8886d9b2a4147054fde12f7e767d",
+          "NotoSansSymbols2-Regular.ttf": "7d5fb73b7ca67a6798101741f5d280a3d016a56a197afcd4199dbb57b4b82a21"
+        },
+        "icons": {
+          "icons_check.png": "9a88bb05844bec005a0370679d0fc54613d6409d46a0c28a905b776b1f99ad71",
+          "icons_no_entry.png": "40929d801f16dd40fbf38d4ef508e9c6a382318d7da18f1e3f986737f811c6a9",
+          "icons_orange.png": "9f6e8605f7517f5946305618580010a12ecfbebf5d4220e5df9866ebebfa7806",
+          "icons_repeat.png": "bb58fd5130e908e2593653d2751273add54a3a78ace19a0e6f41c1f12b479119",
+          "icons_warning.png": "aefc9e61e2f58fc9ee09015ba90d3601e387f35d62822101d32aec7441e89fbd"
+        }
+      },
+      "schema": 1
+    },
+    {
+      "canonical_html_sha256": "1a813c97eafbe306eb4e758979e56d571f67d155f424d73d0893f0817001bb93",
+      "embedded_image_sha256": [
+        "1e85ec81b9800b4c443d39caca0d0926089a3ac201120db1ceb45b93789480b8"
+      ],
+      "fixture": "14-relative-gif-policy",
+      "links": [],
+      "markdown_sha256": "f1f0e23aa6564b448a636c3c8b96cf2d6bddf543ec0c890b8ed9649b183993f2",
+      "page_count": 1,
+      "pages": [
+        {
+          "height_points": 842.88,
+          "image": "page-001.png",
+          "image_count": 0,
+          "text_geometry_sha256": "9ee4dabff6446cb3ef5194d25120d93422134cda14619ecc91b7ff7f60296525",
+          "text_sha256": "83c514fc31c5980c6bfff47325095faba1a96d98d74c4514aa7a8b21b4d0b97f",
+          "width_points": 595.92
+        }
+      ],
+      "pdf_sha256": "0a7744ee0bf633d70c5173124592b44976aab72c6c44b00d27ff1181d5780121",
+      "profile_canonical_sha256": "e2207f2ccefb3ba6d539d659048384ec973d03b46258f29880eb616d87159a0c",
+      "profile_fingerprint": "e2207f2ccefb3ba6d539d659048384ec973d03b46258f29880eb616d87159a0c",
+      "renderer_resource_hashes": {
+        "css": "25390f85412dc4d0f3495dd096b471fc0ce93aecb66b2ccb8853635f96bc86c1",
+        "fonts": {
+          "NotoEmoji.ttf": "de6c18832938afc99caf132b39d6a30a19bac7f2e812e28db2535b4608d27551",
+          "NotoSans-Regular.ttf": "478c558ea716033cd60c03438f628dfa75694dcf6b5f6d505a2f05fd2b4f3823",
+          "NotoSans-SemiBold.ttf": "a4e91fd530ac2b4ef5367240144ff37d7d65d66cf76f2e9a2187b93c676f92d0",
+          "NotoSansArabic-Regular.ttf": "bdff3e5659d67e67def05b33f749683b9376ae819d65d3dd62ac4640b3aaef48",
+          "NotoSansCJKsc-Regular.otf": "2c76254f6fc379fddfce0a7e84fb5385bb135d3e399294f6eeb6680d0365b74b",
+          "NotoSansMono-Regular.ttf": "65b5e2b2c4a1fba9ae8be1f026cb35b03dcb8886d9b2a4147054fde12f7e767d",
+          "NotoSansSymbols2-Regular.ttf": "7d5fb73b7ca67a6798101741f5d280a3d016a56a197afcd4199dbb57b4b82a21"
+        },
+        "icons": {
+          "icons_check.png": "9a88bb05844bec005a0370679d0fc54613d6409d46a0c28a905b776b1f99ad71",
+          "icons_no_entry.png": "40929d801f16dd40fbf38d4ef508e9c6a382318d7da18f1e3f986737f811c6a9",
+          "icons_orange.png": "9f6e8605f7517f5946305618580010a12ecfbebf5d4220e5df9866ebebfa7806",
+          "icons_repeat.png": "bb58fd5130e908e2593653d2751273add54a3a78ace19a0e6f41c1f12b479119",
+          "icons_warning.png": "aefc9e61e2f58fc9ee09015ba90d3601e387f35d62822101d32aec7441e89fbd"
+        }
+      },
+      "schema": 1
+    },
+    {
+      "canonical_html_sha256": "1ad57e53857ab7e2869828789a88cb8e8f8f2a44903dee741b047c8097ec8cdf",
+      "embedded_image_sha256": [
+        "82893b06bfdc31cbfe0a6edb219b2ff5ad1032079d4fb5e5a36933662740ad20"
+      ],
+      "fixture": "15-data-uri-policy",
+      "links": [],
+      "markdown_sha256": "f494ab4a8cd21a238b9ea9665eb325c421bf1410f4c52a3947061137337932ef",
+      "page_count": 1,
+      "pages": [
+        {
+          "height_points": 842.88,
+          "image": "page-001.png",
+          "image_count": 0,
+          "text_geometry_sha256": "ae0e8be47ef02c6d1bf42ec056ce67631f5bdb1aa243cad912ef4a36fd5aee73",
+          "text_sha256": "80a8dff033bfec44f12f0afa725f5d8ddfb9122e6edf037391f001c7ce6dbb17",
+          "width_points": 595.92
+        }
+      ],
+      "pdf_sha256": "6f3bb7462d9bfb72b4e0f8885ffb8b7bc16011a6a5031444aed7350abe5e79a6",
+      "profile_canonical_sha256": "e2207f2ccefb3ba6d539d659048384ec973d03b46258f29880eb616d87159a0c",
+      "profile_fingerprint": "e2207f2ccefb3ba6d539d659048384ec973d03b46258f29880eb616d87159a0c",
+      "renderer_resource_hashes": {
+        "css": "25390f85412dc4d0f3495dd096b471fc0ce93aecb66b2ccb8853635f96bc86c1",
+        "fonts": {
+          "NotoEmoji.ttf": "de6c18832938afc99caf132b39d6a30a19bac7f2e812e28db2535b4608d27551",
+          "NotoSans-Regular.ttf": "478c558ea716033cd60c03438f628dfa75694dcf6b5f6d505a2f05fd2b4f3823",
+          "NotoSans-SemiBold.ttf": "a4e91fd530ac2b4ef5367240144ff37d7d65d66cf76f2e9a2187b93c676f92d0",
+          "NotoSansArabic-Regular.ttf": "bdff3e5659d67e67def05b33f749683b9376ae819d65d3dd62ac4640b3aaef48",
+          "NotoSansCJKsc-Regular.otf": "2c76254f6fc379fddfce0a7e84fb5385bb135d3e399294f6eeb6680d0365b74b",
+          "NotoSansMono-Regular.ttf": "65b5e2b2c4a1fba9ae8be1f026cb35b03dcb8886d9b2a4147054fde12f7e767d",
+          "NotoSansSymbols2-Regular.ttf": "7d5fb73b7ca67a6798101741f5d280a3d016a56a197afcd4199dbb57b4b82a21"
+        },
+        "icons": {
+          "icons_check.png": "9a88bb05844bec005a0370679d0fc54613d6409d46a0c28a905b776b1f99ad71",
+          "icons_no_entry.png": "40929d801f16dd40fbf38d4ef508e9c6a382318d7da18f1e3f986737f811c6a9",
+          "icons_orange.png": "9f6e8605f7517f5946305618580010a12ecfbebf5d4220e5df9866ebebfa7806",
+          "icons_repeat.png": "bb58fd5130e908e2593653d2751273add54a3a78ace19a0e6f41c1f12b479119",
+          "icons_warning.png": "aefc9e61e2f58fc9ee09015ba90d3601e387f35d62822101d32aec7441e89fbd"
+        }
+      },
+      "schema": 1
+    },
+    {
+      "canonical_html_sha256": "c49811900ca73bda21d4aaa5649ac7125e764928aed674442a186b9ce64d381c",
+      "embedded_image_sha256": [],
+      "fixture": "16-links",
+      "links": [
+        "https://example.invalid/libremark"
+      ],
+      "markdown_sha256": "59dc8b49b0276a773a133d57d5df29e48f929391f2a4d5d8b9e4ea90f274ce68",
+      "page_count": 1,
+      "pages": [
+        {
+          "height_points": 842.88,
+          "image": "page-001.png",
+          "image_count": 0,
+          "text_geometry_sha256": "0706988539c6697eb158226f5621920eabba4fc8296096dcecd83c822d653a3e",
+          "text_sha256": "6fa1d8f7635e4a6c48ab127b089bc5b5aa7b87af44a027eb12b068081a182e89",
+          "width_points": 595.92
+        }
+      ],
+      "pdf_sha256": "39d1bc3361cbbd034f93af767283b70c6d3ca651ac6b9867ba5b5662921ecff6",
+      "profile_canonical_sha256": "e2207f2ccefb3ba6d539d659048384ec973d03b46258f29880eb616d87159a0c",
+      "profile_fingerprint": "e2207f2ccefb3ba6d539d659048384ec973d03b46258f29880eb616d87159a0c",
+      "renderer_resource_hashes": {
+        "css": "25390f85412dc4d0f3495dd096b471fc0ce93aecb66b2ccb8853635f96bc86c1",
+        "fonts": {
+          "NotoEmoji.ttf": "de6c18832938afc99caf132b39d6a30a19bac7f2e812e28db2535b4608d27551",
+          "NotoSans-Regular.ttf": "478c558ea716033cd60c03438f628dfa75694dcf6b5f6d505a2f05fd2b4f3823",
+          "NotoSans-SemiBold.ttf": "a4e91fd530ac2b4ef5367240144ff37d7d65d66cf76f2e9a2187b93c676f92d0",
+          "NotoSansArabic-Regular.ttf": "bdff3e5659d67e67def05b33f749683b9376ae819d65d3dd62ac4640b3aaef48",
+          "NotoSansCJKsc-Regular.otf": "2c76254f6fc379fddfce0a7e84fb5385bb135d3e399294f6eeb6680d0365b74b",
+          "NotoSansMono-Regular.ttf": "65b5e2b2c4a1fba9ae8be1f026cb35b03dcb8886d9b2a4147054fde12f7e767d",
+          "NotoSansSymbols2-Regular.ttf": "7d5fb73b7ca67a6798101741f5d280a3d016a56a197afcd4199dbb57b4b82a21"
+        },
+        "icons": {
+          "icons_check.png": "9a88bb05844bec005a0370679d0fc54613d6409d46a0c28a905b776b1f99ad71",
+          "icons_no_entry.png": "40929d801f16dd40fbf38d4ef508e9c6a382318d7da18f1e3f986737f811c6a9",
+          "icons_orange.png": "9f6e8605f7517f5946305618580010a12ecfbebf5d4220e5df9866ebebfa7806",
+          "icons_repeat.png": "bb58fd5130e908e2593653d2751273add54a3a78ace19a0e6f41c1f12b479119",
+          "icons_warning.png": "aefc9e61e2f58fc9ee09015ba90d3601e387f35d62822101d32aec7441e89fbd"
+        }
+      },
+      "schema": 1
+    },
+    {
+      "canonical_html_sha256": "1a5629b7be6b7c8a884dee0ce0efa913a1a8bfd45910ba4d87833f32b45bb9fc",
+      "embedded_image_sha256": [],
+      "fixture": "17-autolink",
+      "links": [],
+      "markdown_sha256": "9e2f77f0e298ecee702eafa1442c1aed50fcf11834ca2cc374d2750bc90d8b7d",
+      "page_count": 1,
+      "pages": [
+        {
+          "height_points": 842.88,
+          "image": "page-001.png",
+          "image_count": 0,
+          "text_geometry_sha256": "aead7db77634323e9e6b60eaf591747fd752510c7da3a81a91e4167461c6aa1c",
+          "text_sha256": "60350d9372febaaba23e00c7f9239840fa93d527e68d953350c2bc86443db50f",
+          "width_points": 595.92
+        }
+      ],
+      "pdf_sha256": "770a4cc4ade54ae4970b9d6c6be4efdadb03afe6c7bcd744151bc0e3d38b5ec6",
+      "profile_canonical_sha256": "e2207f2ccefb3ba6d539d659048384ec973d03b46258f29880eb616d87159a0c",
+      "profile_fingerprint": "e2207f2ccefb3ba6d539d659048384ec973d03b46258f29880eb616d87159a0c",
+      "renderer_resource_hashes": {
+        "css": "25390f85412dc4d0f3495dd096b471fc0ce93aecb66b2ccb8853635f96bc86c1",
+        "fonts": {
+          "NotoEmoji.ttf": "de6c18832938afc99caf132b39d6a30a19bac7f2e812e28db2535b4608d27551",
+          "NotoSans-Regular.ttf": "478c558ea716033cd60c03438f628dfa75694dcf6b5f6d505a2f05fd2b4f3823",
+          "NotoSans-SemiBold.ttf": "a4e91fd530ac2b4ef5367240144ff37d7d65d66cf76f2e9a2187b93c676f92d0",
+          "NotoSansArabic-Regular.ttf": "bdff3e5659d67e67def05b33f749683b9376ae819d65d3dd62ac4640b3aaef48",
+          "NotoSansCJKsc-Regular.otf": "2c76254f6fc379fddfce0a7e84fb5385bb135d3e399294f6eeb6680d0365b74b",
+          "NotoSansMono-Regular.ttf": "65b5e2b2c4a1fba9ae8be1f026cb35b03dcb8886d9b2a4147054fde12f7e767d",
+          "NotoSansSymbols2-Regular.ttf": "7d5fb73b7ca67a6798101741f5d280a3d016a56a197afcd4199dbb57b4b82a21"
+        },
+        "icons": {
+          "icons_check.png": "9a88bb05844bec005a0370679d0fc54613d6409d46a0c28a905b776b1f99ad71",
+          "icons_no_entry.png": "40929d801f16dd40fbf38d4ef508e9c6a382318d7da18f1e3f986737f811c6a9",
+          "icons_orange.png": "9f6e8605f7517f5946305618580010a12ecfbebf5d4220e5df9866ebebfa7806",
+          "icons_repeat.png": "bb58fd5130e908e2593653d2751273add54a3a78ace19a0e6f41c1f12b479119",
+          "icons_warning.png": "aefc9e61e2f58fc9ee09015ba90d3601e387f35d62822101d32aec7441e89fbd"
+        }
+      },
+      "schema": 1
+    },
+    {
+      "canonical_html_sha256": "4edecb6cf249445156b502a432102a8ee657f6284186947f3fb934cbac0e0f75",
+      "embedded_image_sha256": [],
+      "fixture": "18-footnotes",
+      "links": [],
+      "markdown_sha256": "646291f29b35f107d9435b2f987d5b8d8140a384b3b14f82f399cc7b50eea4de",
+      "page_count": 1,
+      "pages": [
+        {
+          "height_points": 842.88,
+          "image": "page-001.png",
+          "image_count": 0,
+          "text_geometry_sha256": "4eb795e6386694b408e9158ed2b9f0a3f417f12818f4dcc2621998bf6bd6c385",
+          "text_sha256": "eac6c955c9ad8c93ec19d6bc55d26715d3fac7a9cf4c86cfe7228726a25289ee",
+          "width_points": 595.92
+        }
+      ],
+      "pdf_sha256": "d185e9081e1a064dc18d2cfd49568782d16c267e58e9c63de325898ecc69ae7a",
+      "profile_canonical_sha256": "e2207f2ccefb3ba6d539d659048384ec973d03b46258f29880eb616d87159a0c",
+      "profile_fingerprint": "e2207f2ccefb3ba6d539d659048384ec973d03b46258f29880eb616d87159a0c",
+      "renderer_resource_hashes": {
+        "css": "25390f85412dc4d0f3495dd096b471fc0ce93aecb66b2ccb8853635f96bc86c1",
+        "fonts": {
+          "NotoEmoji.ttf": "de6c18832938afc99caf132b39d6a30a19bac7f2e812e28db2535b4608d27551",
+          "NotoSans-Regular.ttf": "478c558ea716033cd60c03438f628dfa75694dcf6b5f6d505a2f05fd2b4f3823",
+          "NotoSans-SemiBold.ttf": "a4e91fd530ac2b4ef5367240144ff37d7d65d66cf76f2e9a2187b93c676f92d0",
+          "NotoSansArabic-Regular.ttf": "bdff3e5659d67e67def05b33f749683b9376ae819d65d3dd62ac4640b3aaef48",
+          "NotoSansCJKsc-Regular.otf": "2c76254f6fc379fddfce0a7e84fb5385bb135d3e399294f6eeb6680d0365b74b",
+          "NotoSansMono-Regular.ttf": "65b5e2b2c4a1fba9ae8be1f026cb35b03dcb8886d9b2a4147054fde12f7e767d",
+          "NotoSansSymbols2-Regular.ttf": "7d5fb73b7ca67a6798101741f5d280a3d016a56a197afcd4199dbb57b4b82a21"
+        },
+        "icons": {
+          "icons_check.png": "9a88bb05844bec005a0370679d0fc54613d6409d46a0c28a905b776b1f99ad71",
+          "icons_no_entry.png": "40929d801f16dd40fbf38d4ef508e9c6a382318d7da18f1e3f986737f811c6a9",
+          "icons_orange.png": "9f6e8605f7517f5946305618580010a12ecfbebf5d4220e5df9866ebebfa7806",
+          "icons_repeat.png": "bb58fd5130e908e2593653d2751273add54a3a78ace19a0e6f41c1f12b479119",
+          "icons_warning.png": "aefc9e61e2f58fc9ee09015ba90d3601e387f35d62822101d32aec7441e89fbd"
+        }
+      },
+      "schema": 1
+    },
+    {
+      "canonical_html_sha256": "7af02d3f558b29778c87f63407a58bc2594af5bd2bd7e9d8a063c560a3ab0920",
+      "embedded_image_sha256": [],
+      "fixture": "19-raw-html-safe",
+      "links": [],
+      "markdown_sha256": "df28d6985b6ff917fd7545798d6c4a9fe348f5a9a524877fa67de2c48704849e",
+      "page_count": 1,
+      "pages": [
+        {
+          "height_points": 842.88,
+          "image": "page-001.png",
+          "image_count": 0,
+          "text_geometry_sha256": "4a2292bff3e0d5ccc590060f5964eaadbe02aed02bfeb86f7b7fba0579592efe",
+          "text_sha256": "2c16a5dcf4c5f9e92a1c761ff693dcd25235a167753b8328cc25329064d16ddd",
+          "width_points": 595.92
+        }
+      ],
+      "pdf_sha256": "25efb6769f3de16e9525dab0b31e9301f88abfa503174ea0683b9a0c48df935b",
+      "profile_canonical_sha256": "e2207f2ccefb3ba6d539d659048384ec973d03b46258f29880eb616d87159a0c",
+      "profile_fingerprint": "e2207f2ccefb3ba6d539d659048384ec973d03b46258f29880eb616d87159a0c",
+      "renderer_resource_hashes": {
+        "css": "25390f85412dc4d0f3495dd096b471fc0ce93aecb66b2ccb8853635f96bc86c1",
+        "fonts": {
+          "NotoEmoji.ttf": "de6c18832938afc99caf132b39d6a30a19bac7f2e812e28db2535b4608d27551",
+          "NotoSans-Regular.ttf": "478c558ea716033cd60c03438f628dfa75694dcf6b5f6d505a2f05fd2b4f3823",
+          "NotoSans-SemiBold.ttf": "a4e91fd530ac2b4ef5367240144ff37d7d65d66cf76f2e9a2187b93c676f92d0",
+          "NotoSansArabic-Regular.ttf": "bdff3e5659d67e67def05b33f749683b9376ae819d65d3dd62ac4640b3aaef48",
+          "NotoSansCJKsc-Regular.otf": "2c76254f6fc379fddfce0a7e84fb5385bb135d3e399294f6eeb6680d0365b74b",
+          "NotoSansMono-Regular.ttf": "65b5e2b2c4a1fba9ae8be1f026cb35b03dcb8886d9b2a4147054fde12f7e767d",
+          "NotoSansSymbols2-Regular.ttf": "7d5fb73b7ca67a6798101741f5d280a3d016a56a197afcd4199dbb57b4b82a21"
+        },
+        "icons": {
+          "icons_check.png": "9a88bb05844bec005a0370679d0fc54613d6409d46a0c28a905b776b1f99ad71",
+          "icons_no_entry.png": "40929d801f16dd40fbf38d4ef508e9c6a382318d7da18f1e3f986737f811c6a9",
+          "icons_orange.png": "9f6e8605f7517f5946305618580010a12ecfbebf5d4220e5df9866ebebfa7806",
+          "icons_repeat.png": "bb58fd5130e908e2593653d2751273add54a3a78ace19a0e6f41c1f12b479119",
+          "icons_warning.png": "aefc9e61e2f58fc9ee09015ba90d3601e387f35d62822101d32aec7441e89fbd"
+        }
+      },
+      "schema": 1
+    },
+    {
+      "canonical_html_sha256": "11477f1cfdf0ebfe413dcac3ad5b4ee4964d20961a491679d4ae979ee0f74662",
+      "embedded_image_sha256": [],
+      "fixture": "20-page-break",
+      "links": [],
+      "markdown_sha256": "9f32c9b27633f0cff2d18bf4c838b8938925350912afc585d9e1cdfd514b634a",
+      "page_count": 2,
+      "pages": [
+        {
+          "height_points": 842.88,
+          "image": "page-001.png",
+          "image_count": 0,
+          "text_geometry_sha256": "e1d09622ae1cbc104a94b486f6421adc179b4ccbf4fce3f3d990cc21a29bb2b0",
+          "text_sha256": "0bdbb750609ca61cb4a59ff84d565d437a5cd9a1abeb8abc0aaf243ceaec70b5",
+          "width_points": 595.92
+        },
+        {
+          "height_points": 842.88,
+          "image": "page-002.png",
+          "image_count": 0,
+          "text_geometry_sha256": "5346e4c83cd3e60fee2f672dbe5594f197c51f0e6461532f7c245a55d7eafdee",
+          "text_sha256": "eefc49551d6965c57a5ea784c02c14b40cb10818da3bfe1730fad7972c553225",
+          "width_points": 595.92
+        }
+      ],
+      "pdf_sha256": "4cc0cfe7ebe9234814cd7cd1aa49c68254700524908015f6db544d656efb798c",
+      "profile_canonical_sha256": "5001e43813b1a373f156910725ab30df1646e916c5310114113f0cd3ad083add",
+      "profile_fingerprint": "5001e43813b1a373f156910725ab30df1646e916c5310114113f0cd3ad083add",
+      "renderer_resource_hashes": {
+        "css": "25390f85412dc4d0f3495dd096b471fc0ce93aecb66b2ccb8853635f96bc86c1",
+        "fonts": {
+          "NotoEmoji.ttf": "de6c18832938afc99caf132b39d6a30a19bac7f2e812e28db2535b4608d27551",
+          "NotoSans-Regular.ttf": "478c558ea716033cd60c03438f628dfa75694dcf6b5f6d505a2f05fd2b4f3823",
+          "NotoSans-SemiBold.ttf": "a4e91fd530ac2b4ef5367240144ff37d7d65d66cf76f2e9a2187b93c676f92d0",
+          "NotoSansArabic-Regular.ttf": "bdff3e5659d67e67def05b33f749683b9376ae819d65d3dd62ac4640b3aaef48",
+          "NotoSansCJKsc-Regular.otf": "2c76254f6fc379fddfce0a7e84fb5385bb135d3e399294f6eeb6680d0365b74b",
+          "NotoSansMono-Regular.ttf": "65b5e2b2c4a1fba9ae8be1f026cb35b03dcb8886d9b2a4147054fde12f7e767d",
+          "NotoSansSymbols2-Regular.ttf": "7d5fb73b7ca67a6798101741f5d280a3d016a56a197afcd4199dbb57b4b82a21"
+        },
+        "icons": {
+          "icons_check.png": "9a88bb05844bec005a0370679d0fc54613d6409d46a0c28a905b776b1f99ad71",
+          "icons_no_entry.png": "40929d801f16dd40fbf38d4ef508e9c6a382318d7da18f1e3f986737f811c6a9",
+          "icons_orange.png": "9f6e8605f7517f5946305618580010a12ecfbebf5d4220e5df9866ebebfa7806",
+          "icons_repeat.png": "bb58fd5130e908e2593653d2751273add54a3a78ace19a0e6f41c1f12b479119",
+          "icons_warning.png": "aefc9e61e2f58fc9ee09015ba90d3601e387f35d62822101d32aec7441e89fbd"
+        }
+      },
+      "schema": 1
+    },
+    {
+      "canonical_html_sha256": "7257c544bfaba32c715058d50192b8c19306a44e07e6a9c014e5249480ce8680",
+      "embedded_image_sha256": [],
+      "fixture": "21-unbreakable",
+      "links": [],
+      "markdown_sha256": "4f999a71d1a8effce66ce0fb8763e9f3d421ef7c982db2a703bea49b81a40368",
+      "page_count": 1,
+      "pages": [
+        {
+          "height_points": 842.88,
+          "image": "page-001.png",
+          "image_count": 0,
+          "text_geometry_sha256": "cde600a5d100dbbd5136ff9de9323297799a4aa9ebce57494b6f2c02953fbbd8",
+          "text_sha256": "efd88cc10f6f85f9481a36b6fb42abbe36a2704d84c1e0d4af2d7db84ee078b5",
+          "width_points": 595.92
+        }
+      ],
+      "pdf_sha256": "d8fee31086deffa1589671336867d8f8eee364d6ad2d5bdd8b00a8f28b20ebcf",
+      "profile_canonical_sha256": "e2207f2ccefb3ba6d539d659048384ec973d03b46258f29880eb616d87159a0c",
+      "profile_fingerprint": "e2207f2ccefb3ba6d539d659048384ec973d03b46258f29880eb616d87159a0c",
+      "renderer_resource_hashes": {
+        "css": "25390f85412dc4d0f3495dd096b471fc0ce93aecb66b2ccb8853635f96bc86c1",
+        "fonts": {
+          "NotoEmoji.ttf": "de6c18832938afc99caf132b39d6a30a19bac7f2e812e28db2535b4608d27551",
+          "NotoSans-Regular.ttf": "478c558ea716033cd60c03438f628dfa75694dcf6b5f6d505a2f05fd2b4f3823",
+          "NotoSans-SemiBold.ttf": "a4e91fd530ac2b4ef5367240144ff37d7d65d66cf76f2e9a2187b93c676f92d0",
+          "NotoSansArabic-Regular.ttf": "bdff3e5659d67e67def05b33f749683b9376ae819d65d3dd62ac4640b3aaef48",
+          "NotoSansCJKsc-Regular.otf": "2c76254f6fc379fddfce0a7e84fb5385bb135d3e399294f6eeb6680d0365b74b",
+          "NotoSansMono-Regular.ttf": "65b5e2b2c4a1fba9ae8be1f026cb35b03dcb8886d9b2a4147054fde12f7e767d",
+          "NotoSansSymbols2-Regular.ttf": "7d5fb73b7ca67a6798101741f5d280a3d016a56a197afcd4199dbb57b4b82a21"
+        },
+        "icons": {
+          "icons_check.png": "9a88bb05844bec005a0370679d0fc54613d6409d46a0c28a905b776b1f99ad71",
+          "icons_no_entry.png": "40929d801f16dd40fbf38d4ef508e9c6a382318d7da18f1e3f986737f811c6a9",
+          "icons_orange.png": "9f6e8605f7517f5946305618580010a12ecfbebf5d4220e5df9866ebebfa7806",
+          "icons_repeat.png": "bb58fd5130e908e2593653d2751273add54a3a78ace19a0e6f41c1f12b479119",
+          "icons_warning.png": "aefc9e61e2f58fc9ee09015ba90d3601e387f35d62822101d32aec7441e89fbd"
+        }
+      },
+      "schema": 1
+    },
+    {
+      "canonical_html_sha256": "9755d3407f708f50cd8d8e7c6d2d017241b76fdb113c0a5d029e3a2f8443ca2a",
+      "embedded_image_sha256": [],
+      "fixture": "22-accents",
+      "links": [],
+      "markdown_sha256": "70889b99892ef62ad41c074a30d002a60f4df5d0e8fc706a05161683c96e7bfd",
+      "page_count": 1,
+      "pages": [
+        {
+          "height_points": 842.88,
+          "image": "page-001.png",
+          "image_count": 0,
+          "text_geometry_sha256": "93d1b0b0a350abc10b11003e52707cc7778a74c32827127c4de43af65316379d",
+          "text_sha256": "f77662fe61ca2dcf3403174eb3cddc65ad3159a13aeed889324a57a19fefa4bd",
+          "width_points": 595.92
+        }
+      ],
+      "pdf_sha256": "bc6f6ebe6e7904bb6a98d05a7a63a112048b14f63e1ec80473b8b04e5cf6a428",
+      "profile_canonical_sha256": "e2207f2ccefb3ba6d539d659048384ec973d03b46258f29880eb616d87159a0c",
+      "profile_fingerprint": "e2207f2ccefb3ba6d539d659048384ec973d03b46258f29880eb616d87159a0c",
+      "renderer_resource_hashes": {
+        "css": "25390f85412dc4d0f3495dd096b471fc0ce93aecb66b2ccb8853635f96bc86c1",
+        "fonts": {
+          "NotoEmoji.ttf": "de6c18832938afc99caf132b39d6a30a19bac7f2e812e28db2535b4608d27551",
+          "NotoSans-Regular.ttf": "478c558ea716033cd60c03438f628dfa75694dcf6b5f6d505a2f05fd2b4f3823",
+          "NotoSans-SemiBold.ttf": "a4e91fd530ac2b4ef5367240144ff37d7d65d66cf76f2e9a2187b93c676f92d0",
+          "NotoSansArabic-Regular.ttf": "bdff3e5659d67e67def05b33f749683b9376ae819d65d3dd62ac4640b3aaef48",
+          "NotoSansCJKsc-Regular.otf": "2c76254f6fc379fddfce0a7e84fb5385bb135d3e399294f6eeb6680d0365b74b",
+          "NotoSansMono-Regular.ttf": "65b5e2b2c4a1fba9ae8be1f026cb35b03dcb8886d9b2a4147054fde12f7e767d",
+          "NotoSansSymbols2-Regular.ttf": "7d5fb73b7ca67a6798101741f5d280a3d016a56a197afcd4199dbb57b4b82a21"
+        },
+        "icons": {
+          "icons_check.png": "9a88bb05844bec005a0370679d0fc54613d6409d46a0c28a905b776b1f99ad71",
+          "icons_no_entry.png": "40929d801f16dd40fbf38d4ef508e9c6a382318d7da18f1e3f986737f811c6a9",
+          "icons_orange.png": "9f6e8605f7517f5946305618580010a12ecfbebf5d4220e5df9866ebebfa7806",
+          "icons_repeat.png": "bb58fd5130e908e2593653d2751273add54a3a78ace19a0e6f41c1f12b479119",
+          "icons_warning.png": "aefc9e61e2f58fc9ee09015ba90d3601e387f35d62822101d32aec7441e89fbd"
+        }
+      },
+      "schema": 1
+    },
+    {
+      "canonical_html_sha256": "4ed2d829449469f1c8f358adf0ca779f7943dd7ad400df4099ab208f45566056",
+      "embedded_image_sha256": [],
+      "fixture": "23-unicode",
+      "links": [],
+      "markdown_sha256": "e26517ea0aa5436dc8d725be48a1b7ad4f01b09c42144047b8dfceba831d1c0f",
+      "page_count": 1,
+      "pages": [
+        {
+          "height_points": 842.88,
+          "image": "page-001.png",
+          "image_count": 0,
+          "text_geometry_sha256": "6006ce08d652863dc4ef9b6b26cd8280952180c7e948af0b8efd6eefd72763ba",
+          "text_sha256": "e2aad65e6c64ce830317e58c761a9caf37bf573f70129bb07440a593ed31b8e1",
+          "width_points": 595.92
+        }
+      ],
+      "pdf_sha256": "80061f62310d31ad90c76352a5e7cf2d7aebd09d2847ae9bf20139f4395e3e3b",
+      "profile_canonical_sha256": "e2207f2ccefb3ba6d539d659048384ec973d03b46258f29880eb616d87159a0c",
+      "profile_fingerprint": "e2207f2ccefb3ba6d539d659048384ec973d03b46258f29880eb616d87159a0c",
+      "renderer_resource_hashes": {
+        "css": "25390f85412dc4d0f3495dd096b471fc0ce93aecb66b2ccb8853635f96bc86c1",
+        "fonts": {
+          "NotoEmoji.ttf": "de6c18832938afc99caf132b39d6a30a19bac7f2e812e28db2535b4608d27551",
+          "NotoSans-Regular.ttf": "478c558ea716033cd60c03438f628dfa75694dcf6b5f6d505a2f05fd2b4f3823",
+          "NotoSans-SemiBold.ttf": "a4e91fd530ac2b4ef5367240144ff37d7d65d66cf76f2e9a2187b93c676f92d0",
+          "NotoSansArabic-Regular.ttf": "bdff3e5659d67e67def05b33f749683b9376ae819d65d3dd62ac4640b3aaef48",
+          "NotoSansCJKsc-Regular.otf": "2c76254f6fc379fddfce0a7e84fb5385bb135d3e399294f6eeb6680d0365b74b",
+          "NotoSansMono-Regular.ttf": "65b5e2b2c4a1fba9ae8be1f026cb35b03dcb8886d9b2a4147054fde12f7e767d",
+          "NotoSansSymbols2-Regular.ttf": "7d5fb73b7ca67a6798101741f5d280a3d016a56a197afcd4199dbb57b4b82a21"
+        },
+        "icons": {
+          "icons_check.png": "9a88bb05844bec005a0370679d0fc54613d6409d46a0c28a905b776b1f99ad71",
+          "icons_no_entry.png": "40929d801f16dd40fbf38d4ef508e9c6a382318d7da18f1e3f986737f811c6a9",
+          "icons_orange.png": "9f6e8605f7517f5946305618580010a12ecfbebf5d4220e5df9866ebebfa7806",
+          "icons_repeat.png": "bb58fd5130e908e2593653d2751273add54a3a78ace19a0e6f41c1f12b479119",
+          "icons_warning.png": "aefc9e61e2f58fc9ee09015ba90d3601e387f35d62822101d32aec7441e89fbd"
+        }
+      },
+      "schema": 1
+    },
+    {
+      "canonical_html_sha256": "e3c9ce53556d57b47e040f1ce8bb3b7b41642ef5acc7e01624e44b1d5b7ade77",
+      "embedded_image_sha256": [
+        "9a88bb05844bec005a0370679d0fc54613d6409d46a0c28a905b776b1f99ad71",
+        "aefc9e61e2f58fc9ee09015ba90d3601e387f35d62822101d32aec7441e89fbd",
+        "9f6e8605f7517f5946305618580010a12ecfbebf5d4220e5df9866ebebfa7806",
+        "bb58fd5130e908e2593653d2751273add54a3a78ace19a0e6f41c1f12b479119",
+        "40929d801f16dd40fbf38d4ef508e9c6a382318d7da18f1e3f986737f811c6a9"
+      ],
+      "fixture": "24-emoji",
+      "links": [],
+      "markdown_sha256": "99f8523652d3c4601fc965bcccb029756167db93950f7ece188a435702658766",
+      "page_count": 1,
+      "pages": [
+        {
+          "height_points": 842.88,
+          "image": "page-001.png",
+          "image_count": 0,
+          "text_geometry_sha256": "11220d2bcfb124116283c2ddc1c0b768de3ed947454648a90aff78b213374937",
+          "text_sha256": "10422f247f61a9f83bd3cc8b5351bb1bfdd1fc645182675af2db55d2d1c548ee",
+          "width_points": 595.92
+        }
+      ],
+      "pdf_sha256": "935e8128d2aee8c8c90a97c449ff7dc770bbf37bc7521cfa26679486ee813413",
+      "profile_canonical_sha256": "e2207f2ccefb3ba6d539d659048384ec973d03b46258f29880eb616d87159a0c",
+      "profile_fingerprint": "e2207f2ccefb3ba6d539d659048384ec973d03b46258f29880eb616d87159a0c",
+      "renderer_resource_hashes": {
+        "css": "25390f85412dc4d0f3495dd096b471fc0ce93aecb66b2ccb8853635f96bc86c1",
+        "fonts": {
+          "NotoEmoji.ttf": "de6c18832938afc99caf132b39d6a30a19bac7f2e812e28db2535b4608d27551",
+          "NotoSans-Regular.ttf": "478c558ea716033cd60c03438f628dfa75694dcf6b5f6d505a2f05fd2b4f3823",
+          "NotoSans-SemiBold.ttf": "a4e91fd530ac2b4ef5367240144ff37d7d65d66cf76f2e9a2187b93c676f92d0",
+          "NotoSansArabic-Regular.ttf": "bdff3e5659d67e67def05b33f749683b9376ae819d65d3dd62ac4640b3aaef48",
+          "NotoSansCJKsc-Regular.otf": "2c76254f6fc379fddfce0a7e84fb5385bb135d3e399294f6eeb6680d0365b74b",
+          "NotoSansMono-Regular.ttf": "65b5e2b2c4a1fba9ae8be1f026cb35b03dcb8886d9b2a4147054fde12f7e767d",
+          "NotoSansSymbols2-Regular.ttf": "7d5fb73b7ca67a6798101741f5d280a3d016a56a197afcd4199dbb57b4b82a21"
+        },
+        "icons": {
+          "icons_check.png": "9a88bb05844bec005a0370679d0fc54613d6409d46a0c28a905b776b1f99ad71",
+          "icons_no_entry.png": "40929d801f16dd40fbf38d4ef508e9c6a382318d7da18f1e3f986737f811c6a9",
+          "icons_orange.png": "9f6e8605f7517f5946305618580010a12ecfbebf5d4220e5df9866ebebfa7806",
+          "icons_repeat.png": "bb58fd5130e908e2593653d2751273add54a3a78ace19a0e6f41c1f12b479119",
+          "icons_warning.png": "aefc9e61e2f58fc9ee09015ba90d3601e387f35d62822101d32aec7441e89fbd"
+        }
+      },
+      "schema": 1
+    },
+    {
+      "canonical_html_sha256": "d3e15286e4cb085928bb81e0e18d67051416bd4ca5d41b466634d8078e97c7ea",
+      "embedded_image_sha256": [],
+      "fixture": "25-header-date",
+      "links": [],
+      "markdown_sha256": "6c578f3da69af80741251a1332b025b085fff76c64cd069148aaacc84daac3c7",
+      "page_count": 1,
+      "pages": [
+        {
+          "height_points": 842.88,
+          "image": "page-001.png",
+          "image_count": 0,
+          "text_geometry_sha256": "3ddc17fc3413650d72a10330346ad72c32a497ce197bc2d301f708f9563681ac",
+          "text_sha256": "43fd25cf0f2f9d219bd9cb8f0bd30b797a6afe0d95a2de7f2f943ecf82819576",
+          "width_points": 595.92
+        }
+      ],
+      "pdf_sha256": "99cf61596f78920027d632623eb385bc62bbb9d55041ff3b40ddd1d0fa8a62f6",
+      "profile_canonical_sha256": "8fbbc9273690ad4bd5967f195d74b6d947942048b5079e325fce86b4dad8523b",
+      "profile_fingerprint": "8fbbc9273690ad4bd5967f195d74b6d947942048b5079e325fce86b4dad8523b",
+      "renderer_resource_hashes": {
+        "css": "25390f85412dc4d0f3495dd096b471fc0ce93aecb66b2ccb8853635f96bc86c1",
+        "fonts": {
+          "NotoEmoji.ttf": "de6c18832938afc99caf132b39d6a30a19bac7f2e812e28db2535b4608d27551",
+          "NotoSans-Regular.ttf": "478c558ea716033cd60c03438f628dfa75694dcf6b5f6d505a2f05fd2b4f3823",
+          "NotoSans-SemiBold.ttf": "a4e91fd530ac2b4ef5367240144ff37d7d65d66cf76f2e9a2187b93c676f92d0",
+          "NotoSansArabic-Regular.ttf": "bdff3e5659d67e67def05b33f749683b9376ae819d65d3dd62ac4640b3aaef48",
+          "NotoSansCJKsc-Regular.otf": "2c76254f6fc379fddfce0a7e84fb5385bb135d3e399294f6eeb6680d0365b74b",
+          "NotoSansMono-Regular.ttf": "65b5e2b2c4a1fba9ae8be1f026cb35b03dcb8886d9b2a4147054fde12f7e767d",
+          "NotoSansSymbols2-Regular.ttf": "7d5fb73b7ca67a6798101741f5d280a3d016a56a197afcd4199dbb57b4b82a21"
+        },
+        "icons": {
+          "icons_check.png": "9a88bb05844bec005a0370679d0fc54613d6409d46a0c28a905b776b1f99ad71",
+          "icons_no_entry.png": "40929d801f16dd40fbf38d4ef508e9c6a382318d7da18f1e3f986737f811c6a9",
+          "icons_orange.png": "9f6e8605f7517f5946305618580010a12ecfbebf5d4220e5df9866ebebfa7806",
+          "icons_repeat.png": "bb58fd5130e908e2593653d2751273add54a3a78ace19a0e6f41c1f12b479119",
+          "icons_warning.png": "aefc9e61e2f58fc9ee09015ba90d3601e387f35d62822101d32aec7441e89fbd"
+        }
+      },
+      "schema": 1
+    },
+    {
+      "canonical_html_sha256": "009086e5e63d957ec84924c6a67b9f80d93c6769ab69f790e6362d5ab0311491",
+      "embedded_image_sha256": [],
+      "fixture": "26-small",
+      "links": [],
+      "markdown_sha256": "73cb3858a687a8494ca3323053016282f3dad39d42cf62ca4e79dda2aac7d9ac",
+      "page_count": 1,
+      "pages": [
+        {
+          "height_points": 842.88,
+          "image": "page-001.png",
+          "image_count": 0,
+          "text_geometry_sha256": "8e9bebc19d951a9b79c16d26fc7e1924e435d638068677e649074cd054ed27ae",
+          "text_sha256": "bb4f5c87e923dcf24869f0ab39898d75c15b2560f6726a0b206c071fb059401c",
+          "width_points": 595.92
+        }
+      ],
+      "pdf_sha256": "92afd0b2e60727e3923e4ae440d20f7b02fd857434b3cded9320fca44d7a5ede",
+      "profile_canonical_sha256": "e2207f2ccefb3ba6d539d659048384ec973d03b46258f29880eb616d87159a0c",
+      "profile_fingerprint": "e2207f2ccefb3ba6d539d659048384ec973d03b46258f29880eb616d87159a0c",
+      "renderer_resource_hashes": {
+        "css": "25390f85412dc4d0f3495dd096b471fc0ce93aecb66b2ccb8853635f96bc86c1",
+        "fonts": {
+          "NotoEmoji.ttf": "de6c18832938afc99caf132b39d6a30a19bac7f2e812e28db2535b4608d27551",
+          "NotoSans-Regular.ttf": "478c558ea716033cd60c03438f628dfa75694dcf6b5f6d505a2f05fd2b4f3823",
+          "NotoSans-SemiBold.ttf": "a4e91fd530ac2b4ef5367240144ff37d7d65d66cf76f2e9a2187b93c676f92d0",
+          "NotoSansArabic-Regular.ttf": "bdff3e5659d67e67def05b33f749683b9376ae819d65d3dd62ac4640b3aaef48",
+          "NotoSansCJKsc-Regular.otf": "2c76254f6fc379fddfce0a7e84fb5385bb135d3e399294f6eeb6680d0365b74b",
+          "NotoSansMono-Regular.ttf": "65b5e2b2c4a1fba9ae8be1f026cb35b03dcb8886d9b2a4147054fde12f7e767d",
+          "NotoSansSymbols2-Regular.ttf": "7d5fb73b7ca67a6798101741f5d280a3d016a56a197afcd4199dbb57b4b82a21"
+        },
+        "icons": {
+          "icons_check.png": "9a88bb05844bec005a0370679d0fc54613d6409d46a0c28a905b776b1f99ad71",
+          "icons_no_entry.png": "40929d801f16dd40fbf38d4ef508e9c6a382318d7da18f1e3f986737f811c6a9",
+          "icons_orange.png": "9f6e8605f7517f5946305618580010a12ecfbebf5d4220e5df9866ebebfa7806",
+          "icons_repeat.png": "bb58fd5130e908e2593653d2751273add54a3a78ace19a0e6f41c1f12b479119",
+          "icons_warning.png": "aefc9e61e2f58fc9ee09015ba90d3601e387f35d62822101d32aec7441e89fbd"
+        }
+      },
+      "schema": 1
+    },
+    {
+      "canonical_html_sha256": "769de93a0d96fbdf180ec5a2aa61d93110c107b47b66388e4f39b8a06d6dea9e",
+      "embedded_image_sha256": [],
+      "fixture": "27-large",
+      "links": [],
+      "markdown_sha256": "144122c06ea4acd26fe6828d94049996c01f6d50e8219081c6814cb3b1d7d5ec",
+      "page_count": 1,
+      "pages": [
+        {
+          "height_points": 842.88,
+          "image": "page-001.png",
+          "image_count": 0,
+          "text_geometry_sha256": "ca1a73a23b7d24709ebe5f43b7c9c93f3301adde85f89c83f76c5af1ab52b5d0",
+          "text_sha256": "c87b3e11aa27f8a1abb6bcaa97c06ae2bed585b429b8761397ad3dcbdb725bb7",
+          "width_points": 595.92
+        }
+      ],
+      "pdf_sha256": "aaec04166b43161ebad8ddf8f2f3a9ee406ae854c5fe2e5d1b39c1a9d5ceca22",
+      "profile_canonical_sha256": "e2207f2ccefb3ba6d539d659048384ec973d03b46258f29880eb616d87159a0c",
+      "profile_fingerprint": "e2207f2ccefb3ba6d539d659048384ec973d03b46258f29880eb616d87159a0c",
+      "renderer_resource_hashes": {
+        "css": "25390f85412dc4d0f3495dd096b471fc0ce93aecb66b2ccb8853635f96bc86c1",
+        "fonts": {
+          "NotoEmoji.ttf": "de6c18832938afc99caf132b39d6a30a19bac7f2e812e28db2535b4608d27551",
+          "NotoSans-Regular.ttf": "478c558ea716033cd60c03438f628dfa75694dcf6b5f6d505a2f05fd2b4f3823",
+          "NotoSans-SemiBold.ttf": "a4e91fd530ac2b4ef5367240144ff37d7d65d66cf76f2e9a2187b93c676f92d0",
+          "NotoSansArabic-Regular.ttf": "bdff3e5659d67e67def05b33f749683b9376ae819d65d3dd62ac4640b3aaef48",
+          "NotoSansCJKsc-Regular.otf": "2c76254f6fc379fddfce0a7e84fb5385bb135d3e399294f6eeb6680d0365b74b",
+          "NotoSansMono-Regular.ttf": "65b5e2b2c4a1fba9ae8be1f026cb35b03dcb8886d9b2a4147054fde12f7e767d",
+          "NotoSansSymbols2-Regular.ttf": "7d5fb73b7ca67a6798101741f5d280a3d016a56a197afcd4199dbb57b4b82a21"
+        },
+        "icons": {
+          "icons_check.png": "9a88bb05844bec005a0370679d0fc54613d6409d46a0c28a905b776b1f99ad71",
+          "icons_no_entry.png": "40929d801f16dd40fbf38d4ef508e9c6a382318d7da18f1e3f986737f811c6a9",
+          "icons_orange.png": "9f6e8605f7517f5946305618580010a12ecfbebf5d4220e5df9866ebebfa7806",
+          "icons_repeat.png": "bb58fd5130e908e2593653d2751273add54a3a78ace19a0e6f41c1f12b479119",
+          "icons_warning.png": "aefc9e61e2f58fc9ee09015ba90d3601e387f35d62822101d32aec7441e89fbd"
+        }
+      },
+      "schema": 1
+    },
+    {
+      "canonical_html_sha256": "d7c1545b5e89d3383cea982f3038ef28de311875d5954070391c1f47affa18f5",
+      "embedded_image_sha256": [],
+      "fixture": "28-path-space",
+      "links": [],
+      "markdown_sha256": "16a5366a43d2f362cf92a0cbdcb687ac22d775e55823ca5fec0c76e4fb05eb08",
+      "page_count": 1,
+      "pages": [
+        {
+          "height_points": 842.88,
+          "image": "page-001.png",
+          "image_count": 0,
+          "text_geometry_sha256": "ee92feb8f7d4828db3612af50cfedb31c3f09b98ba37d1f2fa8f991887b1ea3e",
+          "text_sha256": "b1b2074ad7e8fd9ae013b97f7d04a91c4b362b228c888bee9d5c1312a4d1aa6b",
+          "width_points": 595.92
+        }
+      ],
+      "pdf_sha256": "76664c2958153a9c1a484277d50975a6738e09bd3f7395624d585ab2428f0f8e",
+      "profile_canonical_sha256": "e2207f2ccefb3ba6d539d659048384ec973d03b46258f29880eb616d87159a0c",
+      "profile_fingerprint": "e2207f2ccefb3ba6d539d659048384ec973d03b46258f29880eb616d87159a0c",
+      "renderer_resource_hashes": {
+        "css": "25390f85412dc4d0f3495dd096b471fc0ce93aecb66b2ccb8853635f96bc86c1",
+        "fonts": {
+          "NotoEmoji.ttf": "de6c18832938afc99caf132b39d6a30a19bac7f2e812e28db2535b4608d27551",
+          "NotoSans-Regular.ttf": "478c558ea716033cd60c03438f628dfa75694dcf6b5f6d505a2f05fd2b4f3823",
+          "NotoSans-SemiBold.ttf": "a4e91fd530ac2b4ef5367240144ff37d7d65d66cf76f2e9a2187b93c676f92d0",
+          "NotoSansArabic-Regular.ttf": "bdff3e5659d67e67def05b33f749683b9376ae819d65d3dd62ac4640b3aaef48",
+          "NotoSansCJKsc-Regular.otf": "2c76254f6fc379fddfce0a7e84fb5385bb135d3e399294f6eeb6680d0365b74b",
+          "NotoSansMono-Regular.ttf": "65b5e2b2c4a1fba9ae8be1f026cb35b03dcb8886d9b2a4147054fde12f7e767d",
+          "NotoSansSymbols2-Regular.ttf": "7d5fb73b7ca67a6798101741f5d280a3d016a56a197afcd4199dbb57b4b82a21"
+        },
+        "icons": {
+          "icons_check.png": "9a88bb05844bec005a0370679d0fc54613d6409d46a0c28a905b776b1f99ad71",
+          "icons_no_entry.png": "40929d801f16dd40fbf38d4ef508e9c6a382318d7da18f1e3f986737f811c6a9",
+          "icons_orange.png": "9f6e8605f7517f5946305618580010a12ecfbebf5d4220e5df9866ebebfa7806",
+          "icons_repeat.png": "bb58fd5130e908e2593653d2751273add54a3a78ace19a0e6f41c1f12b479119",
+          "icons_warning.png": "aefc9e61e2f58fc9ee09015ba90d3601e387f35d62822101d32aec7441e89fbd"
+        }
+      },
+      "schema": 1
+    },
+    {
+      "canonical_html_sha256": "fa4c58cb73a90b7763ee9ac062b30da870aca8955f978843acda23e33a0b67b3",
+      "embedded_image_sha256": [],
+      "fixture": "29-unicode-path",
+      "links": [],
+      "markdown_sha256": "641983e7e897d9f5197c0215eecf61947471f460b04dc74aaab5aa073067cc0c",
+      "page_count": 1,
+      "pages": [
+        {
+          "height_points": 842.88,
+          "image": "page-001.png",
+          "image_count": 0,
+          "text_geometry_sha256": "6ad242b35acf39a280f1a77594c1a11346d3f24babae402108e33f25bc1c5868",
+          "text_sha256": "fb43cbf1034ac9a17cda274d25aef2f0e1438b70aadfc64c68fa1b7e4f7b4647",
+          "width_points": 595.92
+        }
+      ],
+      "pdf_sha256": "5350d4ed38efe06934ec9c040fac4ef26b97be4247e7f964779a23aae10e3fcc",
+      "profile_canonical_sha256": "e2207f2ccefb3ba6d539d659048384ec973d03b46258f29880eb616d87159a0c",
+      "profile_fingerprint": "e2207f2ccefb3ba6d539d659048384ec973d03b46258f29880eb616d87159a0c",
+      "renderer_resource_hashes": {
+        "css": "25390f85412dc4d0f3495dd096b471fc0ce93aecb66b2ccb8853635f96bc86c1",
+        "fonts": {
+          "NotoEmoji.ttf": "de6c18832938afc99caf132b39d6a30a19bac7f2e812e28db2535b4608d27551",
+          "NotoSans-Regular.ttf": "478c558ea716033cd60c03438f628dfa75694dcf6b5f6d505a2f05fd2b4f3823",
+          "NotoSans-SemiBold.ttf": "a4e91fd530ac2b4ef5367240144ff37d7d65d66cf76f2e9a2187b93c676f92d0",
+          "NotoSansArabic-Regular.ttf": "bdff3e5659d67e67def05b33f749683b9376ae819d65d3dd62ac4640b3aaef48",
+          "NotoSansCJKsc-Regular.otf": "2c76254f6fc379fddfce0a7e84fb5385bb135d3e399294f6eeb6680d0365b74b",
+          "NotoSansMono-Regular.ttf": "65b5e2b2c4a1fba9ae8be1f026cb35b03dcb8886d9b2a4147054fde12f7e767d",
+          "NotoSansSymbols2-Regular.ttf": "7d5fb73b7ca67a6798101741f5d280a3d016a56a197afcd4199dbb57b4b82a21"
+        },
+        "icons": {
+          "icons_check.png": "9a88bb05844bec005a0370679d0fc54613d6409d46a0c28a905b776b1f99ad71",
+          "icons_no_entry.png": "40929d801f16dd40fbf38d4ef508e9c6a382318d7da18f1e3f986737f811c6a9",
+          "icons_orange.png": "9f6e8605f7517f5946305618580010a12ecfbebf5d4220e5df9866ebebfa7806",
+          "icons_repeat.png": "bb58fd5130e908e2593653d2751273add54a3a78ace19a0e6f41c1f12b479119",
+          "icons_warning.png": "aefc9e61e2f58fc9ee09015ba90d3601e387f35d62822101d32aec7441e89fbd"
+        }
+      },
+      "schema": 1
+    },
+    {
+      "canonical_html_sha256": "9b27fd5d8c41d9c1e849fca0ca68b19306e5c069ea62dc308d3d09a780ac248c",
+      "embedded_image_sha256": [],
+      "fixture": "30-duplicate-stem-one",
+      "links": [],
+      "markdown_sha256": "de5aa362a1b9780f19f9a7f97a10b3f270449f3a19fcccdf17eaa235cef03530",
+      "page_count": 1,
+      "pages": [
+        {
+          "height_points": 842.88,
+          "image": "page-001.png",
+          "image_count": 0,
+          "text_geometry_sha256": "bd5f9b45a6abec1d8726fffd8d9fe62f7e35f92526fbac0cbe315b6707f63308",
+          "text_sha256": "62618c360bb1d12729f1740e34056a34a5328a8df9fae73b23f5624cdd17f518",
+          "width_points": 595.92
+        }
+      ],
+      "pdf_sha256": "7aa2d55c7bf9481043f45224e0bfacb9691fda8827d88d736b42b30b213831cb",
+      "profile_canonical_sha256": "e2207f2ccefb3ba6d539d659048384ec973d03b46258f29880eb616d87159a0c",
+      "profile_fingerprint": "e2207f2ccefb3ba6d539d659048384ec973d03b46258f29880eb616d87159a0c",
+      "renderer_resource_hashes": {
+        "css": "25390f85412dc4d0f3495dd096b471fc0ce93aecb66b2ccb8853635f96bc86c1",
+        "fonts": {
+          "NotoEmoji.ttf": "de6c18832938afc99caf132b39d6a30a19bac7f2e812e28db2535b4608d27551",
+          "NotoSans-Regular.ttf": "478c558ea716033cd60c03438f628dfa75694dcf6b5f6d505a2f05fd2b4f3823",
+          "NotoSans-SemiBold.ttf": "a4e91fd530ac2b4ef5367240144ff37d7d65d66cf76f2e9a2187b93c676f92d0",
+          "NotoSansArabic-Regular.ttf": "bdff3e5659d67e67def05b33f749683b9376ae819d65d3dd62ac4640b3aaef48",
+          "NotoSansCJKsc-Regular.otf": "2c76254f6fc379fddfce0a7e84fb5385bb135d3e399294f6eeb6680d0365b74b",
+          "NotoSansMono-Regular.ttf": "65b5e2b2c4a1fba9ae8be1f026cb35b03dcb8886d9b2a4147054fde12f7e767d",
+          "NotoSansSymbols2-Regular.ttf": "7d5fb73b7ca67a6798101741f5d280a3d016a56a197afcd4199dbb57b4b82a21"
+        },
+        "icons": {
+          "icons_check.png": "9a88bb05844bec005a0370679d0fc54613d6409d46a0c28a905b776b1f99ad71",
+          "icons_no_entry.png": "40929d801f16dd40fbf38d4ef508e9c6a382318d7da18f1e3f986737f811c6a9",
+          "icons_orange.png": "9f6e8605f7517f5946305618580010a12ecfbebf5d4220e5df9866ebebfa7806",
+          "icons_repeat.png": "bb58fd5130e908e2593653d2751273add54a3a78ace19a0e6f41c1f12b479119",
+          "icons_warning.png": "aefc9e61e2f58fc9ee09015ba90d3601e387f35d62822101d32aec7441e89fbd"
+        }
+      },
+      "schema": 1
+    },
+    {
+      "canonical_html_sha256": "9f1ea166649c4b9ca996daa998ee7ef6ff55411bd52739d56a6ea5a82c2e9ea2",
+      "embedded_image_sha256": [],
+      "fixture": "31-duplicate-stem-two",
+      "links": [],
+      "markdown_sha256": "9f4b00e3f3f98eb6d3ab091dc6755989d1ae2283da2a398317eff55d37355f50",
+      "page_count": 1,
+      "pages": [
+        {
+          "height_points": 842.88,
+          "image": "page-001.png",
+          "image_count": 0,
+          "text_geometry_sha256": "258721729a1835c7cc8a0589927f75ebc02531b498f7b99332ad19f591945366",
+          "text_sha256": "9c57039970347c826ba8008ee18f4af9e57fdb2cf0cc54a38624f502ead4f5fd",
+          "width_points": 595.92
+        }
+      ],
+      "pdf_sha256": "97275a2e588e97dde09d2ecc965b81b7fec54a323e1a503e035fe7eae5c882c6",
+      "profile_canonical_sha256": "e2207f2ccefb3ba6d539d659048384ec973d03b46258f29880eb616d87159a0c",
+      "profile_fingerprint": "e2207f2ccefb3ba6d539d659048384ec973d03b46258f29880eb616d87159a0c",
+      "renderer_resource_hashes": {
+        "css": "25390f85412dc4d0f3495dd096b471fc0ce93aecb66b2ccb8853635f96bc86c1",
+        "fonts": {
+          "NotoEmoji.ttf": "de6c18832938afc99caf132b39d6a30a19bac7f2e812e28db2535b4608d27551",
+          "NotoSans-Regular.ttf": "478c558ea716033cd60c03438f628dfa75694dcf6b5f6d505a2f05fd2b4f3823",
+          "NotoSans-SemiBold.ttf": "a4e91fd530ac2b4ef5367240144ff37d7d65d66cf76f2e9a2187b93c676f92d0",
+          "NotoSansArabic-Regular.ttf": "bdff3e5659d67e67def05b33f749683b9376ae819d65d3dd62ac4640b3aaef48",
+          "NotoSansCJKsc-Regular.otf": "2c76254f6fc379fddfce0a7e84fb5385bb135d3e399294f6eeb6680d0365b74b",
+          "NotoSansMono-Regular.ttf": "65b5e2b2c4a1fba9ae8be1f026cb35b03dcb8886d9b2a4147054fde12f7e767d",
+          "NotoSansSymbols2-Regular.ttf": "7d5fb73b7ca67a6798101741f5d280a3d016a56a197afcd4199dbb57b4b82a21"
+        },
+        "icons": {
+          "icons_check.png": "9a88bb05844bec005a0370679d0fc54613d6409d46a0c28a905b776b1f99ad71",
+          "icons_no_entry.png": "40929d801f16dd40fbf38d4ef508e9c6a382318d7da18f1e3f986737f811c6a9",
+          "icons_orange.png": "9f6e8605f7517f5946305618580010a12ecfbebf5d4220e5df9866ebebfa7806",
+          "icons_repeat.png": "bb58fd5130e908e2593653d2751273add54a3a78ace19a0e6f41c1f12b479119",
+          "icons_warning.png": "aefc9e61e2f58fc9ee09015ba90d3601e387f35d62822101d32aec7441e89fbd"
+        }
+      },
+      "schema": 1
+    }
+  ],
+  "golden_review": {
+    "candidate_commit": "90d7dafd282dfbac4cf1692e523f9410cb8a588d",
+    "explanation": "Initial G2 canonical baseline approved by maydareal for commit 90d7dafd282dfbac4cf1692e523f9410cb8a588d, using the locked renderer, approved fonts, fixed render date, and 31-fixture corpus; no prior G2 golden data exists.",
+    "review_tag": "g2-golden-initial-2026-07-14",
+    "review_ticket": "G2-GOLDEN-INITIAL-90d7daf",
+    "reviewer": "maydareal",
+    "source_evidence_sha256": "a34fab2fd4f122b7722dd3e3b167c39703b7acf091a430c5fbf1f95be3aa992f"
+  },
+  "pdfium_version": "5.11.0",
+  "raster_dpi": 144,
+  "schema": 1
+}

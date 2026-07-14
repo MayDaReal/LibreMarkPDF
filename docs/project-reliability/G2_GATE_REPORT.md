@@ -285,6 +285,39 @@ This does not create or approve goldens. A full uninterrupted Linux corpus run,
 explicit human golden review, and the matching native Windows run remain
 required before any VIS item is accepted.
 
+## Incremental evidence — approved Linux canonical baseline
+
+The full 31-fixture Linux candidate evidence was completed outside the
+repository from candidate commit `90d7dafd282dfbac4cf1692e523f9410cb8a588d`.
+`maydareal` approved the initial canonical baseline under review identity
+`G2-GOLDEN-INITIAL-90d7daf`.  The signed local tag
+`g2-golden-initial-2026-07-14` resolves to that exact commit and verifies with
+the configured ED25519 signing key.  The writer was strengthened before use:
+when given reviewed evidence it requires a complete checkpoint set and rejects
+an `evidence.json` that differs from those checkpoints.  It therefore did not
+re-render or alter the reviewed candidate.
+
+| Command | Exit | Result |
+| --- | ---: | --- |
+| `git tag -v g2-golden-initial-2026-07-14` | 0 | Signed tag creation on `90d7dafd282dfbac4cf1692e523f9410cb8a588d` verified for `maydareality@gmail.com`, ED25519 `SHA256:/uZzs39mv1QxR2FXYN9ewOlf4FqeNZXzcYD5lKIievM`. |
+| `venv-linux/bin/python -m unittest tests.test_g2_harness -v` | 0 | 10 harness tests passed, including reviewed-evidence guard coverage. |
+| `venv-linux/bin/python tools/update_g2_goldens.py --manifest tests/fixtures/g2/manifest.json --expected tests/goldens/g2/expected.json --actual-dir /tmp/libremark-g2-linux-resume/actual --candidate-commit 90d7dafd282dfbac4cf1692e523f9410cb8a588d --review-tag g2-golden-initial-2026-07-14 --review-ticket G2-GOLDEN-INITIAL-90d7daf --reviewer maydareal --explanation "Initial G2 canonical baseline approved by maydareal for commit 90d7dafd282dfbac4cf1692e523f9410cb8a588d, using the locked renderer, approved fonts, fixed render date, and 31-fixture corpus; no prior G2 golden data exists."` | 0 | Wrote approved expected manifest and 34 required 144-DPI PNG reference rasters, without rendering. |
+| `venv-linux/bin/python tools/g2_visual_harness.py --manifest tests/fixtures/g2/manifest.json --expected tests/goldens/g2/expected.json --actual-dir /tmp/libremark-g2-linux-resume/actual --report /tmp/libremark-g2-linux-resume/approved-compare-report.json --diff-dir /tmp/libremark-g2-linux-resume/approved-diff --collect-only` | 0 | Strict comparison passed: 31 fixtures, 34 pages, no semantic, pagination, geometry, or raster difference. |
+| `venv-linux/bin/python -m ruff check tools/g2_visual_harness.py tools/update_g2_goldens.py tests/test_g2_harness.py` | 0 | `All checks passed!` |
+| `/tmp/libremark-python39-venv/bin/python -m py_compile tools/g2_visual_harness.py tools/update_g2_goldens.py tests/test_g2_harness.py` | 0 | Python 3.9.23 syntax validation passed. |
+
+Evidence hashes:
+
+- reviewed Linux candidate evidence: `/tmp/libremark-g2-linux-resume/actual/evidence.json`, SHA-256 `a34fab2fd4f122b7722dd3e3b167c39703b7acf091a430c5fbf1f95be3aa992f`;
+- approved expected manifest: `tests/goldens/g2/expected.json`, SHA-256 `2cdd297d108f6a8a0bd15593f7b81b2a3b545ff2795b74e4c94a4ae7735fd4b5`;
+- strict comparison report: `/tmp/libremark-g2-linux-resume/approved-compare-report.json`, SHA-256 `9cead242bba7fddd6d9380a0cd47f75e34cf30e7b8db814344ae92ecf1f197f0`.
+
+The committed expected data is 1.4 MiB (one JSON manifest plus 34 PNGs).  The
+rasters are necessary approved inputs for the frozen visual metric, while PDFs,
+temporary candidate rasters, browser payloads, and diff output remain outside
+source control.  VIS-001 through VIS-007 are accepted for Linux.  VIS-008 and
+the G2 decision remain open pending the same-commit native Windows evidence.
+
 ## Incremental evidence — atomic output publication failures
 
 Temporary output creation and final atomic replacement are now normalized at
