@@ -26,6 +26,7 @@ MARKDOWN_EXTENSIONS = ("extra", "sane_lists")
 MAX_RESOURCE_BYTES = 5 * 1024 * 1024
 MAX_RESOURCE_COUNT = 32
 MAX_TOTAL_RESOURCE_BYTES = 20 * 1024 * 1024
+MAX_MARKDOWN_BYTES = 10 * 1024 * 1024
 RENDER_TIMEOUT_MS = 30_000
 _ALLOWED_RESOURCE_MIME = {
     ".gif": "image/gif", ".jpeg": "image/jpeg", ".jpg": "image/jpeg",
@@ -66,6 +67,7 @@ class RenderProfile:
             "resource_limits": {
                 "count": MAX_RESOURCE_COUNT,
                 "bytes_per_resource": MAX_RESOURCE_BYTES,
+                "markdown_bytes": MAX_MARKDOWN_BYTES,
                 "total_bytes": MAX_TOTAL_RESOURCE_BYTES,
             },
             "render_date": self.render_date,
@@ -501,10 +503,25 @@ def _read_css(css_path: Optional[_PathInput]) -> str:
     path = Path(css_path) if css_path else DEFAULT_CSS_PATH
     if not path.exists():
         raise ConversionError(f"CSS_NOT_FOUND: CSS file not found: {path}")
-    css = path.read_text(encoding="utf-8")
+    try:
+        css = path.read_text(encoding="utf-8")
+    except UnicodeDecodeError as exc:
+        raise ConversionError("INVALID_CSS: CSS must be UTF-8") from exc
+    if "\x00" in css:
+        raise ConversionError("INVALID_CSS: CSS contains a null byte")
     if _css_has_forbidden_resources(css):
         raise ConversionError("FORBIDDEN_CSS_URL: CSS resources are not allowed")
     return _font_face_css() + "\n" + css
+
+
+def _validate_markdown_text(markdown_text: str) -> None:
+    """Reject non-UTF-8-compatible and unbounded in-memory input."""
+    try:
+        byte_count = len(markdown_text.encode("utf-8"))
+    except UnicodeEncodeError as exc:
+        raise ConversionError("INVALID_UTF8: Markdown input must be UTF-8") from exc
+    if byte_count > MAX_MARKDOWN_BYTES:
+        raise ConversionError("INPUT_TOO_LARGE: Markdown exceeds configured size limit")
 
 
 class _BrowserRenderer:
@@ -657,6 +674,7 @@ def prepare_render_document(
     header_footer: Optional[HeaderFooterConfig] = None,
 ) -> RenderDocument:
     """Resolve deterministic HTML and profile inputs without launching Chromium."""
+    _validate_markdown_text(markdown_text)
     if render_date is not None:
         if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", render_date):
             raise ConversionError("INVALID_DATE: use YYYY-MM-DD")
@@ -700,7 +718,12 @@ def convert_markdown_text_to_pdf(
 ) -> Path:
     """Convert Markdown text to a PDF and return its output path."""
     output_path = Path(output_path)
-    output_path.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+    except OSError as exc:
+        raise ConversionError(
+            "OUTPUT_UNAVAILABLE: cannot create destination directory: {0}".format(output_path.parent)
+        ) from exc
     if output_path.exists() and not overwrite:
         raise ConversionError(f"OUTPUT_EXISTS: refusing to overwrite: {output_path}")
 
@@ -740,9 +763,17 @@ def convert_markdown_to_pdf(
         raise ConversionError(f"INPUT_NOT_FOUND: input file not found: {input_path}")
 
     try:
+        if input_path.stat().st_size > MAX_MARKDOWN_BYTES:
+            raise ConversionError("INPUT_TOO_LARGE: Markdown exceeds configured size limit")
+    except OSError as exc:
+        raise ConversionError(f"INPUT_UNREADABLE: cannot inspect input: {input_path}") from exc
+
+    try:
         markdown_text = input_path.read_text(encoding="utf-8")
     except UnicodeDecodeError as exc:
         raise ConversionError("INVALID_UTF8: Markdown input must be UTF-8") from exc
+    except OSError as exc:
+        raise ConversionError(f"INPUT_UNREADABLE: cannot read input: {input_path}") from exc
     resolved_output = Path(output_path) if output_path else input_path.with_suffix(".pdf")
     try:
         same_path = input_path.resolve() == resolved_output.resolve()

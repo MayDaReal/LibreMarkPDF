@@ -199,6 +199,33 @@ class TestDeterministicCoreContract(unittest.TestCase):
             with self.assertRaisesRegex(core.ConversionError, "FORBIDDEN_CSS_URL"):
                 core._read_css(css)
 
+    def test_invalid_css_is_rejected_with_a_stable_code(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            css = Path(tmp) / "invalid.css"
+            css.write_bytes(b"body { color: black; }\x00")
+            with self.assertRaisesRegex(core.ConversionError, "INVALID_CSS"):
+                core._read_css(css)
+
+    def test_empty_and_limit_exceeding_markdown_have_defined_behavior(self):
+        self.assertIn("<body>", core.prepare_render_document("").full_html)
+        with mock.patch.object(core, "MAX_MARKDOWN_BYTES", 4):
+            with self.assertRaisesRegex(core.ConversionError, "INPUT_TOO_LARGE"):
+                core.prepare_render_document("12345")
+
+    def test_file_input_rejects_malformed_utf8(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / "invalid.md"
+            source.write_bytes(b"# heading\n\xff")
+            with self.assertRaisesRegex(core.ConversionError, "INVALID_UTF8"):
+                core.convert_markdown_to_pdf(source, Path(tmp) / "out.pdf")
+
+    def test_unavailable_destination_has_a_stable_code(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            output = Path(tmp) / "out.pdf"
+            with mock.patch.object(Path, "mkdir", side_effect=PermissionError("denied")):
+                with self.assertRaisesRegex(core.ConversionError, "OUTPUT_UNAVAILABLE"):
+                    core.convert_markdown_text_to_pdf("# body", output)
+
     def test_existing_output_requires_explicit_overwrite(self):
         with tempfile.TemporaryDirectory() as tmp:
             output = Path(tmp) / "out.pdf"

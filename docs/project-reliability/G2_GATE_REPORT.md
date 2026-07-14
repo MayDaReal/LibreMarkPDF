@@ -197,3 +197,21 @@ same browser process and asserted an empty observation list after each render.
 This is reproducible Linux evidence for REN-004. It must be repeated from the
 exact candidate commit on native Windows; no network observation may be inferred
 from this Linux run.
+
+## Incremental evidence — bounded inputs and actionable edge failures
+
+The canonical profile now includes the 10 MiB Markdown input limit. Empty
+Markdown remains a valid document. File and in-memory input reject invalid
+UTF-8-compatible text and size overflow with stable codes. CSS decode/null-byte
+failures and destination-directory creation failures are normalized at the core
+boundary without hiding their original exception cause.
+
+| Command | Exit | Result |
+| --- | ---: | --- |
+| `venv-linux/bin/python -m unittest tests.test_core.TestDeterministicCoreContract -v` | 0 | 17 focused deterministic/output/edge-case tests passed. |
+| `venv-linux/bin/python -m ruff check libremark_pdf/core.py tests/test_core.py` | 0 | `All checks passed!` |
+| `/tmp/libremark-python39-venv/bin/python -m py_compile libremark_pdf/core.py tests/test_core.py` | 0 | Changed core and tests compile under Python 3.9.23. |
+
+Permission behavior is simulated at the core boundary because the Linux test
+process has elevated group capabilities; native Windows still needs the real
+unwritable-destination case in its candidate evidence.
