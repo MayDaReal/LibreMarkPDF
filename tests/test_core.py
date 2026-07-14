@@ -209,6 +209,34 @@ class TestDeterministicCoreContract(unittest.TestCase):
             self.assertEqual(output.read_bytes(), b"old")
             self.assertEqual(list(Path(tmp).glob(".libremark-*.pdf")), [])
 
+    def test_renderer_failure_has_stable_error_code_and_keeps_message(self):
+        class Page:
+            def route(self, pattern, callback):
+                return None
+
+            def set_content(self, *args, **kwargs):
+                raise RuntimeError("engine diagnostic")
+
+        class Context:
+            closed = False
+
+            def new_page(self):
+                return Page()
+
+            def close(self):
+                type(self).closed = True
+
+        class Browser:
+            def new_context(self, **kwargs):
+                return Context()
+
+        renderer = core._BrowserRenderer()
+        renderer._browser = Browser()
+        with self.assertRaisesRegex(core.ConversionError, "RENDER_FAILED: engine diagnostic") as raised:
+            renderer.render("<p>x</p>", Path("ignored.pdf"), core.HeaderFooterConfig.none(), None)
+        self.assertEqual(core.error_code(raised.exception), "RENDER_FAILED")
+        self.assertTrue(Context.closed)
+
     def test_batch_duplicate_destinations_are_rejected_per_input(self):
         with tempfile.TemporaryDirectory() as tmp:
             first = Path(tmp) / "one" / "same.md"

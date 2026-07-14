@@ -589,6 +589,10 @@ class _BrowserRenderer:
             )
             if observed_requests:
                 raise ConversionError("NETWORK_BLOCKED: renderer attempted a network request")
+        except ConversionError:
+            raise
+        except Exception as exc:
+            raise ConversionError("RENDER_FAILED: {0}".format(exc)) from exc
         finally:
             if context is not None:
                 context.close()

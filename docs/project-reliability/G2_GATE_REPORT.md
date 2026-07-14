@@ -148,3 +148,15 @@ was inspected for `/StructTreeRoot` and `/Outlines`.
 
 This is Linux evidence only. The same structural test is mandatory in the
 native Windows candidate run before REN-014 or G2 is accepted.
+
+## Incremental evidence — renderer diagnostic code
+
+An unexpected browser operation exception is now translated at the renderer
+boundary to `RENDER_FAILED: <underlying diagnostic>`. Existing typed conversion
+errors pass through unchanged. The context is still closed in the `finally`
+path.
+
+| Command | Exit | Result |
+| --- | ---: | --- |
+| `venv-linux/bin/python -m unittest tests.test_core.TestDeterministicCoreContract -v` | 0 | 13 tests passed, including stable renderer-code/message and context-cleanup proof. |
+| `venv-linux/bin/python -m ruff check libremark_pdf/core.py tests/test_core.py` | 0 | Syntax/undefined-name policy passed. |
