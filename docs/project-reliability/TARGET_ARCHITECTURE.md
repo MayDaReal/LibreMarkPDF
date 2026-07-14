@@ -1,7 +1,8 @@
 # Target architecture and distribution decision
 
-Status: **proposed architecture decision for backlog execution**
+Status: **accepted at Gate G1; production implementation pending Gate G2**
 Decision date: **2026-07-13**
+G1 evidence: [`archive/g1/G1_GATE_REPORT.md`](archive/g1/G1_GATE_REPORT.md)
 
 ## Decision
 
@@ -78,10 +79,13 @@ The current CSS selects different installed fonts on different operating
 systems. It is therefore impossible to preserve all current platform-specific
 renderings and make them identical at the same time.
 
-Select redistributable font files after a visual review against the current
-default output. Bundle the selected regular, semibold, monospace, and required
-Unicode fallback faces. Declare them with `@font-face`, use them in the document
-and header/footer templates, and record licenses and hashes.
+G1 selected a seven-file static-weight Noto candidate after native Windows and
+Linux visual review. The exact files, commits, hashes, sizes, roles, and OFL
+records are preserved in the
+[`G1 renderer report`](archive/g1/G1_RENDERER_SPIKE_REPORT.md). Lot 2 must
+bundle the approved regular, semibold, monospace, and required Unicode fallback
+faces, declare them with `@font-face`, use them in content and header/footer
+templates, and retain their license and fingerprint records.
 
 The first release using the fixed font set creates the canonical default-theme
 baseline. Any later change to a font, renderer, Markdown extension, or default
@@ -137,8 +141,9 @@ artifacts, an explanation, and reviewer approval.
 ### Windows x64 — mandatory first official target
 
 - Standalone portable artifact requiring no Python or browser installation.
-- Measure one-file startup and antivirus behavior against a portable zipped
-  directory before choosing the primary format.
+- Use a zipped portable directory as the primary format selected under ADR-007;
+  retain one-file only as a future candidate if it meets every additional
+  startup, extraction, reputation, and usability criterion.
 - Provide separate GUI and console entry points if needed to preserve reliable
   stdout/stderr behavior.
 - Bundle only the Chromium payload actually used by the renderer.
@@ -192,9 +197,9 @@ Keep the existing `style.css` as the compatibility source for `default@1` until
 the fixed-font baseline is deliberately approved. Never silently replace the
 default theme when installing a community theme.
 
-## Architecture gates
+## G1 feasibility evidence
 
-The architecture is accepted only after a spike proves:
+Gate G1 accepted the architecture after the spike established:
 
 1. A clean locked environment resolves the exact declared renderer and browser.
 2. All runtime network requests are blocked and zero requests are observed.
@@ -203,8 +208,13 @@ The architecture is accepted only after a spike proves:
 5. The Windows standalone artifact passes GUI, CLI, preview, batch, offline, and
    external-path smoke tests.
 6. The fixture harness produces actionable page-by-page reports.
-7. At least two target operating systems meet the frozen visual-equivalence
-   thresholds before cross-platform parity is advertised.
+7. Native Windows and Linux spike renders meet the frozen visual-equivalence
+   thresholds for the selected profile; this is architecture evidence, not an
+   advertised production-platform claim.
+
+Exact commands, failures, hashes, limitations, and owner approvals are retained
+under [`archive/g1/`](archive/g1/README.md). Production enforcement and the
+canonical fixture corpus remain Gate G2 work.
 
 ## Risks requiring explicit owner decisions
 

@@ -14,7 +14,7 @@ them:
 | --- | --- | --- |
 | New contributor | repository `README.md` → `CONTRIBUTING.md` | Make a focused change without learning the whole program |
 | Reliability implementer | `TARGET_ARCHITECTURE.md` → `BACKLOG.md` → assigned ADRs | Know the constraint, owner, and acceptance evidence |
-| Integrator | `BACKLOG.md` → current gate report → evidence manifest | Decide a gate from traceable records |
+| Integrator | `BACKLOG.md` → active ADRs → current gate evidence | Decide a gate from traceable records |
 | Independent auditor | `BASELINE_AUDIT.md` → target architecture → gate reports | Re-score without changing the frozen baseline |
 
 The table below identifies the single source of truth for each kind of
@@ -27,12 +27,14 @@ the command that produced it.
 | Target renderer, resources, and platforms | `TARGET_ARCHITECTURE.md` |
 | Task state, owner, dependencies, and gate criteria | `BACKLOG.md` |
 | Compatibility and security decisions | `ADR-002` through `ADR-008` |
-| G1 decision and command results | `G1_GATE_REPORT.md` and linked evidence reports |
-| File-level integrity of G1 evidence | `G1_EVIDENCE_MANIFEST.sha256` and the Windows manifest |
-| Reusable prompts for future agent waves | `AGENT_PROMPTS.md` (operational reference) |
+| Closed G1 decision and command results | `archive/g1/README.md` and its indexed reports |
+| File-level integrity of G1 evidence | manifests under `archive/g1/` |
+| Current task assignment format | `AGENT_PROMPTS.md` |
 
-Do not duplicate a decision in a new report. Update the owning ADR or backlog
-entry, then link the evidence from the gate report.
+Do not duplicate a decision in a new report. Update the owning ADR or active
+backlog entry, then link the evidence from the gate report. When a gate closes,
+move its working board, reports, prompts, and manifests into one immutable
+`archive/<gate>/` directory; keep accepted ADRs and architecture active.
 
 The original audit-to-gate reading order is:
 
@@ -42,8 +44,12 @@ The original audit-to-gate reading order is:
    deterministic-output, and native-distribution decision.
 3. [`BACKLOG.md`](BACKLOG.md) — task IDs, parallel waves, dependencies, gates,
    and acceptance criteria.
-4. [`AGENT_PROMPTS.md`](AGENT_PROMPTS.md) — optimized orchestrator bootstrap and
-   specialist prompts.
+4. [`AGENT_PROMPTS.md`](AGENT_PROMPTS.md) — compact assignment template for the
+   active gate.
+
+Closed G1 material is indexed in [`archive/g1/README.md`](archive/g1/README.md).
+It is retained for auditability but is not part of the normal contributor
+reading path.
 
 The baseline document must not be edited to reflect future work. At the end of
 the backlog, an independent auditor creates a separate dated final report using
