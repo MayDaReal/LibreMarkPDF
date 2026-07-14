@@ -1,9 +1,51 @@
 # Windows standalone build validation
 
-Use this checklist as the release acceptance record for `dist\LibreMarkPDF.exe`.
-Complete it on the Windows computer where the executable will be used. Check a
+Use this checklist as the release acceptance record for both Windows x64
+PyInstaller candidates:
+
+- onefile: `dist\LibreMarkPDF.exe`, built by `build.bat` and
+  `LibreMarkPDF.spec`;
+- portable directory: `dist\LibreMarkPDF\LibreMarkPDF.exe`, built by
+  `build_portable.bat` and `LibreMarkPDF-portable.spec`.
+
+Complete it on the Windows computer where the artifact will be used. Check a
 box only after observing the stated result. Record failures verbatim instead of
-marking them as passed.
+marking them as passed. A successful build does not make either candidate an
+official release and does not pass a reliability gate.
+
+## Locked G1 portable candidate preparation
+
+The portable build script deliberately performs no installation or download.
+On native Windows x64, prepare CPython 3.9 from the hashed candidate lock and
+stage the Playwright 1.60.0 browser payload before invoking it:
+
+```powershell
+py -3.9 -m venv venv
+venv\Scripts\python.exe -m pip install --require-hashes `
+  -r requirements\locks\windows-x64-py39.txt
+$env:PLAYWRIGHT_BROWSERS_PATH = "$PWD\browsers"
+venv\Scripts\python.exe -m playwright install --only-shell chromium
+```
+
+The browser acquisition step requires network access. Verify that the staged
+browser is Chromium/headless shell `148.0.7778.96`, Playwright revision `1223`,
+before building. Normal conversion must remain offline and must not download a
+browser.
+
+To keep generated evidence outside Git, set external build locations and use
+the diagnostic console mode while validating CLI streams:
+
+```powershell
+$env:LIBREMARK_PDF_DISTPATH = "$env:TEMP\LibreMark G1\artifacts\portable-console"
+$env:LIBREMARK_PDF_WORKPATH = "$env:TEMP\LibreMark G1\build-portable-console"
+$env:LIBREMARK_PDF_PYTHON = "$PWD\venv\Scripts\python.exe"
+.\build_portable.bat --console
+```
+
+The expected portable executable is
+`%LIBREMARK_PDF_DISTPATH%\LibreMarkPDF\LibreMarkPDF.exe`. Distribute the entire
+`LibreMarkPDF` directory; copying only its executable is not a valid portable
+candidate.
 
 ## Validation record
 
@@ -56,6 +98,18 @@ substitute for the manual checks below.
 - [ ] Confirm `dist\LibreMarkPDF.exe` exists and is larger than 300 MB.
 
 Observed executable size: __________________ bytes
+
+Repeat with the locked environment described above:
+
+- [ ] Run `build_portable.bat`.
+- [ ] Confirm the command ends with
+  `=== Portable-directory build complete ===`.
+- [ ] Confirm `dist\LibreMarkPDF\LibreMarkPDF.exe` and its `_internal`
+  directory exist.
+- [ ] Move or copy the complete `LibreMarkPDF` directory for every portable
+  runtime test below.
+
+Observed portable directory size: __________________ bytes
 
 If this section fails, attach the complete console output. Also record whether
 the repository is on a local disk, network share, synchronized folder, or VM

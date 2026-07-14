@@ -18,6 +18,20 @@ class TestPackagingConfiguration(unittest.TestCase):
         self.assertIn("hiddenimports=[]", spec)
         self.assertNotIn("libremark_pdf\\\\__main__.py", spec)
 
+    def test_portable_spec_uses_onedir_collection_and_matching_resources(self):
+        onefile = (ROOT / "LibreMarkPDF.spec").read_text(encoding="utf-8")
+        portable = (ROOT / "LibreMarkPDF-portable.spec").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertIn('["libremark_pdf_entry.py"]', portable)
+        self.assertIn("exclude_binaries=True", portable)
+        self.assertIn("COLLECT(", portable)
+        self.assertIn("hiddenimports=[]", portable)
+        for resource in ("style.css", "icons", "assets", "browsers"):
+            self.assertIn(resource, onefile)
+            self.assertIn(resource, portable)
+
     def test_no_competing_debug_spec_exists(self):
         self.assertFalse((ROOT / "LibreMarkPDF-debug.spec").exists())
 
@@ -25,6 +39,19 @@ class TestPackagingConfiguration(unittest.TestCase):
         script = (ROOT / "build.bat").read_text(encoding="utf-8")
         self.assertIn("python -m PyInstaller --noconfirm --clean LibreMarkPDF.spec", script)
         self.assertIn('if /i "%~1"=="--console"', script)
+
+    def test_portable_build_uses_locked_environment_and_external_paths(self):
+        script = (ROOT / "build_portable.bat").read_text(encoding="utf-8")
+
+        self.assertIn("LibreMarkPDF-portable.spec", script)
+        self.assertIn("LIBREMARK_PDF_DISTPATH", script)
+        self.assertIn("LIBREMARK_PDF_WORKPATH", script)
+        self.assertIn("LIBREMARK_PDF_PYTHON", script)
+        self.assertIn("sys.version_info[:2] == (3, 9)", script)
+        self.assertIn("PyInstaller.__version__ == '6.21.0'", script)
+        self.assertIn("chrome-headless-shell.exe", script)
+        self.assertNotIn("pip install", script)
+        self.assertNotIn("playwright install", script)
 
     def test_canonical_brand_assets_exist(self):
         for size in (16, 32, 48, 64, 128, 256):
