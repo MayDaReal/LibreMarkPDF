@@ -125,6 +125,27 @@ named human reviewer, and explanation before it can replace expected data.
 | `venv-linux/bin/python -m unittest tests.test_core.TestHeaderFooterConfig tests.test_core.TestTemplateBuilding tests.test_core.TestDeterministicCoreContract tests.test_g2_harness -v` | 0 | 26 focused core and harness tests passed. |
 | `venv-linux/bin/python -m ruff check libremark_pdf/core.py tools/g2_visual_harness.py tools/update_g2_goldens.py tests/test_core.py tests/test_g2_harness.py` | 0 | Syntax/undefined-name policy passed. |
 | `git diff --check` | 0 | No whitespace errors. |
+
+## Incremental evidence — resumable Linux candidate generation
+
+The interactive executor terminated the initial all-fixture candidate run after
+three PDFs and before it could publish `evidence.json`. The harness now writes
+each finished fixture entry as an atomic checkpoint under an external
+`actual/entries/` directory. Candidate generation can select repeatable
+`--fixture` IDs, and `--collect-only` refuses to publish a complete manifest
+unless every ID in the source manifest has a checkpoint. The normal comparison
+path remains immutable; `--generate-only` produces no expected data.
+
+| Command | Exit | Result |
+| --- | ---: | --- |
+| original 31-fixture `--generate-only` run | incomplete | Executor ended after `01`–`03`; partial PDFs remained only in `/tmp` and no evidence manifest was published. |
+| `venv-linux/bin/python -m unittest tests.test_g2_harness -v` | 0 | 9 harness tests passed, including incomplete-checkpoint rejection. |
+| `/tmp/libremark-python39-venv/bin/python -m py_compile tools/g2_visual_harness.py tests/test_g2_harness.py` | 0 | Resume/checkpoint implementation compiles under Python 3.9.23. |
+| `PLAYWRIGHT_BROWSERS_PATH="$HOME/.cache/ms-playwright" venv-linux/bin/python tools/g2_visual_harness.py ... --generate-only --fixture 01-headings` | 0 | One locked-browser fixture produced a checkpoint and a one-fixture candidate manifest under `/tmp/libremark-g2-linux-resume`; no expected data was written. |
+| `venv-linux/bin/python -m ruff check tools/g2_visual_harness.py tests/test_g2_harness.py && git diff --check` | 0 | Ruff and whitespace checks passed. |
+
+The full Linux corpus remains open until all 31 checkpoints are collected in an
+uninterrupted or segmented execution and are submitted for human golden review.
 | first `/tmp` corpus invocation | 1 | Direct execution initially failed before rendering: `tools/g2_visual_harness.py` did not place the repository root on `sys.path`. Corrected without changing rendering behavior. |
 | corrected `/tmp` corpus invocation | incomplete | Four fixtures rendered through the shared core before the interactive command window ended; no `evidence.json`, report, expected manifest, or repository PDF was created. This is an execution-window limit, not accepted full-corpus evidence. |
 

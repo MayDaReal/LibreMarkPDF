@@ -11,6 +11,7 @@ import hashlib
 import json
 import re
 import sys
+import tempfile
 from pathlib import Path
 
 import pypdfium2 as pdfium
@@ -253,12 +254,50 @@ def fixture_inputs(manifest_path):
     return manifest, records
 
 
-def generate_actual(manifest_path, actual_dir):
-    """Render the corpus through core and emit a portable evidence manifest."""
-    manifest, fixtures = fixture_inputs(manifest_path)
+def _write_json_atomic(path, value):
+    """Publish one evidence record without leaving a partially written JSON file."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.NamedTemporaryFile(
+        mode="w", encoding="utf-8", suffix=".json", prefix=".g2-", dir=path.parent,
+        delete=False,
+    ) as handle:
+        json.dump(value, handle, ensure_ascii=False, indent=2, sort_keys=True)
+        handle.write("\n")
+        temporary = Path(handle.name)
+    temporary.replace(path)
+
+
+def collect_actual(manifest_path, actual_dir, require_complete=False):
+    """Collect completed fixture records, rejecting incomplete final corpora."""
+    _manifest, fixtures = fixture_inputs(manifest_path)
+    expected_ids = [fixture["id"] for fixture in fixtures]
+    entries = {}
+    entries_dir = actual_dir / "entries"
+    for entry_path in sorted(entries_dir.glob("*.json")) if entries_dir.is_dir() else ():
+        entry = load_json(entry_path)
+        fixture_id = entry.get("fixture")
+        if fixture_id not in expected_ids or fixture_id in entries:
+            raise ValueError("Invalid or duplicate fixture evidence: {}".format(entry_path))
+        entries[fixture_id] = entry
+    missing = [fixture_id for fixture_id in expected_ids if fixture_id not in entries]
+    if require_complete and missing:
+        raise ValueError("Incomplete canonical evidence; missing: {}".format(", ".join(missing)))
+    return {"fixtures": [entries[fixture_id] for fixture_id in expected_ids if fixture_id in entries],
+            "pdfium_version": "5.11.0", "raster_dpi": RASTER_DPI, "schema": SCHEMA}
+
+
+def generate_actual(manifest_path, actual_dir, fixture_ids=None):
+    """Render selected fixtures through core and checkpoint each evidence record."""
+    _manifest, fixtures = fixture_inputs(manifest_path)
+    if fixture_ids:
+        requested = set(fixture_ids)
+        known = {fixture["id"] for fixture in fixtures}
+        unknown = requested - known
+        if unknown:
+            raise ValueError("Unknown fixture id: {}".format(", ".join(sorted(unknown))))
+        fixtures = [fixture for fixture in fixtures if fixture["id"] in requested]
     actual_dir.mkdir(parents=True, exist_ok=True)
-    evidence = {"fixtures": [], "pdfium_version": "5.11.0", "raster_dpi": RASTER_DPI,
-                "schema": SCHEMA}
+    entries_dir = actual_dir / "entries"
     # The harness has no renderer of its own: one core-managed browser is reused
     # solely to keep a 30-fixture comparison practical and deterministic.
     with core._BrowserRenderer() as renderer:
@@ -286,10 +325,10 @@ def generate_actual(manifest_path, actual_dir):
                      "renderer_resource_hashes": json.loads(
                         document.profile.canonical_json())["resource_hashes"]}
             entry.update(pdf_evidence(pdf_path, page_dir))
-            evidence["fixtures"].append(entry)
-    (actual_dir / "evidence.json").write_text(
-        json.dumps(evidence, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8")
+            entry["schema"] = SCHEMA
+            _write_json_atomic(entries_dir / (fixture["id"] + ".json"), entry)
+    evidence = collect_actual(manifest_path, actual_dir)
+    _write_json_atomic(actual_dir / "evidence.json", evidence)
     return evidence
 
 
@@ -350,12 +389,30 @@ def compare(expected_path, actual_dir, report_path, diff_dir):
 def main():
     parser = argparse.ArgumentParser(description="Run the immutable G2 visual comparison")
     parser.add_argument("--manifest", type=Path, required=True)
-    parser.add_argument("--expected", type=Path, required=True)
+    parser.add_argument("--expected", type=Path)
     parser.add_argument("--actual-dir", type=Path, required=True)
     parser.add_argument("--report", type=Path, required=True)
     parser.add_argument("--diff-dir", type=Path, required=True)
+    parser.add_argument("--generate-only", action="store_true",
+                        help="Write candidate evidence only; never creates expected data")
+    parser.add_argument("--fixture", action="append", default=[],
+                        help="Render one named fixture; repeatable and resumable")
+    parser.add_argument("--collect-only", action="store_true",
+                        help="Require and consolidate prior checkpoints without rendering")
     args = parser.parse_args()
-    generate_actual(args.manifest, args.actual_dir)
+    if args.collect_only and args.fixture:
+        parser.error("--collect-only cannot be combined with --fixture")
+    if args.collect_only:
+        evidence = collect_actual(args.manifest, args.actual_dir, require_complete=True)
+        _write_json_atomic(args.actual_dir / "evidence.json", evidence)
+    else:
+        evidence = generate_actual(args.manifest, args.actual_dir, args.fixture)
+    if args.generate_only:
+        print(json.dumps({"actual": str(args.actual_dir), "fixtures": len(evidence["fixtures"]),
+                          "result": "generated"}, sort_keys=True))
+        return 0
+    if args.expected is None:
+        parser.error("--expected is required unless --generate-only is selected")
     report = compare(args.expected, args.actual_dir, args.report, args.diff_dir)
     print(json.dumps({"report": str(args.report), "result": report["result"]}, sort_keys=True))
     return 0 if report["result"] == "pass" else 1

@@ -46,6 +46,25 @@ class TestG2VisualHarness(unittest.TestCase):
         self.assertNotIn("--update-goldens", source)
         self.assertNotIn("--write-expected", source)
 
+    def test_generate_only_mode_cannot_write_expected_data(self):
+        source = HARNESS_PATH.read_text(encoding="utf-8")
+        self.assertIn("--generate-only", source)
+        self.assertIn('"result": "generated"', source)
+
+    def test_checkpoint_collection_rejects_an_incomplete_final_corpus(self):
+        manifest = ROOT / "tests" / "fixtures" / "g2" / "manifest.json"
+        with tempfile.TemporaryDirectory() as temporary:
+            actual = Path(temporary) / "actual"
+            entries = actual / "entries"
+            entries.mkdir(parents=True)
+            (entries / "01-headings.json").write_text(
+                json.dumps({"schema": 1, "fixture": "01-headings"}), encoding="utf-8"
+            )
+            partial = g2_visual_harness.collect_actual(manifest, actual)
+            self.assertEqual([item["fixture"] for item in partial["fixtures"]], ["01-headings"])
+            with self.assertRaisesRegex(ValueError, "Incomplete canonical evidence"):
+                g2_visual_harness.collect_actual(manifest, actual, require_complete=True)
+
     def test_embedded_image_hashes_are_payload_not_path_hashes(self):
         html = (
             '<img src="data:image/png;base64,YWJj">'
