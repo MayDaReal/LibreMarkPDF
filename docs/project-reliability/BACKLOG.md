@@ -1,6 +1,6 @@
 # High-reliability program backlog
 
-Status: **Gate G1 in progress; decision recorded as not passed**
+Status: **Gate G1 passed on 2026-07-14**
 Baseline: [`BASELINE_AUDIT.md`](BASELINE_AUDIT.md), score **43/100**
 Architecture: [`TARGET_ARCHITECTURE.md`](TARGET_ARCHITECTURE.md)
 
@@ -120,14 +120,14 @@ Files: spike code/fixtures and ADR evidence; no production rewrite yet
   the exact browser revision and payload used by headless rendering.
 - [x] `SPIKE-REN-002` Select redistributable proportional, semibold, monospace,
   and Unicode fallback font candidates; record licenses and size impact.
-- [ ] `SPIKE-REN-003` Render representative current-style fixtures on Windows
+- [x] `SPIKE-REN-003` Render representative current-style fixtures on Windows
   and one second OS with candidate embedded fonts.
 - [x] `SPIKE-REN-004` Prototype local relative-image embedding and total network
   denial.
 - [x] `SPIKE-REN-005` Prototype JavaScript/service-worker disablement and the
   approved raw HTML policy.
 - [x] `SPIKE-REN-006` Produce canonical HTML and asset fingerprints.
-- [ ] `SPIKE-REN-007` Measure visual variance and validate or amend the proposed
+- [x] `SPIKE-REN-007` Measure visual variance and validate or amend the proposed
   SSIM/pixel thresholds once, with evidence.
 - [ ] `SPIKE-PKG-001` Compare Windows one-file and portable-directory artifacts:
   compressed size, cold/warm startup, conversion time, extraction, and AV scan.
@@ -152,17 +152,17 @@ Windows report also measures diagnostic onefile and portable candidates. The
 first six-file variable-font candidate and its licenses are locked by immutable
 commit and SHA-256. Its native Windows/Linux comparison failed because Windows
 materialized Regular/SemiBold instances while Linux used only Regular. The
-seven-file static replacement also failed the frozen raster and structural
+seven-file static replacement also failed the initial raster and structural
 thresholds despite exact same-Windows and same-Linux repeats. A measured
-`--disable-font-subpixel-positioning` profile restores identical extracted text
-and page dimensions between the retained Windows PDF and Linux, leaving aligned
-glyph-edge antialiasing variance for the one permitted ADR-002 threshold review.
-ADR-007 selects the portable ZIP because onefile has not met its additional
-proof burden. The remaining G1 spike work is a native Windows run from the
-revised flagged profile, the explicit owner threshold decision, and owner
-review of the fixed-font appearance. Windowed entry points and controlled
-release-candidate performance
-remain later-gate implementation evidence.
+`--disable-font-subpixel-positioning` profile restores identical extracted text,
+page dimensions, canonical HTML, and profile fingerprints across the exact
+flagged Windows/Linux pair. Its remaining aligned glyph-edge antialiasing
+variance passes the owner-approved ADR-002 amendment: SSIM at least `0.70`,
+changed pixels at most `4.20%` at RGB delta `16`, and largest changed region at
+most `0.05%`, with strict structural equality. ADR-007 selects the portable ZIP
+because onefile has not met its additional proof burden. The owner explicitly
+approved the fixed-font appearance and threshold amendment. Windowed entry
+points and controlled release-candidate performance remain later-gate evidence.
 
 ## Lot 1B — Package and quality foundations
 
@@ -206,6 +206,11 @@ branch-aware product coverage. QAS-001 remains partial because an ordinary
 wheel lacks top-level runtime resources; no wheel is authorized or advertised.
 Hosted workflow URLs and administrator security settings remain explicitly
 unverified operational follow-ups, not G1 clean-install claims.
+
+Final integration ran 49 browser-free and 52 complete revision-1223 tests with
+exit 0 after adding the threshold-freeze regressions. Ruff, compileall, Python
+3.9 AST parsing, and the 107-path hygiene check also exited 0; coverage was not
+remeasured in this final pass.
 
 ## Lot 1C — Open-source foundations
 
@@ -282,18 +287,15 @@ G1 passes when:
 - the locked target engine and font licenses are recorded;
 - unresolved architecture questions have explicit owners.
 
-G1 decision (updated 2026-07-14): **not passed**. Evidence is indexed in
+G1 decision (updated 2026-07-14): **passed**. Evidence is indexed in
 [`G1_GATE_REPORT.md`](G1_GATE_REPORT.md). Renderer, browser, font files and
 licenses, resource policy, visual thresholds, and the portable Windows format
-are now selected. Dependency and community criteria pass with their release-
-gate limitations recorded. Both the variable-font and static-font
-Windows/Linux comparisons failed the frozen thresholds and are retained as
-negative evidence. The static result led to an integer-positioning profile
-whose preliminary comparison has exact extracted text and page dimensions but
-expected cross-OS antialiasing variance. The remaining blockers are a native
-Windows run from that exact profile, the one permitted explicit threshold
-decision, and owner review of the fixed-font appearance. Lot 2 is
-not authorized by this interim decision.
+are selected. Dependency and community criteria pass with their later-gate
+limitations recorded. The failed variable-font and unflagged static pairs are
+retained as negative evidence. The exact flagged static pair has equal
+structure and fingerprints, passes the amended frozen thresholds, repeats
+exactly within each platform, and has explicit owner appearance approval. No
+Lot 2 implementation was started as part of this decision.
 Report and lock hashes are recorded in
 [`G1_EVIDENCE_MANIFEST.sha256`](G1_EVIDENCE_MANIFEST.sha256).
 

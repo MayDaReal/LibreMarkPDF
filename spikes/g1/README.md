@@ -49,9 +49,10 @@ yet production behavior. Generated evidence must be outside the repository.
 fingerprints, global grayscale SSIM, changed-pixel percentage, and largest
 eight-connected changed region against ADR-002. `appearance` mode records the
 deliberate current-versus-candidate typography change for human review;
-`cross-os` mode enforces the frozen thresholds. Those thresholds remain
-unchanged until the exact flagged Windows pair exists and the owner explicitly
-accepts or rejects the one amendment allowed by ADR-002.
+`cross-os` mode enforces the amended and frozen ADR-002 thresholds: SSIM at
+least `0.70`, no more than `4.20%` changed pixels at RGB delta `16`, and no
+contiguous changed region above `0.05%`. Exact structure and fingerprints
+remain mandatory regardless of raster metrics.
 
 On Windows, run the preparation phase while downloads are permitted, disable
 the test host's network, and then run the evidence phase with the existing

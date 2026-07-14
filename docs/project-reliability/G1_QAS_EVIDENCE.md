@@ -65,6 +65,12 @@ command ran 45 browser-free tests and exited `0`. Branch-aware coverage remained
 `compileall`, and the 106-path hygiene check passed. The complete target-browser
 suite ran 48 tests and exited `0` with Chromium revision 1223.
 
+Final G1 integration added two threshold-freeze regression tests. The same
+focused command then ran 49 browser-free tests; Ruff 0.14.2, compileall,
+Python 3.9 AST parsing, and the 107-path hygiene check exited 0. The full suite
+ran 52 tests with Chromium revision 1223 and exited 0. This later integration
+run did not recalculate the retained 31% coverage measurement.
+
 System `python3 -m unittest discover -s tests -v` remains expected to exit `1`
 because system Python lacks `markdown`; no test was weakened to hide that clean
 dependency failure. The ignored `venv-linux` is historical evidence, not the

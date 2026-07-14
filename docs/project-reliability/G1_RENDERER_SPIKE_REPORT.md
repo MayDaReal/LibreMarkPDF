@@ -1,6 +1,6 @@
 # Gate G1 renderer and packaging spike report
 
-Status: **variable and unflagged static candidates rejected; flagged profile pending Windows**
+Status: **G1 renderer/package direction accepted; negative evidence retained**
 Evidence date: 2026-07-14
 Linux environment: Ubuntu 24.04.4, Linux 6.17 x86_64, CPython 3.12.3
 Windows evidence source: commit `50f134121366e4922774bd67c6e5e7554108d09b`
@@ -14,10 +14,10 @@ remain outside the repository.
 
 | Decision | Selected direction | Evidence status |
 | --- | --- | --- |
-| Renderer/browser | Python 3.9-compatible Playwright 1.60.0, Chromium/headless shell 148.0.7778.96 revision 1223, FFmpeg 1011, with `--disable-font-subpixel-positioning` in the measured profile | native Windows/Linux engine evidence exists; exact flagged Windows profile pending |
-| Fonts | seven-file static-weight Noto replacement locked below | variable and unflagged static pairs failed; static commits, hashes, sizes, roles, and OFL records remain selected while the positioning profile is measured |
+| Renderer/browser | Python 3.9-compatible Playwright 1.60.0, Chromium/headless shell 148.0.7778.96 revision 1223, FFmpeg 1011, with `--disable-font-subpixel-positioning` in the measured profile | exact native Windows/Linux flagged profile passes the amended contract |
+| Fonts | seven-file static-weight Noto replacement locked below | exact commits, hashes, sizes, roles, and OFL records; owner-approved canonical appearance |
 | Resources/network | embed accepted local resources before rendering; deny HTTP/HTTPS; disable JavaScript and service workers; literal safe HTML by default | Linux and Windows feasibility probes observed zero responses; production implementation is Lot 2 |
-| Visual thresholds | ADR-002 remains unchanged pending its one permitted review: 144 DPI, SSIM >= 0.995, changed pixels <= 0.10% at RGB delta 16, largest changed region <= 0.50%, plus strict structural equality | two native pairs failed; integer positioning restores preliminary structural equality and isolates antialiasing variance; exact flagged pair and owner decision pending |
+| Visual thresholds | amended and frozen ADR-002: 144 DPI, SSIM >= 0.70, changed pixels <= 4.20% at RGB delta 16, largest changed region <= 0.05%, plus strict structural equality | exact flagged pair passes; owner approved the measured antialiasing amendment |
 | Windows primary format | zipped portable directory | selected under ADR-007 from native onefile/portable measurements; this is not an official artifact claim |
 
 ## Renderer lock
@@ -187,22 +187,29 @@ and `64e6fc6f407ebe542c2ae1c86ca9f43a4f37fab9324c57eafc9504b3978364b7`.
 The flag is now part of the spike profile, whose fingerprint is
 `6132c01cac337b07b2866650f40a2b0c4cb2b12b27ecd5774a4564ad13249450`.
 
-The preliminary comparison against the retained Windows PDF is structurally
-green but intentionally has unequal profile fingerprints because that Windows
-run predates the flag record. Its raster metrics are `3.1196%`/`4.0963%`
-changed pixels, SSIM `0.71837`/`0.70820`, and largest changed regions
-`0.01732%`/`0.02224%`. The retained diffs show distributed glyph-edge variance,
-not geometry shifts. This is the antialiasing case contemplated by ADR-002's
-single amendment clause. No threshold is amended here: an exact flagged
-Windows run and explicit owner decision are still mandatory.
+The final flagged Windows archive is 1,631,037 bytes with SHA-256
+`8fae9aa3e3e7044316c9aa5f5ddffef8c8e510eaf0b95534ff7817aa0a00ee1d`.
+It records clean source commit
+`5264143aa185dd3ea78e8e1e9485f8ce9b62b175`, the exact locked Windows
+environment, disconnected physical networking with HTTPS unavailable before
+and after the run, zero probe requests/responses, all 18 valid internal hashes,
+and exact same-Windows repetition. Its profile fingerprint is the same
+`6132c01cac337b07b2866650f40a2b0c4cb2b12b27ecd5774a4564ad13249450`
+as Linux.
 
-For that decision, the provisional evidence-bounded amendment is SSIM at least
-`0.70`, changed pixels at most `4.20%` at the unchanged delta of `16`, and
-largest changed region at most `0.05%`, with every structural requirement still
-exact. It passes the preliminary glyph-edge case while rejecting both measured
-geometry failures: their SSIM values are at most `0.60230` and their largest
-regions are at least `0.08618%`. These numbers are a proposal, not an accepted
-contract, and must be recalculated if the exact flagged Windows result differs.
+The exact flagged Windows/Linux comparison has equal profile and HTML
+fingerprints, extracted text, page count, page dimensions, and page geometry.
+Page 1 measures `3.1196%` changed pixels, SSIM `0.71837`, and a `0.01732%`
+largest region. Page 2 measures `4.0963%`, SSIM `0.70820`, and `0.02224%`.
+The retained diffs show distributed glyph-edge antialiasing rather than
+geometry shifts. After reviewing the candidate appearance and these results,
+the owner explicitly approved the single ADR-002 amendment: SSIM at least
+`0.70`, changed pixels at most `4.20%` at delta `16`, and largest changed region
+at most `0.05%`, with every structural requirement exact. The amended
+comparator exits 0; report SHA-256 is
+`78111e8d4f418614f1c12e4e5d76deaca9c163aca6bc2217ea0bcdd69433ffe6`.
+The tighter region limit and structural checks continue to reject both earlier
+geometry failures. These thresholds are now frozen.
 
 ## Windows artifact selection
 
@@ -239,11 +246,11 @@ The native portable candidate then staged and exercised only revision 1223.
 | --- | --- | --- |
 | SPIKE-REN-001 | accepted | exact Python 3.9-compatible engine pair and native Windows/Linux payload hashes recorded |
 | SPIKE-REN-002 | accepted research/revised candidate | rejected variable set and seven-file static replacement have exact roles, commits, sizes, hashes, and OFL records |
-| SPIKE-REN-003 | pending final profile | variable and unflagged static native pairs failed ADR-002; exact repeats exist on each platform; rerun the flagged Windows bundle |
+| SPIKE-REN-003 | accepted | exact flagged static-font native pair has equal text, page geometry, fingerprints, and owner-approved appearance |
 | SPIKE-REN-004 | accepted feasibility | local embedding and total network denial observed on Linux and Windows; production corpus belongs to Lot 2 |
 | SPIKE-REN-005 | accepted feasibility | JavaScript/service workers disabled and untrusted fragment literalized; trusted static HTML implementation belongs to Lot 2 |
-| SPIKE-REN-006 | pending final profile | logical inputs match and the flagged profile repeats exactly on Linux; confirm its fingerprint on Windows |
-| SPIKE-REN-007 | pending owner decision | both failed pairs have actionable diffs; preliminary integer positioning restores structure and isolates antialiasing |
+| SPIKE-REN-006 | accepted | canonical HTML and profile fingerprint `6132c01c...9450` match across the exact Windows/Linux pair |
+| SPIKE-REN-007 | accepted | exact measurements support the owner-approved one-time ADR-002 amendment; amended comparator passes and negative evidence remains retained |
 | SPIKE-PKG-001 | direction accepted | portable ZIP selected under ADR-007; exact release-candidate tests remain later gates |
 | SPIKE-PKG-002 | accepted | only-shell direction built/exercised natively and 38.2% obsolete compressed browser payload quantified |
 
@@ -271,8 +278,35 @@ Commands ran from the repository on Linux x86_64 unless stated otherwise.
 | unflagged static Windows/Linux threshold comparison | 1 | correctly rejected structurally and visually; report hash `c5f7c725...b6f4b8` |
 | rerasterize both static PDFs with one Linux PDFium | 0 | reproduces the cross-OS metrics, excluding inspection-platform variance |
 | two static Linux probes with integer positioning | 0 each | exact repeat; extracted text and page dimensions equal retained Windows; aligned layout in retained diffs; flag recorded in profile fingerprint |
-| preliminary flagged-Linux/unflagged-Windows comparison | 1 | structural pass; raster thresholds fail on distributed glyph-edge variance; exact flagged Windows profile still required |
-| target-environment `unittest tests.test_g1_spikes -v` | 0 | nine focused tests passed |
+| preliminary flagged-Linux/unflagged-Windows comparison | 1 | structural pass; raster thresholds fail on distributed glyph-edge variance; retained as diagnostic evidence |
+| inspect exact flagged Windows archive and validate its 18 payload hashes | 0 | ZIP hash `8fae9aa3...0a00ee1d`; clean exact source/profile, offline confirmation, zero probe requests, exact repeat |
+| exact flagged Windows/Linux comparison under initial thresholds | 1 | expected pre-amendment failure; equal structure/fingerprints and only distributed glyph-edge variance |
+| exact flagged Windows/Linux comparison under approved thresholds | 0 | structural and visual pass; report hash `78111e8d...9433ffe6` |
+| target-environment `unittest tests.test_g1_spikes -v` | 0 | eleven focused tests passed after threshold-freeze regression coverage |
+
+Final Linux x86_64 commands (2026-07-14), using Python 3.12.3 with the exact
+Markdown 3.9, Playwright 1.60.0, Pillow 11.3.0, PDFium 5.11.0 environment:
+
+```bash
+venv-linux/bin/python spikes/g1/fetch_font_candidates.py \
+  --output-dir /tmp/libremark-g1-font-static-5264143
+# exit 0; seven fonts and four unique licenses verified by size and SHA-256
+
+PLAYWRIGHT_BROWSERS_PATH="$HOME/.cache/ms-playwright" \
+  /tmp/libremark-g1-static-venv-5264143/bin/python \
+  spikes/g1/visual_probe.py --profile candidate \
+  --font-root /tmp/libremark-g1-font-static-5264143 \
+  --output-dir /tmp/libremark-g1-linux-flagged-5264143
+# exit 0; Chromium 148.0.7778.96 revision 1223, zero network requests
+
+/tmp/libremark-g1-static-venv-5264143/bin/python \
+  spikes/g1/visual_compare.py --comparison cross-os \
+  --reference-dir /tmp/libremark-g1-linux-flagged-5264143 \
+  --candidate-dir /tmp/libremark-g1-windows-flagged-8fae9aa3/windows-candidate \
+  --output /tmp/libremark-g1-cross-os-approved-5264143.json \
+  --diff-dir /tmp/libremark-g1-cross-os-approved-5264143-diffs
+# exit 0 after the approved ADR-002 amendment
+```
 
 Temporary JSON evidence hashes:
 
@@ -298,6 +332,14 @@ Temporary JSON evidence hashes:
   `c5f7c72598485dd3dec447d9225bf886a43d2e010f955fe2015ffdb50cb6f4b8`;
 - preliminary integer-positioned Linux/retained Windows comparison:
   `d447db7455145df0621fa809a5bc38822706fe04b53891279a9e8ba7d6bd098b`.
+- exact flagged Windows candidate evidence:
+  `7992bf6136618b106ee54a4e2f2dc89d16eb7487a602c11ba9036477667fb734`;
+- exact flagged Windows repeat comparison:
+  `be4753ee3ec162523f0e21c75a3f26dd71f935c172c4d276a6d7468a46140ac3`;
+- exact flagged Windows appearance report:
+  `79f5318cfcf6dc84c3c6c94ac7eaf12c878e7506e25e513d6783f1bd412b1562`;
+- accepted exact flagged Windows/Linux comparison:
+  `78111e8d4f418614f1c12e4e5d76deaca9c163aca6bc2217ea0bcdd69433ffe6`.
 
 All generated evidence remains under `/tmp`; the supplied Windows ZIP remains
 outside the repository under `/shared/repos/LibreMarkPDF-artifact`. No font,

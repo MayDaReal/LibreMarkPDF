@@ -725,5 +725,36 @@ showing aligned layout. The remaining raster
 differences are distributed around glyph edges, with largest regions only
 0.01732% and 0.02224%. Because the retained Windows run did not record that
 flag in its profile, this is diagnostic evidence rather than a gate pass. The
-next dependency is an exact flagged Windows run, followed by the explicit
-owner decision on ADR-002's one permitted antialiasing-threshold amendment.
+next exact-profile archive resolves that limitation.
+
+The final archive,
+`LibreMark G1 Windows visual flagged 5264143.zip`, is 1,631,037 bytes with
+SHA-256
+`8fae9aa3e3e7044316c9aa5f5ddffef8c8e510eaf0b95534ff7817aa0a00ee1d`.
+Its `Run` command exited 0 from clean source commit
+`5264143aa185dd3ea78e8e1e9485f8ce9b62b175`. The repository remained clean.
+The physical Realtek adapter was disconnected, and HTTPS checks before and
+after the run returned false; only local virtual adapters remained active.
+The archive records Windows 11 Pro x64 build 26200, CPython 3.9.13,
+Playwright 1.60.0, Pillow 11.3.0, PDFium 5.11.0, Chromium 148.0.7778.96
+revision 1223, all seven locked font files, no network attempts/responses, and
+the required `--disable-font-subpixel-positioning` argument. All 18 internal
+payload hashes validate.
+
+Candidate evidence SHA-256 is
+`7992bf6136618b106ee54a4e2f2dc89d16eb7487a602c11ba9036477667fb734`;
+repeat-comparison SHA-256 is
+`be4753ee3ec162523f0e21c75a3f26dd71f935c172c4d276a6d7468a46140ac3`;
+appearance-report SHA-256 is
+`79f5318cfcf6dc84c3c6c94ac7eaf12c878e7506e25e513d6783f1bd412b1562`.
+The Windows repeat has SSIM 1.0 and zero changed pixels/regions on both pages.
+
+Linux integration regenerated the same locked profile and reproduced its prior
+page hashes. The exact cross-OS pair has matching profile fingerprint
+`6132c01cac337b07b2866650f40a2b0c4cb2b12b27ecd5774a4564ad13249450`,
+canonical HTML, extracted text, page count, and dimensions. Its page metrics
+are `3.1196%`, SSIM `0.71837`, region `0.01732%`, then `4.0963%`, SSIM
+`0.70820`, region `0.02224%`. The owner reviewed and approved both the candidate
+appearance and ADR-002's one permitted amendment. The amended comparator exits
+0; report SHA-256 is
+`78111e8d4f418614f1c12e4e5d76deaca9c163aca6bc2217ea0bcdd69433ffe6`.

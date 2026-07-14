@@ -99,17 +99,16 @@ artifact must have:
 - identical headings, links, image inventory, and header/footer values;
 - identical pagination, table geometry, line breaks, and image placement;
 - exact canonical pre-render HTML and render-profile fingerprint;
-- raster comparison at 144 DPI with SSIM at least `0.995`;
-- at most `0.10%` of pixels exceeding an RGB-channel delta of `16`;
-- no contiguous changed region larger than `0.50%` of a page;
+- raster comparison at 144 DPI with SSIM at least `0.70`;
+- at most `4.20%` of pixels exceeding an RGB-channel delta of `16`;
+- no contiguous changed region larger than `0.05%` of a page;
 - no semantic, missing-resource, or pagination difference, regardless of image
   metric results.
 
-These initial thresholds must be validated against real cross-platform builds
-in the architecture spike. If antialiasing creates false failures, the project
-may adjust thresholds once, record the evidence in an ADR, and freeze them
-before implementation release candidates are scored. Thresholds may not be
-relaxed merely to make a failing release pass.
+The one permitted antialiasing review was completed from an exact native
+Windows/Linux pair and is recorded in ADR-002. These thresholds are frozen
+before implementation release candidates are scored. Any later change requires
+a superseding ADR and explicit golden review.
 
 Byte-for-byte PDF equality is not required. Creation timestamps, document IDs,
 compression, and object serialization can differ without a user-visible change.
