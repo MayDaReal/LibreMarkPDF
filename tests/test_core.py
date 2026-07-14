@@ -130,6 +130,14 @@ class TestMarkdownConversion(unittest.TestCase):
             with self.assertRaisesRegex(core.ConversionError, "FORBIDDEN_"):
                 core.markdown_to_html(value, trusted_html=True)
 
+    def test_trusted_static_mode_rejects_inline_css_and_fetch_attributes(self):
+        for value in (
+            '<div style="background:url(https://example.invalid/a.png)">x</div>',
+            '<video poster="https://example.invalid/a.png">x</video>',
+        ):
+            with self.assertRaisesRegex(core.ConversionError, "FORBIDDEN_"):
+                core.markdown_to_html(value, trusted_html=True)
+
     def test_emoji_in_code_stays_literal(self):
         html = core.markdown_to_html("`✅`")
         self.assertIn("<code>✅</code>", html)
@@ -308,6 +316,14 @@ class TestResourcePolicy(unittest.TestCase):
             with self.assertRaisesRegex(core.ConversionError, "FORBIDDEN_RESOURCE"):
                 core.embed_local_resources(
                     '<img src="data:image/svg+xml;base64,{0}">'.format(encoded), tmp
+                )
+
+    def test_svg_extension_requires_svg_content(self):
+        payload = core.base64.b64encode(b"not an SVG").decode("ascii")
+        with tempfile.TemporaryDirectory() as tmp:
+            with self.assertRaisesRegex(core.ConversionError, "SVG signature"):
+                core.embed_local_resources(
+                    '<img src="data:image/svg+xml;base64,{0}">'.format(payload), tmp
                 )
 
     def test_symbolic_link_escape_is_rejected(self):

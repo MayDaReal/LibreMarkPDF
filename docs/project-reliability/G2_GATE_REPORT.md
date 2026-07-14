@@ -160,3 +160,24 @@ path.
 | --- | ---: | --- |
 | `venv-linux/bin/python -m unittest tests.test_core.TestDeterministicCoreContract -v` | 0 | 13 tests passed, including stable renderer-code/message and context-cleanup proof. |
 | `venv-linux/bin/python -m ruff check libremark_pdf/core.py tests/test_core.py` | 0 | Syntax/undefined-name policy passed. |
+
+## Incremental evidence — Python 3.9 and trusted-static closure
+
+Python 3.9.23 is now available in the external validation environment at
+`/tmp/libremark-python39-venv`; it is not part of the repository or an
+application runtime dependency. The core, front ends, and G2 tooling compile
+under that interpreter. The trusted-static filter now also rejects CSS resource
+loaders hidden in inline `style` attributes and fetch-capable `poster`,
+`background`, `data`, and `formaction` attributes. SVG acceptance requires an
+actual SVG root in addition to the existing active-content inspection.
+
+| Command | Exit | Result |
+| --- | ---: | --- |
+| `/tmp/libremark-python39-venv/bin/python --version` | 0 | `Python 3.9.23`. |
+| `/tmp/libremark-python39-venv/bin/python -m py_compile libremark_pdf/core.py libremark_pdf/cli.py libremark_pdf/gui.py libremark_pdf/i18n.py libremark_pdf/__main__.py tools/g2_visual_harness.py tools/update_g2_goldens.py` | 0 | Python 3.9 syntax validation passed. |
+| `venv-linux/bin/python -m unittest tests.test_core.TestMarkdownConversion tests.test_core.TestResourcePolicy tests.test_core.TestDeterministicCoreContract -v` | 0 | 29 focused trust, resource, atomic-output, and deterministic-profile tests passed. |
+| `venv-linux/bin/python -m ruff check libremark_pdf/core.py tests/test_core.py && git diff --check` | 0 | Ruff and whitespace checks passed. |
+
+The Pyenv-managed interpreter is not on the non-interactive shell `PATH`; G2
+commands must use the explicit venv path above. Browser network observation and
+the full canonical corpus remain open gate evidence.

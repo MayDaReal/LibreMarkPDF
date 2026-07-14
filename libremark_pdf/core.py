@@ -221,13 +221,17 @@ def markdown_to_html(markdown_text: str, trusted_html: bool = False) -> str:
         raise ConversionError("FORBIDDEN_HTML: active HTML is not allowed")
     if trusted_html and re.search(
         r"(?is)<meta\b[^>]*http-equiv\s*=\s*['\"]?refresh|"
-        r"\bsrcset\s*=|\b(?:src)\s*=\s*['\"]?\s*(?:https?:|//|file:)",
+        r"\b(?:srcset|poster|background|data|formaction)\s*=|"
+        r"\bsrc\s*=\s*['\"]?\s*(?:https?:|//|file:)",
         rendered,
     ):
         raise ConversionError("FORBIDDEN_HTML_URL: network and file URLs are not allowed")
     if trusted_html:
         for style in re.findall(r"(?is)<style\b[^>]*>(.*?)</style\s*>", rendered):
             if _css_has_forbidden_resources(style):
+                raise ConversionError("FORBIDDEN_CSS_URL: CSS resources are not allowed")
+        for style in re.findall(r"(?is)\bstyle\s*=\s*(['\"])(.*?)\1", rendered):
+            if _css_has_forbidden_resources(style[1]):
                 raise ConversionError("FORBIDDEN_CSS_URL: CSS resources are not allowed")
     return substitute_emoji_icons(rendered)
 
@@ -254,12 +258,15 @@ def _validate_image_bytes(data: bytes, suffix: str) -> None:
         raise _resource_error("JPEG signature does not match its extension")
     if suffix == ".gif" and not data.startswith((b"GIF87a", b"GIF89a")):
         raise _resource_error("GIF signature does not match its extension")
-    if suffix == ".svg" and re.search(
-        rb"(?is)<\s*(script|iframe|object|embed|foreignObject)\b|\bon\w+\s*=|"
-        rb"(?:https?:|//|file:)|@import|url\s*\(",
-        data,
-    ):
-        raise _resource_error("SVG contains active or network-capable content")
+    if suffix == ".svg":
+        if not re.search(rb"(?is)<\s*svg\b", data):
+            raise _resource_error("SVG signature does not match its extension")
+        if re.search(
+            rb"(?is)<\s*(script|iframe|object|embed|foreignObject)\b|\bon\w+\s*=|"
+            rb"(?:https?:|//|file:)|@import|url\s*\(",
+            data,
+        ):
+            raise _resource_error("SVG contains active or network-capable content")
 
 
 def _validated_image_data_uri(value: str, resource_root: Path) -> tuple[str, int]:
