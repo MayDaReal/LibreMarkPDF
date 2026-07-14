@@ -4,6 +4,25 @@ LibreMark PDF is a pre-release, local-first Markdown-to-PDF application. Read
 `AGENTS.md` before changing code: it defines module ownership, compatibility
 constraints, required documents, and verification gates.
 
+## Where to start
+
+Use the smallest path that matches your change. The product README and the two
+user manuals are the public behavior reference; this file is the contributor
+workflow; `AGENTS.md` contains repository-wide constraints. The reliability
+records under [`docs/project-reliability/`](docs/project-reliability/README.md)
+are maintainer evidence, not a prerequisite to every pull request.
+
+| Change | Read first |
+| --- | --- |
+| Core conversion or rendering | `libremark_pdf/core.py`, relevant tests, and the rendering ADRs |
+| CLI or agent contract | `libremark_pdf/cli.py`, `libremark_pdf/__main__.py`, `SKILL.md` |
+| GUI or translations | `libremark_pdf/gui.py`, `libremark_pdf/i18n.py`, both manuals |
+| Packaging or release validation | build scripts, specs, requirements, and the Windows guide |
+| Reliability work | the reliability index, then the named backlog/ADR/evidence files |
+
+When a change crosses more than one row, read each affected canonical source;
+avoid copying the same contract into a new document.
+
 ## Development setup
 
 Use Python 3.9 or newer. The reproducible dependency workflow and pure-test

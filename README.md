@@ -19,6 +19,26 @@ agent contract in [`SKILL.md`](SKILL.md).
 
 User guides: [English](docs/MANUAL_EN.md) · [Français](docs/MANUEL_FR.md)
 
+## Find the right document
+
+Most users only need this README and one of the user guides. Contributors can
+start with [`CONTRIBUTING.md`](CONTRIBUTING.md), then use the focused policy
+documents below as needed:
+
+| Need | Canonical document |
+| --- | --- |
+| Report a bug or request support | [`SUPPORT.md`](SUPPORT.md) |
+| Report a security vulnerability | [`SECURITY.md`](SECURITY.md) |
+| Understand review and release decisions | [`GOVERNANCE.md`](GOVERNANCE.md) |
+| See planned work | [`ROADMAP.md`](ROADMAP.md) |
+| Check user-facing documentation parity | [`docs/DOCUMENTATION_SYNC.md`](docs/DOCUMENTATION_SYNC.md) |
+| Inspect reliability decisions and evidence | [`docs/project-reliability/README.md`](docs/project-reliability/README.md) |
+
+The reliability directory contains audit records, accepted architecture
+decisions, and gate evidence. It is deliberately detailed for maintainers and
+auditors; it is not required reading for an ordinary documentation or code
+contribution.
+
 ## Run from source
 
 Prerequisites: Python 3.9+, Tk for the GUI, and the Python dependencies listed
@@ -108,8 +128,8 @@ Skill┘                                           └> PDFium ─> preview PNG
 `libremark_pdf/core.py` is the only reusable conversion engine. Runtime files
 are in `style.css`, `icons/`, `assets/`, and the generated `browsers/` tree.
 See [`AGENTS.md`](AGENTS.md) for contribution rules and
-[`docs/project-reliability/BACKLOG.md`](docs/project-reliability/BACKLOG.md) for
-the gated reliability program.
+[`docs/project-reliability/README.md`](docs/project-reliability/README.md) for
+the gated reliability program and its reading paths.
 
 ## Current security limitations
 
