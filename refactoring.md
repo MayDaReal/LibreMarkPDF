@@ -242,7 +242,7 @@ States: `not started`, `in progress`, `blocked`, `completed`.
 
 | Lot | Domain | State | Dependency |
 | --- | --- | --- | --- |
-| R00 | Baseline and characterization | not started | owner go |
+| R00 | Baseline and characterization | completed | owner go |
 | R01 | Engine package and contracts | not started | R00 |
 | R02 | Theme domain | not started | R01 |
 | R03 | Resource domain | not started | R02 |
@@ -303,6 +303,44 @@ Exit criterion:
 Residual risk:
 
 - Characterization cannot replace native Windows candidate validation.
+
+Execution record:
+
+- Status: completed (2026-07-18).
+- Owned files: `refactoring.md` and focused core contract tests.
+- Observable no-change criteria: public `core` names and signatures, fixed
+  pre-render HTML and profile fingerprint, `default@1`, batch/error result
+  schema, GUI import paths, and preview-session reuse.
+- Characterization added: all inventoried public facade names are present;
+  key conversion, batch, and preview parameter orders are frozen; fixed input
+  `# Canonical` with date `2026-07-14` has profile fingerprint
+  `908aa157c6dbcdaac0fd71ca762d6f518d567341094622f2c984fc7a9147fe61`
+  and prepared-HTML SHA-256
+  `350bf1eccba49f4b8d81b5fd71360f3a78637cfd40c63ec7e9dd3f123b568d89`.
+- Private test patch points to migrate later: `core._BrowserRenderer`,
+  `core._render_pdf`, `core.tempfile.NamedTemporaryFile`, `core.os.replace`,
+  `core.os`, `core.shutil`, font helpers, and `core.__file__`.
+- Focused characterization: `venv-linux/bin/python -m unittest
+  tests.test_core.TestCoreFacadeCharacterization -v` — exit 0, 3 tests.
+- Focused engine/theme suite: `PLAYWRIGHT_BROWSERS_PATH="$HOME/.cache/ms-playwright"
+  venv-linux/bin/python -m unittest tests.test_core tests.test_themes -v` —
+  exit 0 outside the filesystem sandbox. The same command inside the sandbox
+  cannot launch Chromium (`sandbox_host_linux.cc: shutdown: Operation not
+  permitted`); this is an execution-environment limitation, not a test change.
+- Full suite: `PLAYWRIGHT_BROWSERS_PATH="$HOME/.cache/ms-playwright"
+  venv-linux/bin/python -m unittest discover -s tests -q` — exit 0, 187 tests
+  in 99.247 seconds, outside the filesystem sandbox.
+- Python 3.9: `PYENV_VERSION=3.9.23 python3.9 -m py_compile
+  tests/test_core.py` — exit 0.
+- CLI smoke: `venv-linux/bin/python -m libremark_pdf convert --help` and
+  `venv-linux/bin/python -m libremark_pdf --version` — exit 0; identity is
+  profile `default@1`, Playwright `1.60.0`, Chromium `148.0.7778.96` revision
+  `1223`.
+- Diff/resource review: `git diff --check` — exit 0. No golden, generated
+  artifact, cache, PDF, immutable audit, or G1 archive file changed.
+- Residual risk: native Windows candidate validation remains outside this Linux
+  characterization; the independent PDFium `23-unicode` G2 limitation remains
+  known and unchanged.
 
 Next dependency: R01.
 

@@ -4,6 +4,8 @@ tests/test_core.py — automated tests for the LibreMark PDF conversion engine.
 Run with:  python -m unittest discover -s tests
 """
 
+import hashlib
+import inspect
 import sys
 import tempfile
 import threading
@@ -14,6 +16,80 @@ from unittest import mock
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from libremark_pdf import core
+
+
+class TestCoreFacadeCharacterization(unittest.TestCase):
+    """Freeze the public core boundary before its implementation moves."""
+
+    _PUBLIC_NAMES = (
+        "ConversionError", "HeaderFooterConfig", "RenderProfile", "RenderDocument",
+        "BatchPlan", "DEFAULT_PROFILE_VERSION", "DEFAULT_THEME_ID", "DEFAULT_CSS_PATH",
+        "FONTS_DIR", "ICONS_DIR", "BROWSERS_DIR", "resource_path",
+        "renderer_identity", "error_code", "markdown_to_html",
+        "embed_local_resources", "extract_title", "build_header_template",
+        "build_footer_template", "build_full_html", "resolve_render_date",
+        "prepare_render_document", "render_profile_for_options",
+        "convert_markdown_text_to_pdf", "convert_markdown_to_pdf",
+        "plan_batch_outputs", "convert_batch", "PreviewSession",
+        "render_preview_png", "ThemeInfo", "validate_theme_package",
+        "list_themes", "show_theme", "install_theme", "remove_theme",
+        "resolve_theme_css",
+    )
+
+    def test_public_inventory_and_key_signatures_are_stable(self):
+        for name in self._PUBLIC_NAMES:
+            self.assertTrue(hasattr(core, name), name)
+        expected_parameters = {
+            "prepare_render_document": (
+                "markdown_text", "css_path", "render_date", "trusted_html",
+                "resource_root", "header_footer", "theme", "theme_root",
+                "_include_profile_fingerprint",
+            ),
+            "convert_markdown_text_to_pdf": (
+                "markdown_text", "output_path", "css_path", "header_footer",
+                "render_date", "trusted_html", "overwrite", "resource_root",
+                "theme", "theme_root", "_renderer",
+            ),
+            "convert_markdown_to_pdf": (
+                "input_path", "output_path", "css_path", "header_footer",
+                "render_date", "trusted_html", "overwrite", "theme",
+                "theme_root", "_renderer",
+            ),
+            "convert_batch": (
+                "input_paths", "output_dir", "css_path", "header_footer",
+                "render_date", "trusted_html", "overwrite", "theme",
+                "theme_root", "cancel_event", "progress_callback",
+            ),
+            "render_preview_png": (
+                "markdown_text", "css_path", "header_footer", "dpi", "render_date",
+                "trusted_html", "resource_root", "theme", "theme_root",
+            ),
+        }
+        for name, parameters in expected_parameters.items():
+            self.assertEqual(tuple(inspect.signature(getattr(core, name)).parameters), parameters)
+
+    def test_fixed_document_has_exact_html_and_profile_fingerprints(self):
+        document = core.prepare_render_document(
+            "# Canonical\n\nBody with **bold**.",
+            render_date="2026-07-14",
+            header_footer=core.HeaderFooterConfig(
+                top_left="Fixed {title}", bottom_center="Page {page} / {total}"
+            ),
+        )
+        self.assertEqual(
+            document.profile.fingerprint,
+            "908aa157c6dbcdaac0fd71ca762d6f518d567341094622f2c984fc7a9147fe61",
+        )
+        self.assertEqual(
+            hashlib.sha256(document.full_html.encode("utf-8")).hexdigest(),
+            "350bf1eccba49f4b8d81b5fd71360f3a78637cfd40c63ec7e9dd3f123b568d89",
+        )
+
+    def test_default_theme_alias_is_exact(self):
+        self.assertEqual(
+            core.resolve_theme_css(None).as_dict(),
+            core.resolve_theme_css("default@1").as_dict(),
+        )
 
 
 class TestTitleExtraction(unittest.TestCase):
