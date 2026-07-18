@@ -222,6 +222,21 @@ the locked renderer, or to revise the semantic-text inspector through a new
 owner-approved architecture decision that is validated independently of
 PDFium's synthesized spacing.
 
+## Owner disposition — retain the Unicode limitation
+
+The owner directs that `23-unicode` remain in the canonical corpus. The
+observed Linux PDFium extraction of Devanagari (`हि न्दी`) versus native Windows
+(`हिन्दी`) is retained as an explicit known limitation and regression target.
+It must not be normalized, ignored, thresholded away, or removed from the
+fixture. Work to resolve it resumes only when a deterministic and independently
+validated strategy is available.
+
+This is not an acceptance of the mismatch and does not close VIS-008, REN-014,
+or G2. The next owner is the integration/rendering owner; the required next
+evidence is a candidate fix that preserves exact Unicode text on both native
+platforms while retaining the locked renderer, local-first policy, tagged PDF,
+and all existing structural and visual checks.
+
 ## Incremental evidence — resumable Linux candidate generation
 
 The interactive executor terminated the initial all-fixture candidate run after
