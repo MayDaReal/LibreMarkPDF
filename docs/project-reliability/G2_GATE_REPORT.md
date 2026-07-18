@@ -200,6 +200,28 @@ The font, CSS/profile changes, test, and proposed ADR-011 were discarded. No
 new font or licence file entered Git. Do not retry this exact face as a G2
 fix without a different PDF text-extraction strategy and focused evidence.
 
+## Failed experiment — PDF `ActualText` post-processing
+
+The locked Chromium produced a tagged PDF with `/StructTreeRoot` and a
+`/ToUnicode` table for Devanagari. Poppler `pdftotext` extracted `भाषा` and
+`हिन्दी` correctly from that temporary PDF, while pinned PDFium extracted
+`भा षा` and `हि न्दी`. The difference is therefore PDFium's complex-script
+text interpretation, rather than a missing PDF semantic mapping.
+
+Static trusted HTML with `aria-label="हिन्दी"` was also rendered as a temporary
+probe. It did not create PDFium-visible `ActualText`; PDFium retained the same
+inserted space. The locked environment provides no PDF writer dependency
+(`pypdf`, `PyPDF2`, `pikepdf`, and `fitz` are absent). Adding one, then editing
+tagged content streams and structure trees after Chromium, would introduce an
+untested second PDF implementation and risks corrupting tags, links, outlines,
+or atomic output semantics.
+
+This post-processing route is rejected for G2. The safe choices are to retain
+the strict PDFium extraction requirement and mark Devanagari unsupported for
+the locked renderer, or to revise the semantic-text inspector through a new
+owner-approved architecture decision that is validated independently of
+PDFium's synthesized spacing.
+
 ## Incremental evidence — resumable Linux candidate generation
 
 The interactive executor terminated the initial all-fixture candidate run after
