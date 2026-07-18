@@ -82,6 +82,7 @@ class TestLinuxPackaging(unittest.TestCase):
             "G3_LINUX_EVIDENCE_MANIFEST.sha256",
             "manual-linux-gui-review.md",
             'PLAYWRIGHT_BROWSERS_PATH="$browser_source"',
+            "run env",
         ):
             self.assertIn(marker, script)
         self.assertNotIn("sudo ", script)

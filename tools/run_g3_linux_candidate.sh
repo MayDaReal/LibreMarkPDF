@@ -165,8 +165,8 @@ run "$python_bin" tools/verify_locked_environment.py \
 run "$python_bin" -m pip check
 "$python_bin" -m pip freeze --all | sort > "$logs/python-freeze.txt"
 run "$python_bin" -m libremark_pdf --version
-PLAYWRIGHT_BROWSERS_PATH="$browser_source" \
-  run "$python_bin" -m libremark_pdf doctor --json
+run env PLAYWRIGHT_BROWSERS_PATH="$browser_source" \
+  "$python_bin" -m libremark_pdf doctor --json
 
 {
   sha256sum requirements/locks/linux-x86_64-py39.txt
@@ -176,14 +176,15 @@ PLAYWRIGHT_BROWSERS_PATH="$browser_source" \
     sort -z | xargs -0 sha256sum
 } > "$logs/source-input-hashes.sha256"
 
-PLAYWRIGHT_BROWSERS_PATH="$browser_source" \
-  run "$python_bin" -m unittest discover -s tests -v
+run env PLAYWRIGHT_BROWSERS_PATH="$browser_source" \
+  "$python_bin" -m unittest discover -s tests -v
 
-LIBREMARK_PDF_PYTHON="$python_bin" \
-LIBREMARK_PDF_BROWSER_SOURCE="$browser_source" \
-LIBREMARK_PDF_DISTPATH="$artifacts" \
-LIBREMARK_PDF_WORKPATH="$work" \
-  run ./build_linux_portable.sh
+run env \
+  LIBREMARK_PDF_PYTHON="$python_bin" \
+  LIBREMARK_PDF_BROWSER_SOURCE="$browser_source" \
+  LIBREMARK_PDF_DISTPATH="$artifacts" \
+  LIBREMARK_PDF_WORKPATH="$work" \
+  ./build_linux_portable.sh
 
 candidate="$artifacts/LibreMarkPDF"
 external_parent="$evidence_root/candidate external"
