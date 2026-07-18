@@ -11,11 +11,13 @@ agent contract in [`SKILL.md`](SKILL.md).
 ## Features
 
 - batch conversion from `.md` and `.markdown` files;
-- first-page preview in the desktop app;
-- built-in style or a user-supplied CSS file;
+- responsive, scrollable, zoomable first-page preview in the desktop app;
+- versioned local themes, the compatible `default@1` style, or a user-supplied
+  CSS file;
 - six header/footer positions with page, title, and date tokens;
 - English and French desktop interface;
-- JSON output and meaningful exit status for automation.
+- cancellable batch progress and pre-conversion collision choices;
+- deterministic JSON output and meaningful exit status for automation.
 
 User guides: [English](docs/MANUAL_EN.md) · [Français](docs/MANUEL_FR.md)
 
@@ -74,12 +76,23 @@ python -m libremark_pdf convert report.md -o output.pdf \
 python -m libremark_pdf convert a.md b.md --out-dir pdfs --json
 
 # Reproducible date and explicit replacement of an existing PDF
-python -m libremark_pdf convert report.md --render-date 2026-07-14 --overwrite
+python -m libremark_pdf convert report.md --date 2026-07-14 --overwrite
+
+# Inspect pinned identities without launching or downloading Chromium
+python -m libremark_pdf --version
+python -m libremark_pdf doctor --json
+
+# Inspect or select a validated local theme
+python -m libremark_pdf theme list --json
+python -m libremark_pdf convert report.md --theme default@1 --json
 ```
 
 Run `python -m libremark_pdf convert --help` for every option. A successful
 command exits `0`; validation or conversion failure exits nonzero. JSON is
-written to stdout, while human-readable errors are written to stderr.
+written to stdout with no diagnostic noise, while human-readable errors are
+written to stderr. The conversion contract is described by
+[`docs/CLI_JSON_SCHEMA.json`](docs/CLI_JSON_SCHEMA.json). The legacy
+`--render-date` spelling remains an alias of `--date`.
 
 ## Headers and footers
 
@@ -89,7 +102,7 @@ default footer is `Page {page} / {total}`.
 | Token | Value |
 | --- | --- |
 | `{titre}` or `{title}` | First level-one heading |
-| `{date}` | UTC render date in `YYYY-MM-DD` format (or `--render-date`) |
+| `{date}` | UTC render date in `YYYY-MM-DD` format (or `--date`) |
 | `{page}` | Current page number |
 | `{total}` | Total page count |
 
@@ -100,13 +113,17 @@ access. Conversion is intended to run locally with the bundled resources.
 
 ### Windows
 
-1. Install Python 3.9+.
-2. Run `build.bat` from a local disk.
-3. Test `dist\LibreMarkPDF.exe` with
+1. Prepare the hash-locked Python 3.9 environment and exact Chromium described
+   by the validation guide.
+2. Run `build_portable.bat` from a clean native Windows x64 checkout.
+3. Test the complete `dist\LibreMarkPDF` directory with
    [`docs/WINDOWS_BUILD_VALIDATION.md`](docs/WINDOWS_BUILD_VALIDATION.md).
 
-Use `build.bat --console` to produce the same application with startup errors
-visible. Run plain `build.bat` again for the windowed build.
+The portable candidate provides `LibreMarkPDF.exe` for the no-console GUI,
+`LibreMarkPDF-cli.exe` for authoritative CLI streams, and
+`LibreMarkPDF-debug.exe` for GUI startup diagnostics. No candidate is an
+official release until its retained native evidence passes the applicable
+gates.
 
 ### Linux
 
@@ -145,6 +162,12 @@ still blocks scripts, event handlers, frames, resource loaders, and network or
 `file:` URLs. Custom CSS cannot load resources. These controls do not make
 untrusted documents harmless in every respect; review document content before
 conversion.
+
+Community themes are validated local directories with a versioned manifest,
+file hashes, licences, and declared render-profile compatibility. Installation,
+replacement, and removal are atomic; remote URLs, scripts, traversal, and
+unlicensed packages are rejected. See
+[`docs/THEME_CONTRIBUTING.md`](docs/THEME_CONTRIBUTING.md).
 
 ## License
 

@@ -1,12 +1,50 @@
-# Third-party notices plan
+# Third-party notices for candidate validation
 
 The repository's MIT license covers LibreMark PDF source. It does not replace
 the licenses of Python dependencies, Chromium, PDFium, fonts, icons, themes, or
 other bundled resources.
 
-No official binary notice bundle is claimed complete yet. Before a candidate
-can pass the release gate, automation must derive an inventory from the exact
-hashed dependency lock and packaged payload, then retain for every component:
+The native G3 workflow generates an SPDX 2.3 JSON inventory from the exact
+hashed Windows dependency lock and every file in the packaged candidate. That
+inventory is candidate evidence, not a claim that an official release notice
+review is complete.
+
+The current locked Python components and declared licence expressions are:
+
+| Components | Licence expression |
+| --- | --- |
+| Markdown | BSD-3-Clause |
+| Playwright, importlib-metadata, coverage, PyInstaller hooks | Apache-2.0 |
+| pyee, altgraph, pefile, setuptools, Ruff, zipp | MIT |
+| greenlet | MIT AND PSF-2.0 |
+| Pillow | MIT-CMU |
+| packaging | Apache-2.0 OR BSD-2-Clause |
+| pypdfium2 | BSD-3-Clause AND Apache-2.0, with bundled PDFium third-party terms |
+| pywin32-ctypes | BSD-3-Clause |
+| PyInstaller | GPL-2.0-or-later WITH Bootloader-exception |
+| tkinterdnd2 | MIT |
+| typing-extensions | PSF-2.0 |
+
+The exact versions and archive SHA-256 values are in
+`requirements/locks/windows-x64-py39.txt` and are copied into the generated
+SBOM. Chromium/headless shell `148.0.7778.96` revision `1223` carries its
+packaged `LICENSE.headless_shell`; the evidence inventory hashes that file and
+the complete browser payload.
+
+The seven bundled Noto faces are licensed under OFL-1.1. Their retained texts
+are:
+
+- `licenses/NotoDistribution-OFL.txt`;
+- `licenses/NotoCJK-OFL.txt`;
+- `licenses/NotoEmoji-OFL.txt`;
+- `licenses/NotoSansSymbols2-OFL.txt`.
+
+The built-in `default@1` theme is an exact alias of the project `style.css` and
+is covered by the root MIT licence. Every community theme package must provide
+and hash its own licence files. Project icons and brand assets ship with the
+root MIT licence.
+
+Before publication, the release owner must still retain for every component:
 
 - name, version/revision, source URL, archive or file SHA-256;
 - SPDX identifier and complete license/copyright text;
@@ -16,5 +54,5 @@ hashed dependency lock and packaged payload, then retain for every component:
 
 The release owner must compare the generated inventory with the PyInstaller
 manifest, browser payload, fonts, themes, icons, and assets. Unknown, missing,
-or incompatible licenses block publication. Font candidates and their current
-research status are recorded separately in the G1 renderer spike report.
+or incompatible licences block publication. This G3 work does not perform the
+Lot 4 publication review.

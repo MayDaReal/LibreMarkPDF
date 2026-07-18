@@ -10,7 +10,10 @@ REM Optional external output locations:
 REM   set LIBREMARK_PDF_DISTPATH=C:\path\to\artifacts
 REM   set LIBREMARK_PDF_WORKPATH=C:\path\to\build-work
 REM
-REM Use --console for a diagnostic candidate with reliable CLI streams.
+REM The output always contains:
+REM - LibreMarkPDF.exe: authoritative windowed GUI;
+REM - LibreMarkPDF-cli.exe: authoritative console CLI;
+REM - LibreMarkPDF-debug.exe: GUI with an attached diagnostic console.
 
 setlocal
 cd /d "%~dp0"
@@ -19,8 +22,6 @@ echo === LibreMark PDF portable-directory build (Windows x64) ===
 echo Building from: %cd%
 echo(
 
-set "LIBREMARK_PDF_CONSOLE=0"
-if /i "%~1"=="--console" set "LIBREMARK_PDF_CONSOLE=1"
 if not defined LIBREMARK_PDF_PYTHON set "LIBREMARK_PDF_PYTHON=python"
 
 "%LIBREMARK_PDF_PYTHON%" -c "import sys; sys.exit(0 if sys.version_info[:2] == (3, 9) else 1)"
@@ -51,7 +52,6 @@ if not defined LIBREMARK_PDF_WORKPATH set "LIBREMARK_PDF_WORKPATH=%cd%\build"
 
 echo Distribution path: %LIBREMARK_PDF_DISTPATH%
 echo Work path: %LIBREMARK_PDF_WORKPATH%
-echo Console mode: %LIBREMARK_PDF_CONSOLE%
 echo(
 
 "%LIBREMARK_PDF_PYTHON%" -m PyInstaller --noconfirm --clean ^
@@ -67,10 +67,21 @@ if not exist "%LIBREMARK_PDF_DISTPATH%\LibreMarkPDF\LibreMarkPDF.exe" (
     echo [FAILED] Build completed without the expected portable executable.
     goto :error
 )
+if not exist "%LIBREMARK_PDF_DISTPATH%\LibreMarkPDF\LibreMarkPDF-cli.exe" (
+    echo [FAILED] Build completed without the authoritative console CLI.
+    goto :error
+)
+if not exist "%LIBREMARK_PDF_DISTPATH%\LibreMarkPDF\LibreMarkPDF-debug.exe" (
+    echo [FAILED] Build completed without the diagnostic GUI executable.
+    goto :error
+)
 
 echo(
 echo === Portable-directory build complete ===
 echo Folder: %LIBREMARK_PDF_DISTPATH%\LibreMarkPDF
+echo GUI: %LIBREMARK_PDF_DISTPATH%\LibreMarkPDF\LibreMarkPDF.exe
+echo CLI: %LIBREMARK_PDF_DISTPATH%\LibreMarkPDF\LibreMarkPDF-cli.exe
+echo Diagnostic GUI: %LIBREMARK_PDF_DISTPATH%\LibreMarkPDF\LibreMarkPDF-debug.exe
 echo This is an unsigned candidate until the native release gates are complete.
 endlocal
 exit /b 0

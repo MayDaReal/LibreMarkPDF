@@ -13,7 +13,8 @@ Use the first command form that is actually available:
 
 1. `libremark-pdf` when an installed console command exists;
 2. `python -m libremark_pdf` from a source checkout with dependencies installed;
-3. `LibreMarkPDF.exe` or `LibreMarkPDF` from a locally built artifact.
+3. `LibreMarkPDF-cli.exe` on Windows or `LibreMarkPDF` on another platform from
+   a locally built, validated artifact.
 
 If none exists, explain that LibreMark PDF must be installed or built. Do not
 claim that `build.sh` or `build.bat` installs a command on `PATH`.
@@ -37,14 +38,21 @@ python -m libremark_pdf convert a.md b.md --out-dir exported --json
 python -m libremark_pdf convert report.md --css print.css \
   --header-center "{title}" \
   --footer-center "Page {page} / {total}" --json
+
+# Local theme and reproducible date
+python -m libremark_pdf convert report.md --theme default@1 \
+  --date 2026-07-14 --json
 ```
 
 Tokens are `{title}`/`{titre}`, `{date}`, `{page}`, and `{total}`.
 
 Exit `0` means every requested conversion succeeded. A single input returns one
 object; a batch returns `{"results": [...]}`. Each result contains `input`,
-`output`, `status`, `error`, and `error_code`. Confirm every status is `"ok"` and every
-reported output exists before reporting success.
+`output`, `status`, `error`, and `error_code`; accepted requests also identify
+the render profile, fingerprint, theme, Playwright, and Chromium. Confirm every
+status is `"ok"` and every reported output exists before reporting success.
+JSON stdout must contain no other text. The public result schema is
+`docs/CLI_JSON_SCHEMA.json`.
 
 For generated Markdown text, write a UTF-8 temporary `.md` file, choose an
 explicit PDF output, then remove only the temporary source created for the task.
@@ -55,8 +63,16 @@ Default conversion literalizes raw HTML, validates and embeds approved local
 images, blocks CSS resource loaders, and refuses existing output unless
 `--overwrite` is explicit. `--trusted-html` is a narrow static compatibility
 mode: active content, network access, and `file:` URLs remain blocked. Use
-`--render-date YYYY-MM-DD` for reproducible date tokens.
+`--date YYYY-MM-DD` for reproducible date tokens; `--render-date` is a retained
+legacy alias. A theme must already be installed locally and validated. Do not
+download or install a theme as part of conversion.
 
 ```bash
+python -m libremark_pdf --version
+python -m libremark_pdf doctor --json
 python -m libremark_pdf convert --help
 ```
+
+`doctor` is read-only: it inspects the bundled resource and browser identities
+without launching Chromium or downloading anything. Do not substitute a second
+renderer if it reports a missing browser.

@@ -13,17 +13,22 @@ une ligne de commande non interactive.
 1. Ouvrez LibreMark PDF.
 2. Déposez des fichiers `.md` ou `.markdown` dans la fenêtre, ou sélectionnez
    **Parcourir les fichiers**.
-3. Facultatif : sélectionnez **Changer** pour utiliser un fichier CSS personnel.
+3. Facultatif : choisissez un thème local validé, ou sélectionnez **Changer**
+   pour utiliser un fichier CSS personnel. Ces choix sont incompatibles.
 4. Facultatif : ouvrez **En-tête et pied de page (avancé)** et modifiez les six
    positions.
-5. Sélectionnez **Actualiser l’aperçu** pour afficher la première page.
+5. Sélectionnez **Actualiser l’aperçu** pour afficher la première page. Faites
+   défiler l’aperçu ou réglez son zoom de 50 % à 200 %.
 6. Facultatif : choisissez un dossier de sortie. Sinon, chaque PDF est créé à
    côté de sa source Markdown.
 7. Sélectionnez **Générer le PDF**.
 
-La zone d’état indique le nombre de conversions réussies et échouées. En cas
-d’échec, la boîte de dialogue précise le fichier source et l’erreur rencontrée.
-Les autres fichiers du lot continuent d’être traités.
+L’application présente les collisions de sortie et les PDF existants avant la
+conversion. Pendant un lot, elle affiche la progression et permet une
+annulation sûre après le fichier en cours. En cas d’échec, le résultat précise
+la source et l’erreur ; les autres fichiers indépendants continuent d’être
+traités. Les actions **Ouvrir le PDF** et **Ouvrir le dossier** ne sont proposées
+que pour les sorties réussies.
 
 ## Jetons d’en-tête et de pied de page
 
@@ -33,7 +38,7 @@ n’affiche rien.
 | Jeton | Valeur |
 | --- | --- |
 | `{titre}` ou `{title}` | Premier titre de niveau 1 (`#`) |
-| `{date}` | Date UTC du rendu au format `AAAA-MM-JJ` (ou `--render-date`) |
+| `{date}` | Date UTC du rendu au format `AAAA-MM-JJ` (ou `--date`) |
 | `{page}` | Numéro de la page courante |
 | `{total}` | Nombre total de pages |
 
@@ -61,18 +66,34 @@ python -m libremark_pdf convert a.md b.md --out-dir exported --json
 # Appliquer un CSS et une pagination personnalisés
 python -m libremark_pdf convert report.md --css print.css \
   --footer-center "Page {page} / {total}"
+
+# Choisir un thème local et une date fixe
+python -m libremark_pdf convert report.md --theme default@1 \
+  --date 2026-07-14 --json
+
+# Vérifier les identités et ressources sans lancer Chromium
+python -m libremark_pdf --version
+python -m libremark_pdf doctor --json
 ```
 
 La CLI ne pose aucune question. Le code de sortie `0` signifie que toutes les
-conversions demandées ont réussi. Avec `--json`, stdout contient un objet pour
+conversions demandées ont réussi. Avec `--json`, stdout contient exactement un objet pour
 un fichier ou un objet `{"results": [...]}` pour un lot. Chaque résultat contient
-`input`, `output`, `status`, `error` et `error_code`.
+`input`, `output`, `status`, `error` et `error_code` ; une demande de conversion
+valide indique aussi la date, le profil, son empreinte, le thème et les identités
+Playwright/Chromium. Les erreurs destinées aux humains utilisent stderr. Le
+schéma est décrit dans [`CLI_JSON_SCHEMA.json`](CLI_JSON_SCHEMA.json).
 
 Pour afficher toutes les options :
 
 ```bash
 python -m libremark_pdf convert --help
 ```
+
+Gérez les thèmes locaux avec `theme list`, `theme show`, `theme install` et
+`theme remove`. L’installation et le remplacement sont validés et atomiques.
+`default@1` est le thème compatible immuable. L’ancienne option
+`--render-date` reste un alias de `--date`.
 
 ## Préférence de langue
 
@@ -93,7 +114,10 @@ conversion.
   `file:`.
 - Les images Markdown doivent être des PNG, JPEG, GIF ou SVG statiques locaux
   approuvés ; elles sont validées et intégrées avant le rendu.
-- Utilisez `--render-date AAAA-MM-JJ` pour rendre `{date}` reproductible ; sans
+- Les paquets de thèmes doivent être locaux, hachés, accompagnés de leurs
+  licences, compatibles avec `default@1` et dépourvus de scripts, d’URL
+  distantes, de traversée de chemin et de ressources actives.
+- Utilisez `--date AAAA-MM-JJ` pour rendre `{date}` reproductible ; sans
   cette option, la date UTC courante est utilisée.
 
 ## Résolution des problèmes
@@ -104,8 +128,8 @@ conversion.
   puis consultez l’erreur complète dans la zone d’état.
 - **Le CSS est introuvable :** choisissez un fichier `.css` existant ou
   rétablissez le style intégré.
-- **L’application se ferme sous Windows :** exécutez `build.bat --console`, puis
-  lancez `dist\LibreMarkPDF.exe` depuis cette console pour obtenir le traceback.
+- **L’application se ferme sous Windows :** lancez
+  `dist\LibreMarkPDF\LibreMarkPDF-debug.exe` pour conserver le diagnostic.
 - **Un tableau revient à la ligne de manière inattendue :** le style par défaut
   utilise une mise en page fixe ; un contenu long peut augmenter la pagination.
 

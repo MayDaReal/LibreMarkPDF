@@ -1,6 +1,6 @@
 # Gate G3 Windows execution board
 
-Status: **active — Windows G3 not yet evaluated**  
+Status: **implementation complete — native Windows evidence pending**
 Integration owner: **G3 integration owner**  
 Starting commit: `7b147a027e18a93d15000ac5d43cb810eb03d9a2`
 
@@ -14,6 +14,24 @@ credentials, signing setup, uploads, and pushing are outside this board.
 States are `open`, `in progress`, `implemented`, `evidence pending`, `blocked`,
 or `accepted`. `Implemented` never substitutes for the native evidence required
 for `accepted`.
+
+## Current state ledger
+
+The detailed rows below retain their pre-implementation planning state. This
+ledger is the canonical current state and supersedes the original `open` cell:
+
+| Tasks | Current state | Reason / next evidence |
+| --- | --- | --- |
+| `CLI-001`–`CLI-008` | implemented | Source subprocess, parser, schema, identity, doctor, alias, documentation, and browser-backed tests pass; exact frozen Windows CLI evidence remains under `WIN-005`. |
+| `GUI-001`–`GUI-006` | implemented | Queue orchestration, debounce/stale rejection, progress/cancel/close, operation guards, result actions, and preflight choices have focused tests; native interaction remains under `WIN-005`. |
+| `GUI-007` | evidence pending | Keyboard/layout markers and the native checklist exist; a named Windows accessibility/high-DPI review is mandatory. |
+| `GUI-008` | implemented | Isolated imports pass with `tkinterdnd2` installed and deliberately unavailable; native DnD and fallback launch observations remain. |
+| `GUI-009`–`GUI-010` | implemented | EN/FR key and placeholder parity and worker no-Tk boundaries pass; idiomatic/native inspection remains. |
+| `STY-001`–`STY-006` | implemented | Shared-core schema, default alias, adversarial validation, atomic lifecycle, APIs, and CLI/GUI adapters pass focused tests. |
+| `STY-007` | evidence pending | Contribution workflow and non-mutating fixture checks exist; the community preview still needs named human review and retained before/after images. |
+| `STY-008` | evidence pending | The optional community theme is a test fixture only and default compatibility passes; it is not approved for distribution without `STY-007`. |
+| `WIN-001`–`WIN-003` | implemented | Static packaging tests pass for distinct GUI, CLI, and diagnostic paths and frozen resources; native PyInstaller behavior is unverified. |
+| `WIN-004`–`WIN-009` | evidence pending | The native runner, exact-artifact canonical harness, SPDX generator, guide, and checklists are ready; a clean native Windows x64 run is required. |
 
 ## Lot 3A — CLI and agent contract
 
