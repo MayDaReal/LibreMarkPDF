@@ -17,7 +17,7 @@ from unittest import mock
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from libremark_pdf import core
-from libremark_pdf.engine import contracts, document
+from libremark_pdf.engine import chromium, contracts, document
 
 
 class TestCoreFacadeCharacterization(unittest.TestCase):
@@ -364,7 +364,7 @@ class TestDeterministicCoreContract(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             output = Path(tmp) / "out.pdf"
             output.write_bytes(b"old")
-            with mock.patch.object(core, "_render_pdf", side_effect=RuntimeError("renderer failed")):
+            with mock.patch.object(chromium, "render_pdf", side_effect=RuntimeError("renderer failed")):
                 with self.assertRaisesRegex(RuntimeError, "renderer failed"):
                     core.convert_markdown_text_to_pdf("# New", output, overwrite=True)
             self.assertEqual(output.read_bytes(), b"old")
@@ -374,7 +374,7 @@ class TestDeterministicCoreContract(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             output = Path(tmp) / "out.pdf"
             output.write_bytes(b"old")
-            with mock.patch.object(core.tempfile, "NamedTemporaryFile", side_effect=PermissionError("denied")):
+            with mock.patch.object(chromium.tempfile, "NamedTemporaryFile", side_effect=PermissionError("denied")):
                 with self.assertRaisesRegex(core.ConversionError, "OUTPUT_UNAVAILABLE"):
                     core.convert_markdown_text_to_pdf("# New", output, overwrite=True)
             self.assertEqual(output.read_bytes(), b"old")
@@ -388,8 +388,8 @@ class TestDeterministicCoreContract(unittest.TestCase):
             def write_pdf(_html, temporary, _header_footer, _render_date):
                 temporary.write_bytes(b"new")
 
-            with mock.patch.object(core, "_render_pdf", side_effect=write_pdf):
-                with mock.patch.object(core.os, "replace", side_effect=PermissionError("denied")):
+            with mock.patch.object(chromium, "render_pdf", side_effect=write_pdf):
+                with mock.patch.object(chromium.os, "replace", side_effect=PermissionError("denied")):
                     with self.assertRaisesRegex(core.ConversionError, "OUTPUT_REPLACE_FAILED"):
                         core.convert_markdown_text_to_pdf("# New", output, overwrite=True)
             self.assertEqual(output.read_bytes(), b"old")

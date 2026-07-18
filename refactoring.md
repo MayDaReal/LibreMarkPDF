@@ -247,7 +247,7 @@ States: `not started`, `in progress`, `blocked`, `completed`.
 | R02 | Theme domain | completed | R01 |
 | R03 | Resource domain | completed | R02 |
 | R04 | Document and render-profile domain | completed | R03 |
-| R05 | Chromium and atomic-output domain | not started | R04 |
+| R05 | Chromium and atomic-output domain | completed | R04 |
 | R06 | Conversion jobs and batch domain | not started | R05 |
 | R07 | Preview domain | not started | R06 |
 | R08 | Core facade stabilization | not started | R07 |
@@ -726,6 +726,45 @@ Design restriction:
 Exit criterion:
 
 - Real conversions pass and renderer inputs are unchanged.
+
+Execution record:
+
+- Status: completed (2026-07-18).
+- Owned files: `libremark_pdf/core.py`, `libremark_pdf/engine/chromium.py`,
+  `tests/test_core.py`, `tests/test_chromium.py`, and this plan.
+- Observable no-change criteria: Chromium remains the sole renderer; launch
+  argument, timeout, locale, UTC timezone, light color scheme, disabled
+  JavaScript, blocked service workers, request interception, print media, A4
+  PDF options, margins, headers/footers, tagging, outline, and atomic sibling
+  replacement are unchanged. Existing output remains intact for all renderer,
+  temporary-file, and replacement failures.
+- Change: the canonical locked renderer session and atomic PDF publication now
+  live in `engine.chromium`. `core` retains compatible private aliases and the
+  internal module imports no `core`, CLI, desktop, GUI, or toolkit module.
+  No renderer-selection interface or second production renderer was added.
+- Characterization: the new Chromium-domain tests prove the facade aliases
+  have a single implementation and assert the isolated context restrictions
+  and exact no-header/footer PDF options. Existing deterministic-core tests
+  retain atomic creation, validation, cleanup, replacement, prior-output
+  preservation, actionable renderer failure, and launch-argument coverage.
+- Focused tests: `venv-linux/bin/python -m unittest tests.test_chromium
+  tests.test_core.TestDeterministicCoreContract -v` — exit 0, 26 tests.
+- Real Chromium checks: `PLAYWRIGHT_BROWSERS_PATH="$HOME/.cache/ms-playwright"
+  venv-linux/bin/python -m unittest
+  tests.test_core.TestEndToEndConversion.test_convert_markdown_text_to_pdf_creates_a_file
+  tests.test_core.TestEndToEndConversion.test_safe_and_trusted_static_rendering_observe_zero_requests
+  -v` — exit 0, 2 tests (the network-focused test was also re-run alone after
+  an interrupted result collection: exit 0, 1 test).
+- Python 3.9: `PYENV_VERSION=3.9.23 python3.9 -m py_compile
+  libremark_pdf/core.py libremark_pdf/engine/chromium.py tests/test_core.py
+  tests/test_chromium.py` — exit 0.
+- Full suite: `PLAYWRIGHT_BROWSERS_PATH="$HOME/.cache/ms-playwright"
+  venv-linux/bin/python -m unittest discover -s tests -q` — exit 0, 198 tests
+  outside the filesystem sandbox.
+- Diff/resource review: `git diff --check` — exit 0. No profile, CSS, font,
+  icon, golden, generated artifact, cache, PDF, immutable audit, or G1 archive
+  file changed. The independent PDFium `23-unicode` G2 limitation remains
+  known and unchanged.
 
 Next dependency: R06.
 
