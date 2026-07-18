@@ -17,7 +17,7 @@ from unittest import mock
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from libremark_pdf import core
-from libremark_pdf.engine import contracts
+from libremark_pdf.engine import contracts, document
 
 
 class TestCoreFacadeCharacterization(unittest.TestCase):
@@ -334,7 +334,7 @@ class TestDeterministicCoreContract(unittest.TestCase):
 
     def test_empty_and_limit_exceeding_markdown_have_defined_behavior(self):
         self.assertIn("<body>", core.prepare_render_document("").full_html)
-        with mock.patch.object(core, "MAX_MARKDOWN_BYTES", 4):
+        with mock.patch.object(document, "MAX_MARKDOWN_BYTES", 4):
             with self.assertRaisesRegex(core.ConversionError, "INPUT_TOO_LARGE"):
                 core.prepare_render_document("12345")
 

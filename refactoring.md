@@ -246,7 +246,7 @@ States: `not started`, `in progress`, `blocked`, `completed`.
 | R01 | Engine package and contracts | completed | R00 |
 | R02 | Theme domain | completed | R01 |
 | R03 | Resource domain | completed | R02 |
-| R04 | Document and render-profile domain | not started | R03 |
+| R04 | Document and render-profile domain | completed | R03 |
 | R05 | Chromium and atomic-output domain | not started | R04 |
 | R06 | Conversion jobs and batch domain | not started | R05 |
 | R07 | Preview domain | not started | R06 |
@@ -639,6 +639,48 @@ Forbidden in this lot:
 Exit criterion:
 
 - The deterministic pre-render boundary is exactly equivalent.
+
+Execution record:
+
+- Status: completed (2026-07-18).
+- Owned files: `libremark_pdf/core.py`, `libremark_pdf/engine/document.py`,
+  `tests/test_core.py`, `tests/test_document.py`, and this plan.
+- Observable no-change criteria: Markdown extensions; safe and trusted-static
+  rejection policy; title extraction; token escaping; fixed/invalid dates;
+  default, custom, and theme CSS selection; profile payload; header/footer
+  templates; and prepared HTML remain unchanged. Chromium launch and PDF
+  output are not part of this move.
+- Change: canonical Markdown conversion, CSS/profile resolution, templates,
+  full HTML, and deterministic document preparation now live in
+  `engine.document`. `core` configures resource/theme services once and
+  re-exports the same callable objects; the internal module has no import of
+  `core`, CLI, desktop, or GUI.
+- Characterization: the new document-domain tests prove core/engine callable
+  identity, no upward import, fixed header-template SHA-256
+  `5f31dd6ecc2f7eece80e23938bb144e18c8576c80733927068640074f5168f9d`,
+  fixed footer-template SHA-256
+  `f7869cc42a46365ece66451cfc2733174361fb0fc9f00c620cbc50c0c7a6003e`,
+  profile fingerprint
+  `908aa157c6dbcdaac0fd71ca762d6f518d567341094622f2c984fc7a9147fe61`,
+  and prepared-HTML SHA-256
+  `350bf1eccba49f4b8d81b5fd71360f3a78637cfd40c63ec7e9dd3f123b568d89`.
+  Existing core/theme tests retain coverage for all required security, date,
+  CSS, token, title, and default-alias behavior.
+- Focused tests: `venv-linux/bin/python -m unittest tests.test_document
+  tests.test_core.TestCoreFacadeCharacterization tests.test_core.TestTitleExtraction
+  tests.test_core.TestTemplateBuilding tests.test_core.TestMarkdownConversion
+  tests.test_core.TestDeterministicCoreContract tests.test_themes -v` — exit
+  0, 70 tests.
+- Python 3.9: `PYENV_VERSION=3.9.23 python3.9 -m py_compile
+  libremark_pdf/core.py libremark_pdf/engine/document.py tests/test_core.py
+  tests/test_document.py tests/test_themes.py` — exit 0.
+- Full suite: `PLAYWRIGHT_BROWSERS_PATH="$HOME/.cache/ms-playwright"
+  venv-linux/bin/python -m unittest discover -s tests -q` — exit 0, 196 tests
+  outside the filesystem sandbox.
+- Diff/resource review: `git diff --check` — exit 0. No renderer setting,
+  CSS, font, icon, golden, generated artifact, cache, PDF, immutable audit, or
+  G1 archive file changed. The independent PDFium `23-unicode` G2 limitation
+  remains known and unchanged.
 
 Next dependency: R05.
 
