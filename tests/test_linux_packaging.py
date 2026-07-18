@@ -100,6 +100,25 @@ class TestLinuxPackaging(unittest.TestCase):
         self.assertEqual(result["unresolved_libraries"], [])
         self.assertTrue(result["glibc_versions"])
 
+    def test_elf_inspector_uses_pyinstaller_runtime_library_path(self):
+        completed = mock.Mock(returncode=0, stdout="", stderr="")
+        with tempfile.TemporaryDirectory() as temporary:
+            artifact = Path(temporary)
+            internal = artifact / "_internal"
+            internal.mkdir()
+            (internal / "library.so").write_bytes(b"\x7fELF")
+            with mock.patch(
+                "tools.inspect_linux_artifact.subprocess.run",
+                return_value=completed,
+            ) as run:
+                inspect_linux_artifact.inspect(artifact)
+        ldd_call = run.call_args_list[0]
+        self.assertEqual(ldd_call.args[0][0], "ldd")
+        self.assertEqual(
+            ldd_call.kwargs["env"]["LD_LIBRARY_PATH"].split(":")[0],
+            str(internal.resolve()),
+        )
+
     def test_sbom_can_name_the_linux_candidate(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

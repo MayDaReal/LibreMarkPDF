@@ -75,6 +75,10 @@ logs="$evidence_root/logs"
 artifacts="$evidence_root/artifacts"
 runtime="$evidence_root/runtime"
 work="$evidence_root/build-work"
+external_parent="$evidence_root/candidate external"
+rm -rf "$artifacts" "$runtime" "$work" "$external_parent" \
+  "$evidence_root/canonical-actual" "$evidence_root/canonical-diff" \
+  "$evidence_root/canonical-report.json"
 mkdir -p "$logs" "$artifacts" "$runtime" "$work"
 transcript="$logs/g3-linux-transcript.txt"
 exec > >(tee -a "$transcript") 2>&1
@@ -185,7 +189,6 @@ run env \
   ./build_linux_portable.sh
 
 candidate="$artifacts/LibreMarkPDF"
-external_parent="$evidence_root/candidate external"
 external_candidate="$external_parent/LibreMark PDF – Linux x86_64"
 mkdir -p "$external_parent"
 cp -a "$candidate" "$external_candidate"

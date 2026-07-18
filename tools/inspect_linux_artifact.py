@@ -2,6 +2,7 @@
 
 import argparse
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -18,6 +19,15 @@ def _version_key(value):
 def inspect(artifact_dir: Path) -> dict:
     if shutil.which("ldd") is None or shutil.which("readelf") is None:
         raise RuntimeError("ldd and readelf are required for Linux inspection")
+    runtime_library_dir = artifact_dir / "_internal"
+    if not runtime_library_dir.is_dir():
+        runtime_library_dir = artifact_dir
+    ldd_environment = os.environ.copy()
+    existing_library_path = ldd_environment.get("LD_LIBRARY_PATH")
+    library_paths = [str(runtime_library_dir.resolve())]
+    if existing_library_path:
+        library_paths.append(existing_library_path)
+    ldd_environment["LD_LIBRARY_PATH"] = os.pathsep.join(library_paths)
     elf_files = []
     missing = []
     glibc_versions = set()
@@ -29,6 +39,7 @@ def inspect(artifact_dir: Path) -> dict:
         ldd = subprocess.run(
             ["ldd", str(path)],
             capture_output=True,
+            env=ldd_environment,
             text=True,
             encoding="utf-8",
             errors="replace",
