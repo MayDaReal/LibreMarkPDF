@@ -254,7 +254,7 @@ States: `not started`, `in progress`, `blocked`, `completed`.
 | R09 | Desktop contracts and services | completed | R08 |
 | R10 | Tk package migration | completed | R09 |
 | R11 | Dialog boundary and desktop cleanup | completed | R10 |
-| R12 | Final refactoring validation | not started | R11 |
+| R12 | Final refactoring validation | completed | R11 |
 
 ## 10. Engine lots
 
@@ -1330,6 +1330,60 @@ Exit criterion:
 - Every lot is reproducible and green.
 - Remaining unverified native behavior is reported accurately.
 - The source tree is ready for the separately approved UI/UX project.
+
+Execution record:
+
+- Status: completed (2026-07-18). Owned file: this plan; no validation defect
+  attributable to the refactoring required a production change.
+- Observable no-change criteria: `core` remains the sole public engine facade;
+  its classified API, signatures/defaults, identities, atomic-output and batch
+  policies remain intact. Chromium remains the sole renderer. The exact
+  `default@1` alias, profile fingerprint
+  `908aa157c6dbcdaac0fd71ca762d6f518d567341094622f2c984fc7a9147fe61`,
+  and prepared-HTML SHA-256
+  `350bf1eccba49f4b8d81b5fd71360f3a78637cfd40c63ec7e9dd3f123b568d89`
+  are covered by the final core/document characterization.
+- Focused engine, facade, CLI, desktop, GUI, i18n, and packaging suites:
+  `PLAYWRIGHT_BROWSERS_PATH="$HOME/.cache/ms-playwright" venv-linux/bin/python
+  -m unittest tests.test_resources tests.test_chromium tests.test_document
+  tests.test_themes tests.test_jobs tests.test_preview tests.test_core
+  tests.test_cli tests.test_desktop_services tests.test_gui tests.test_i18n
+  tests.test_packaging -v` — exit 0 outside the filesystem sandbox.
+- CLI: `venv-linux/bin/python -m libremark_pdf convert --help` and
+  `venv-linux/bin/python -m libremark_pdf --version` — exit 0. Real JSON
+  conversion of `README.md` succeeded; a missing input returned
+  `INPUT_NOT_FOUND` and exit 1; a two-input batch returned exactly one success
+  and one `INPUT_NOT_FOUND` result, wrote the successful PDF atomically, and
+  exited 1. All temporary outputs were automatically removed.
+- GUI: imports succeeded with installed `tkinterdnd2` and with that optional
+  import blocked. Under `xvfb-run`, the actual `TkinterDnD.Tk()` launch path
+  and the ordinary `tk.Tk()` no-DnD path each built then closed normally.
+  An initial smoke attempt incorrectly combined installed DnD with a plain
+  `tk.Tk()` root and raised `invalid command name "tkdnd::drop_target"`; the
+  corrected command used the same root factory as `launch()` and passed. This
+  was a test-protocol correction, not a product defect.
+- Preview/corpus/network: the fixed canonical document/profile/hash assertions
+  passed without regenerating goldens. At 60 DPI, PDFium rasterization of the
+  final PDF and `render_preview_png` both produced 497x703 PNGs with
+  `ImageChops.difference(...).getbbox() is None`. On this host, first preview
+  render was 3.287 s and a header-only repeated render was 0.112 s, consistent
+  with the R07 retained measurement. The explicit safe/trusted conversion
+  network-observation test passed with zero observed requests.
+- Python 3.9: `PYENV_VERSION=3.9.23 python3.9 -m py_compile` over every Python
+  module changed by R01--R11 — exit 0. Full suite:
+  `PLAYWRIGHT_BROWSERS_PATH="$HOME/.cache/ms-playwright" venv-linux/bin/python
+  -m unittest discover -s tests -v` — exit 0 outside the filesystem sandbox;
+  218 tests are discovered by the final tree. Packaging collection assertions
+  are included in both the focused and full suites.
+- Final boundary/resource review: `git diff --check` — exit 0. Adapter/engine
+  direction and toolkit-free desktop-services assertions passed. No renderer,
+  profile, CSS, font, icon, resource hash, golden, generated artifact, cache,
+  PDF, dependency, immutable baseline, or G1 archive file changed. The
+  owner-owned deletion of
+  `docs/project-reliability/G2_WINDOWS_EXECUTION_PROMPT.md` remains the only
+  unrelated worktree state and is not staged. No macOS or Linux distribution
+  work, UI/UX work, push, or G2 reopening occurred. The independent PDFium
+  `23-unicode` fixture limitation remains known and unchanged.
 
 ## 12. Standard validation commands
 
