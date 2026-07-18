@@ -180,6 +180,26 @@ extracts `हि न्दी` while Windows extracts `हिन्दी`. The 
 its boundary tests, regenerated reports, and correction of that text mismatch
 remain required before G2 can pass.
 
+## Failed experiment — pinned Devanagari webfont
+
+The proposed static `NotoSansDevanagari-Regular.ttf` was downloaded only to
+`/tmp` from the same pinned Noto distribution revision as the G1 Noto Sans
+faces (`11caf4e14799c87eadf02026f2bd17eec5d50adb`). Its SHA-256 was
+`306b53ecfb182a504dd8a7446093c316387d2fd8dc350d0792ed1753fe0996cd`; the
+existing Noto Distribution OFL record matched.
+
+In a local locked-Chromium experiment the font was embedded as a data URI and
+CDP reported `Noto Sans Devanagari`, `isCustomFont: true`, and `glyphCount: 9`.
+PDFium nevertheless extracted `भा षा` and `हि न्दी`, rather than `भाषा` and
+`हिन्दी`. The failure therefore persists even without a system-font fallback;
+it is a Chromium PDF text/ToUnicode behavior for this complex script, not an
+uncontrolled resource selection. CSS ligature and kerning variants were also
+explored outside the repository and did not yield accepted evidence.
+
+The font, CSS/profile changes, test, and proposed ADR-011 were discarded. No
+new font or licence file entered Git. Do not retry this exact face as a G2
+fix without a different PDF text-extraction strategy and focused evidence.
+
 ## Incremental evidence — resumable Linux candidate generation
 
 The interactive executor terminated the initial all-fixture candidate run after
