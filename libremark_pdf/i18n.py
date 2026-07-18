@@ -16,16 +16,25 @@ CONFIG_FILE = CONFIG_DIR / "config.json"
 STRINGS = {
     "en": {
         "app_title": "LibreMark PDF",
+        "source_files_label": "Source files",
         "drop_hint": "Drop one or more .md files here",
         "browse_files": "Browse files",
+        "clear_files": "Clear list",
         "remove_file": "Remove",
+        "themes_label": "Themes",
+        "custom_css_label": "Custom CSS",
+        "use_theme": "Use selected theme",
         "css_style_label": "CSS style",
         "css_default_value": "style.css (default)",
+        "css_from_theme_value": "CSS supplied by the selected theme",
         "change": "Change",
         "advanced_header_footer": "Header and footer (advanced)",
+        "advanced_toggle": "Show or hide advanced options",
         "tokens_hint": "Tokens: {titre} {date} {page} {total}",
         "header_label": "Header",
         "footer_label": "Footer",
+        "render_date_label": "Date (YYYY-MM-DD)",
+        "trusted_html_label": "Allow trusted static HTML",
         "left_placeholder": "Left",
         "center_placeholder": "Center",
         "right_placeholder": "Right",
@@ -34,13 +43,24 @@ STRINGS = {
         "output_label": "Output",
         "output_default_value": "Next to each source file",
         "choose_folder": "Choose folder",
+        "use_source_folder": "Use source folder",
         "generate_button": "Generate PDF ({count} file(s))",
+        "cancel_button": "Cancel",
         "status_ready": "Ready.",
         "status_generating": "Generating…",
+        "status_generating_progress": "Generating… {current} / {total}",
+        "status_cancelling": "Cancelling after the current file…",
+        "status_cancelled": "Conversion cancelled before it started.",
+        "status_closing": "Finishing the active operation before closing…",
         "status_done": "Done: {count} PDF(s) created.",
+        "status_done_summary": (
+            "Done: {ok} succeeded, {failed} failed, {cancelled} cancelled."
+        ),
         "status_done_with_errors": "{ok} succeeded, {failed} failed. See details below.",
         "status_rendering_preview": "Rendering preview…",
         "status_preview_error": "Could not render preview: {error}",
+        "status_generation_error": "Could not complete conversion: {error}",
+        "status_theme_error": "Could not load installed themes: {error}",
         "error_title": "Error",
         "error_no_files": "Add at least one .md file first.",
         "error_generation": "Conversion failed: {error}",
@@ -49,6 +69,20 @@ STRINGS = {
         "choose_output_folder_title": "Choose an output folder",
         "choose_css_title": "Choose a CSS file",
         "choose_markdown_title": "Choose one or more Markdown files",
+        "collision_title": "Output collision",
+        "collision_continue": (
+            "These inputs cannot be written to their planned outputs and will "
+            "be reported as failures:\n\n{details}\n\nContinue with independent files?"
+        ),
+        "overwrite_title": "Existing output files",
+        "overwrite_question": (
+            "{count} output file(s) already exist. Replace them only after each "
+            "new PDF renders successfully?\n\nYes: replace. No: keep and report "
+            "those items as failures. Cancel: do not start."
+        ),
+        "open_pdf": "Open PDF",
+        "open_folder": "Open folder",
+        "open_error": "Could not open the selected path: {error}",
         "sample_preview_title": "Document title",
         "sample_preview_body": (
             "This is a live preview of your current style, header and "
@@ -57,16 +91,25 @@ STRINGS = {
     },
     "fr": {
         "app_title": "LibreMark PDF",
-        "drop_hint": "Glisse un ou plusieurs fichiers .md ici",
+        "source_files_label": "Fichiers sources",
+        "drop_hint": "Déposez un ou plusieurs fichiers .md ici",
         "browse_files": "Parcourir les fichiers",
+        "clear_files": "Vider la liste",
         "remove_file": "Retirer",
+        "themes_label": "Thèmes",
+        "custom_css_label": "CSS personnalisé",
+        "use_theme": "Utiliser le thème sélectionné",
         "css_style_label": "Style CSS",
         "css_default_value": "style.css (par défaut)",
+        "css_from_theme_value": "CSS fourni par le thème sélectionné",
         "change": "Changer",
         "advanced_header_footer": "En-tête et pied de page (avancé)",
+        "advanced_toggle": "Afficher ou masquer les options avancées",
         "tokens_hint": "Jetons : {titre} {date} {page} {total}",
         "header_label": "En-tête",
         "footer_label": "Pied de page",
+        "render_date_label": "Date (AAAA-MM-JJ)",
+        "trusted_html_label": "Autoriser le HTML statique de confiance",
         "left_placeholder": "Gauche",
         "center_placeholder": "Centre",
         "right_placeholder": "Droite",
@@ -75,27 +118,55 @@ STRINGS = {
         "output_label": "Sortie",
         "output_default_value": "À côté de chaque fichier source",
         "choose_folder": "Choisir un dossier",
+        "use_source_folder": "Utiliser le dossier source",
         "generate_button": "Générer le PDF ({count} fichier(s))",
+        "cancel_button": "Annuler",
         "status_ready": "Prêt.",
         "status_generating": "Génération en cours…",
+        "status_generating_progress": "Génération en cours… {current} / {total}",
+        "status_cancelling": "Annulation après le fichier en cours…",
+        "status_cancelled": "Conversion annulée avant son démarrage.",
+        "status_closing": "Fin de l’opération en cours avant la fermeture…",
         "status_done": "Terminé : {count} PDF généré(s).",
+        "status_done_summary": (
+            "Terminé : {ok} réussi(s), {failed} échoué(s), "
+            "{cancelled} annulé(s)."
+        ),
         "status_done_with_errors": (
             "{ok} réussi(s), {failed} échoué(s). Voir le détail ci-dessous."
         ),
         "status_rendering_preview": "Génération de l'aperçu…",
         "status_preview_error": "Impossible de générer l'aperçu : {error}",
+        "status_generation_error": "Impossible de terminer la conversion : {error}",
+        "status_theme_error": "Impossible de charger les thèmes installés : {error}",
         "error_title": "Erreur",
-        "error_no_files": "Ajoute d'abord au moins un fichier .md.",
+        "error_no_files": "Ajoutez d’abord au moins un fichier .md.",
         "error_generation": "Échec de la conversion : {error}",
         "css_filter_name": "Fichiers CSS",
         "markdown_filter_name": "Fichiers Markdown",
         "choose_output_folder_title": "Choisir un dossier de sortie",
         "choose_css_title": "Choisir un fichier CSS",
         "choose_markdown_title": "Choisir un ou plusieurs fichiers Markdown",
+        "collision_title": "Collision de sortie",
+        "collision_continue": (
+            "Ces entrées ne peuvent pas être écrites vers les sorties prévues "
+            "et seront signalées comme des échecs :\n\n{details}\n\nPoursuivre "
+            "avec les fichiers indépendants ?"
+        ),
+        "overwrite_title": "Fichiers de sortie existants",
+        "overwrite_question": (
+            "{count} fichier(s) de sortie existent déjà. Les remplacer uniquement "
+            "après le rendu réussi de chaque nouveau PDF ?\n\nOui : remplacer. "
+            "Non : conserver et signaler ces éléments comme des échecs. "
+            "Annuler : ne pas démarrer."
+        ),
+        "open_pdf": "Ouvrir le PDF",
+        "open_folder": "Ouvrir le dossier",
+        "open_error": "Impossible d’ouvrir le chemin sélectionné : {error}",
         "sample_preview_title": "Titre du document",
         "sample_preview_body": (
-            "Ceci est un aperçu en direct de ton style, en-tête et pied de "
-            "page actuels. Charge un fichier pour prévisualiser son contenu réel."
+            "Ceci est un aperçu dynamique de votre style, de votre en-tête et "
+            "de votre pied de page. Chargez un fichier pour afficher son contenu."
         ),
     },
 }
