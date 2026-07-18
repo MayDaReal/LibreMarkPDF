@@ -7,11 +7,11 @@ G4. The mandatory Windows lane remains independent.
 
 ## Candidate scope and baseline
 
-The current implementation candidate is:
+The declared G3 implementation matrix currently contains one native row:
 
 - architecture: x86_64 only;
 - build interpreter: CPython 3.9;
-- build host under test: Ubuntu 24.04.4 LTS x86_64 with glibc 2.39;
+- distribution: Ubuntu 24.04.4 LTS x86_64 with glibc 2.39;
 - renderer: Playwright 1.60.0, Chromium headless shell 148.0.7778.96 revision
   1223;
 - format: PyInstaller onedir compressed as
@@ -47,11 +47,12 @@ The onedir tarball is the G3 implementation candidate because it:
 An AppImage could offer a single clickable file and desktop integration, but
 it adds an AppImage runtime, FUSE 2/3 and mount-policy variation. Hosts without
 `/dev/fuse` may require `--appimage-extract-and-run`, and sandbox or
-container policies can still block Chromium. On the initial Ubuntu evidence
-host, `appimagetool` and `/dev/fuse` are absent, so no AppImage behavior has
-been claimed. Reconsider AppImage only with a pinned builder, licence/SBOM
-inventory, direct mount and extraction-fallback evidence on the declared
-matrix.
+container policies can still block Chromium. On the native Ubuntu evidence
+host, `appimagetool` is absent while `/dev/fuse` and both FUSE mount helpers
+are present. No AppImage was built or selected, so no AppImage runtime
+behavior is claimed. Reconsider AppImage only with a pinned builder,
+licence/SBOM inventory, direct mount and extraction-fallback evidence on the
+declared matrix.
 
 ## Locked preparation
 
@@ -59,8 +60,8 @@ Acquisition is separate from the candidate build and may require network.
 Using CPython 3.9 x86_64:
 
 ```bash
-python3.9 -m venv .venv-linux-g3
-. .venv-linux-g3/bin/activate
+python3.9 -m venv .venv
+. .venv/bin/activate
 python -m pip install --require-hashes \
   -r requirements/locks/linux-x86_64-py39.txt
 export PLAYWRIGHT_BROWSERS_PATH=/absolute/staging/browser
@@ -74,7 +75,7 @@ Perform acquisition before disconnecting the test host.
 The authoritative build itself is offline and has no elevation path:
 
 ```bash
-export LIBREMARK_PDF_PYTHON="$PWD/.venv-linux-g3/bin/python"
+export LIBREMARK_PDF_PYTHON="$PWD/.venv/bin/python"
 export LIBREMARK_PDF_BROWSER_SOURCE="$PLAYWRIGHT_BROWSERS_PATH"
 ./build_linux_portable.sh
 ```
@@ -98,9 +99,11 @@ distribution or request elevation from the evidence runner; a native matrix
 owner must prepare each host using its normal administration process.
 
 `linux-artifact-dependencies.json` records every ELF, unresolved library and
-maximum referenced glibc symbol. The highest observed symbol is evidence for
-that exact build, not proof that every system with that glibc number has the
-remaining libraries or a compatible desktop.
+maximum referenced glibc symbol. The exact Ubuntu candidate contains 153 ELF
+files, has no unresolved dependency on that host, and references symbols
+through GLIBC 2.38. This is evidence for that exact build, not proof that every
+system with that glibc number has the remaining libraries or a compatible
+desktop.
 
 ## Chromium sandbox and FUSE
 
@@ -117,14 +120,16 @@ AppImage comparison and Chromium host policy reproducible.
 
 ## Exact candidate evidence
 
-Run from a clean checkout at the signed commit. Select an evidence directory
+Run from the signed candidate commit. The runner records the complete existing
+checkout state and requires it to remain identical after the lane, so
+unrelated owner changes need not be moved. Select an evidence directory
 outside the checkout. Physically disconnect non-loopback interfaces before
 using `--require-offline`:
 
 ```bash
 tools/run_g3_linux_candidate.sh \
   --evidence-root "/tmp/G3 Evidence/LibreMark PDF – Linux x86_64" \
-  --python "$PWD/.venv-linux-g3/bin/python" \
+  --python "$PWD/.venv/bin/python" \
   --browser-source "$PLAYWRIGHT_BROWSERS_PATH" \
   --require-offline
 ```
@@ -141,6 +146,12 @@ SPDX 2.3 SBOM, normalized tarball, hashes and evidence archive.
 Automation cannot prove real desktop accessibility or integration. Complete
 the generated `manual-linux-gui-review.md` on every declared desktop/display
 server and retain screenshots or video.
+
+The retained Ubuntu evidence also includes a successful conversion inside an
+ephemeral user/network namespace whose real network view contained only a
+disabled loopback interface. The host's physical Ethernet interface remained
+up, so this proves no-network runtime behavior but does not replace a later
+physical-disconnection run with `--require-offline`.
 
 ## Gate decision
 
