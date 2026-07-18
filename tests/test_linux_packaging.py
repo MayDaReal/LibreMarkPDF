@@ -81,6 +81,7 @@ class TestLinuxPackaging(unittest.TestCase):
             "g3_windows_artifact_harness.py",
             "G3_LINUX_EVIDENCE_MANIFEST.sha256",
             "manual-linux-gui-review.md",
+            'PLAYWRIGHT_BROWSERS_PATH="$browser_source"',
         ):
             self.assertIn(marker, script)
         self.assertNotIn("sudo ", script)

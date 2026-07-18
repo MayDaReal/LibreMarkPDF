@@ -165,7 +165,8 @@ run "$python_bin" tools/verify_locked_environment.py \
 run "$python_bin" -m pip check
 "$python_bin" -m pip freeze --all | sort > "$logs/python-freeze.txt"
 run "$python_bin" -m libremark_pdf --version
-run "$python_bin" -m libremark_pdf doctor --json
+PLAYWRIGHT_BROWSERS_PATH="$browser_source" \
+  run "$python_bin" -m libremark_pdf doctor --json
 
 {
   sha256sum requirements/locks/linux-x86_64-py39.txt
