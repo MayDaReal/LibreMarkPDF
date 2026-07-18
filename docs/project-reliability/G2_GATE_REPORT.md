@@ -165,6 +165,21 @@ failure. G2 therefore remains open pending an owner decision: preserve strict
 geometry and correct the cross-platform rendering discrepancy, or explicitly
 supersede that structural contract with a separately reviewed tolerance policy.
 
+## Incremental decision — ADR-010 PDFium box tolerance
+
+The owner approved ADR-010 after direct measurement of the retained exact
+Linux/Windows candidate PDFs. For pages with exact extracted text/order, the
+maximum per-coordinate difference for a visible character box is `1.8553619385
+pt`; ADR-010 therefore permits at most `2.00 pt`. Whitespace and control boxes
+are excluded because they are PDFium advance/control artifacts, but text,
+order, pagination, dimensions, links, images, and raster checks remain exact
+or frozen as applicable.
+
+This decision does not accept the `23-unicode` extracted-text mismatch: Linux
+extracts `हि न्दी` while Windows extracts `हिन्दी`. The harness implementation,
+its boundary tests, regenerated reports, and correction of that text mismatch
+remain required before G2 can pass.
+
 ## Incremental evidence — resumable Linux candidate generation
 
 The interactive executor terminated the initial all-fixture candidate run after

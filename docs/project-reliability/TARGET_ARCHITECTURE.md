@@ -100,8 +100,11 @@ artifact must have:
 
 - identical page count and page dimensions;
 - identical extracted text and order;
-- identical headings, links, image inventory, and header/footer values;
+- identical headings, extracted Unicode text/order, links, image inventory,
+  and header/footer values;
 - identical pagination, table geometry, line breaks, and image placement;
+- PDFium visible-character boxes within the ADR-010 `2.00 pt` per-coordinate
+  cross-platform tolerance;
 - exact canonical pre-render HTML and render-profile fingerprint;
 - raster comparison at 144 DPI with SSIM at least `0.70`;
 - at most `4.20%` of pixels exceeding an RGB-channel delta of `16`;
@@ -109,11 +112,11 @@ artifact must have:
 - no semantic, missing-resource, or pagination difference, regardless of image
   metric results.
 
-The first antialiasing review is recorded in ADR-002.  The owner-approved G2
-cross-platform amendment, including the `0.10%` connected-region ceiling, is
-recorded in ADR-009. These thresholds are frozen before implementation release
-candidates are scored. Any later change requires a superseding ADR and
-explicit golden review.
+The first antialiasing review is recorded in ADR-002. The owner-approved G2
+amendments are the `0.10%` connected-region ceiling in ADR-009 and the narrow
+PDFium visible-character-box tolerance in ADR-010. All other structural and
+visual requirements remain strict. Any later change requires a superseding ADR
+and explicit golden review.
 
 Byte-for-byte PDF equality is not required. Creation timestamps, document IDs,
 compression, and object serialization can differ without a user-visible change.

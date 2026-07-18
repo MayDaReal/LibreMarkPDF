@@ -26,7 +26,7 @@ the command that produced it.
 | Historical score and findings | `BASELINE_AUDIT.md` (immutable, local historical input) |
 | Target renderer, resources, and platforms | `TARGET_ARCHITECTURE.md` |
 | Task state, owner, dependencies, and gate criteria | `BACKLOG.md` |
-| Compatibility and security decisions | `ADR-002` through `ADR-008` |
+| Compatibility and security decisions | `ADR-002` through `ADR-010` |
 | Closed G1 decision and command results | `archive/g1/README.md` and its indexed reports |
 | File-level integrity of G1 evidence | manifests under `archive/g1/` |
 | Current task assignment format | `AGENT_PROMPTS.md` |
