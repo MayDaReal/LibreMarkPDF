@@ -13,7 +13,7 @@ from unittest import mock
 from libremark_pdf import desktop_services, gui
 from libremark_pdf.desktop import services
 from libremark_pdf.desktop.tk import app as tk_app
-from libremark_pdf.desktop.tk import conversion as tk_conversion
+from libremark_pdf.desktop.tk import dialogs as tk_dialogs
 from libremark_pdf.desktop.tk import layout as tk_layout
 from libremark_pdf.desktop.tk import preview as tk_preview
 
@@ -236,6 +236,7 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
         app.files = [Path("one.md"), Path("two.md")]
         app.output_dir = None
         app._t = lambda key, **kwargs: key
+        app.dialogs = mock.Mock()
         plans = [
             services.core.BatchPlan(
                 Path("one.md"), Path("same.pdf"),
@@ -246,23 +247,20 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
                 "OUTPUT_EXISTS: refusing overwrite",
             ),
         ]
+        app.dialogs.ask_collision_continue.return_value = True
+        app.dialogs.ask_overwrite.return_value = False
         with mock.patch.object(services.core, "plan_batch_outputs", return_value=plans):
-            with mock.patch.object(
-                tk_conversion.messagebox, "askokcancel", return_value=True
-            ) as collision:
-                with mock.patch.object(
-                    tk_conversion.messagebox, "askyesnocancel", return_value=False
-                ) as overwrite:
-                    choice = app._overwrite_choice()
+            choice = app._overwrite_choice()
         self.assertFalse(choice)
-        collision.assert_called_once()
-        overwrite.assert_called_once()
+        app.dialogs.ask_collision_continue.assert_called_once()
+        app.dialogs.ask_overwrite.assert_called_once()
 
     def test_result_actions_receive_successes_only(self):
         app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
         app._render_results = mock.Mock()
         app._set_status = mock.Mock()
         app._t = lambda key, **kwargs: key
+        app.dialogs = mock.Mock()
         results = [
             {
                 "input": "ok.md", "output": "ok.pdf", "status": "ok",
@@ -273,9 +271,9 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
                 "error": "failed", "error_code": "RENDER_FAILED",
             },
         ]
-        with mock.patch.object(tk_conversion.messagebox, "showerror"):
-            app._handle_generate_done(results)
+        app._handle_generate_done(results)
         app._render_results.assert_called_once_with([results[0]])
+        app.dialogs.show_error.assert_called_once_with("error_title", mock.ANY)
 
     def test_close_during_generation_requests_cancel_before_destroy(self):
         app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
@@ -368,10 +366,70 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
     def test_result_open_uses_the_injected_desktop_service(self):
         app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
         app.services = mock.Mock()
+        app.dialogs = mock.Mock()
         app._t = lambda key, **kwargs: key
         output = Path("/tmp/report.pdf")
         app._open_result(output)
         app.services.open_path.assert_called_once_with(output)
+
+    def test_open_path_error_uses_the_injected_dialog(self):
+        app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
+        app.services = mock.Mock()
+        app.services.open_path.side_effect = RuntimeError("unavailable")
+        app.dialogs = mock.Mock()
+        app._t = lambda key, **kwargs: key
+        app._open_result(Path("/tmp/report.pdf"))
+        app.dialogs.show_error.assert_called_once_with(
+            "error_title", "open_error"
+        )
+
+    def test_dialog_boundary_keeps_native_return_values_and_arguments(self):
+        dialogs = tk_dialogs.TkDialogs()
+        with mock.patch.object(tk_dialogs.filedialog, "askopenfilenames", return_value=("one.md",)) as files:
+            self.assertEqual(
+                dialogs.choose_markdown_files("Choose", [("Markdown", "*.md")]),
+                ("one.md",),
+            )
+        files.assert_called_once_with(
+            title="Choose", filetypes=[("Markdown", "*.md")]
+        )
+        with mock.patch.object(tk_dialogs.messagebox, "askyesnocancel", return_value=None) as overwrite:
+            self.assertIsNone(dialogs.ask_overwrite("Existing", "Replace?"))
+        overwrite.assert_called_once_with("Existing", "Replace?")
+
+    def test_native_dialog_calls_are_confined_to_the_dialog_boundary(self):
+        for module in (tk_app, tk_layout, tk_preview):
+            source = Path(module.__file__).read_text(encoding="utf-8")
+            self.assertNotIn("messagebox", source)
+            self.assertNotIn("filedialog", source)
+        for module_name in ("inputs", "conversion"):
+            source = (
+                ROOT / "libremark_pdf" / "desktop" / "tk" / (module_name + ".py")
+            ).read_text(encoding="utf-8")
+            self.assertNotIn("messagebox", source)
+            self.assertNotIn("filedialog", source)
+
+    def test_no_files_and_invalid_options_use_injected_dialogs(self):
+        app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
+        app.operation = "idle"
+        app._preview_running = False
+        app.files = []
+        app._t = lambda key, **kwargs: key
+        app.dialogs = mock.Mock()
+        app._on_generate_clicked()
+        app.dialogs.show_error.assert_called_once_with("error_title", "error_no_files")
+
+        app.files = [Path("one.md")]
+        app._overwrite_choice = mock.Mock(return_value=False)
+        app._invalidate_preview = mock.Mock()
+        app._render_options = mock.Mock(return_value={})
+        app._set_status = mock.Mock()
+        with mock.patch.object(
+            services.core, "render_profile_for_options", side_effect=RuntimeError("invalid")
+        ):
+            app._on_generate_clicked()
+        app.dialogs.show_error.assert_called_with("error_title", "invalid")
+        app._set_status.assert_called_once_with("status_generation_error", error="invalid")
 
 
 class TestOptionalDragAndDrop(unittest.TestCase):

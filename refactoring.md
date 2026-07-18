@@ -253,7 +253,7 @@ States: `not started`, `in progress`, `blocked`, `completed`.
 | R08 | Core facade stabilization | completed | R07 |
 | R09 | Desktop contracts and services | completed | R08 |
 | R10 | Tk package migration | completed | R09 |
-| R11 | Dialog boundary and desktop cleanup | not started | R10 |
+| R11 | Dialog boundary and desktop cleanup | completed | R10 |
 | R12 | Final refactoring validation | not started | R11 |
 
 ## 10. Engine lots
@@ -1247,6 +1247,38 @@ Exit criterion:
 
 - The later UI/UX project can replace dialog presentation without modifying
   conversion, desktop services, or operation state.
+
+Execution record:
+
+- Observable no-change criteria: native Tk file/message dialogs retain the
+  same title, message, options, return values, visible formatting, and decision
+  semantics in both languages. Conversion, queue, cancellation, and desktop
+  services remain unchanged.
+- Change: added injectable `desktop.tk.dialogs.TkDialogs`; the Tk lifecycle,
+  input, and conversion modules now use it for the pre-existing file picker,
+  folder picker, collision/overwrite prompts, and error dialogs. Native Tk
+  dialogs remain the default implementation; no dialog text or workflow
+  changed.
+- Characterization: focused GUI tests cover native argument/return passthrough,
+  no-files and invalid-options errors, collision continuation, overwrite
+  yes/no/cancel mapping, conversion failure results, open-path errors, EN/FR
+  table compatibility, injection, and confinement of direct `filedialog` and
+  `messagebox` calls to `dialogs.py`.
+- Focused desktop/GUI/i18n suite:
+  `venv-linux/bin/python -m unittest tests.test_desktop_services tests.test_gui
+  tests.test_i18n -v` — 39 tests, exit 0.
+- Python 3.9: `PYENV_VERSION=3.9.23 python3.9 -m py_compile
+  libremark_pdf/desktop/tk/app.py libremark_pdf/desktop/tk/inputs.py
+  libremark_pdf/desktop/tk/conversion.py libremark_pdf/desktop/tk/dialogs.py
+  tests/test_gui.py` — exit 0. Full suite:
+  `PLAYWRIGHT_BROWSERS_PATH="$HOME/.cache/ms-playwright"
+  venv-linux/bin/python -m unittest discover -s tests -q` — exit 0 outside the
+  filesystem sandbox. `git diff --check` — exit 0.
+- Determinism/resource review: no renderer, profile, resource, golden,
+  generated artifact, cache, PDF, immutable audit, or G1 archive file changed;
+  `default@1`, the profile fingerprint, and prepared HTML hash remain covered
+  by the full core characterization suite. The independent PDFium `23-unicode`
+  G2 limitation remains known and unchanged.
 
 Next dependency: R12.
 

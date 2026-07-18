@@ -6,12 +6,12 @@ import queue
 import threading
 import tkinter as tk
 from pathlib import Path
-from tkinter import messagebox
 from typing import Optional
 
 from ... import core, i18n
 from ..services import DEFAULT_DESKTOP_SERVICES, DesktopServices
 from .conversion import TkConversionMixin
+from .dialogs import DEFAULT_TK_DIALOGS, TkDialogs
 from .inputs import TkInputMixin
 from .layout import HAS_DND, TkLayoutMixin, TkinterDnD
 from .preview import TkPreviewMixin
@@ -32,9 +32,11 @@ class LibreMarkPdfApp(
         self,
         root: tk.Misc,
         services: DesktopServices = DEFAULT_DESKTOP_SERVICES,
+        dialogs: TkDialogs = DEFAULT_TK_DIALOGS,
     ) -> None:
         self.root = root
         self.services = services
+        self.dialogs = dialogs
         self.lang = i18n.load_language()
         self.files = []  # type: list[Path]
         self.css_path = None  # type: Optional[str]
@@ -175,7 +177,7 @@ class LibreMarkPdfApp(
             elif kind == "generate_failed":
                 if not self._close_requested:
                     self._set_status("status_generation_error", error=message[1])
-                    messagebox.showerror(self._t("error_title"), message[1])
+                    self.dialogs.show_error(self._t("error_title"), message[1])
                 self._finish_operation()
         if self.operation != "idle" or self._preview_running:
             self._schedule_queue_poll()

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from tkinter import filedialog, ttk
+from tkinter import ttk
 
 from ... import core
 
@@ -28,9 +28,9 @@ class TkInputMixin:
     def _browse_files(self) -> None:
         if self.operation != "idle":
             return
-        paths = filedialog.askopenfilenames(
-            title=self._t("choose_markdown_title"),
-            filetypes=[(self._t("markdown_filter_name"), "*.md *.markdown")],
+        paths = self.dialogs.choose_markdown_files(
+            self._t("choose_markdown_title"),
+            [(self._t("markdown_filter_name"), "*.md *.markdown")],
         )
         if paths:
             self._add_files(paths)
@@ -80,9 +80,9 @@ class TkInputMixin:
             self._operation_controls.append(button)
 
     def _choose_css(self) -> None:
-        path = filedialog.askopenfilename(
-            title=self._t("choose_css_title"),
-            filetypes=[(self._t("css_filter_name"), "*.css")],
+        path = self.dialogs.choose_css_file(
+            self._t("choose_css_title"),
+            [(self._t("css_filter_name"), "*.css")],
         )
         if path:
             self.css_path = path
@@ -138,7 +138,9 @@ class TkInputMixin:
                 card.config(state="disabled")
 
     def _choose_output_dir(self) -> None:
-        path = filedialog.askdirectory(title=self._t("choose_output_folder_title"))
+        path = self.dialogs.choose_output_folder(
+            self._t("choose_output_folder_title")
+        )
         if path:
             self.output_dir = path
             self._refresh_output_entry()

@@ -5,7 +5,7 @@ from __future__ import annotations
 import threading
 import tkinter as tk
 from pathlib import Path
-from tkinter import messagebox, ttk
+from tkinter import ttk
 from typing import Optional
 
 from ... import core
@@ -37,7 +37,7 @@ class TkConversionMixin:
                 "{0}: {1}".format(plan.input_path.name, plan.error)
                 for plan in collisions
             )
-            if not messagebox.askokcancel(
+            if not self.dialogs.ask_collision_continue(
                 self._t("collision_title"),
                 self._t("collision_continue", details=details),
             ):
@@ -45,7 +45,7 @@ class TkConversionMixin:
         existing = [plan for plan in plans if plan.error_code == "OUTPUT_EXISTS"]
         if not existing:
             return False
-        return messagebox.askyesnocancel(
+        return self.dialogs.ask_overwrite(
             self._t("overwrite_title"),
             self._t("overwrite_question", count=len(existing)),
         )
@@ -54,7 +54,9 @@ class TkConversionMixin:
         if self.operation != "idle" or self._preview_running:
             return
         if not self.files:
-            messagebox.showerror(self._t("error_title"), self._t("error_no_files"))
+            self.dialogs.show_error(
+                self._t("error_title"), self._t("error_no_files")
+            )
             return
         overwrite = self._overwrite_choice()
         if overwrite is None:
@@ -65,7 +67,7 @@ class TkConversionMixin:
         try:
             profile = core.render_profile_for_options(**options)
         except Exception as exc:
-            messagebox.showerror(self._t("error_title"), str(exc))
+            self.dialogs.show_error(self._t("error_title"), str(exc))
             self._set_status("status_generation_error", error=str(exc))
             return
         options["render_date"] = profile.render_date
@@ -139,7 +141,7 @@ class TkConversionMixin:
                 )
                 for item in failed
             )
-            messagebox.showerror(self._t("error_title"), details)
+            self.dialogs.show_error(self._t("error_title"), details)
 
     def _clear_results(self) -> None:
         for child in self.results_frame.winfo_children():
@@ -169,7 +171,7 @@ class TkConversionMixin:
         try:
             self.services.open_path(path)
         except Exception as exc:
-            messagebox.showerror(
+            self.dialogs.show_error(
                 self._t("error_title"),
                 self._t("open_error", error=str(exc)),
             )
