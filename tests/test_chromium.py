@@ -9,10 +9,7 @@ from libremark_pdf.engine import chromium
 
 
 class TestChromiumDomain(unittest.TestCase):
-    def test_core_reexports_the_single_chromium_implementation(self):
-        self.assertIs(core._BrowserRenderer, chromium.BrowserRenderer)
-        self.assertIs(core._render_pdf, chromium.render_pdf)
-        self.assertIs(core._atomic_render_pdf, chromium.atomic_render_pdf)
+    def test_chromium_implementation_does_not_import_the_public_facade(self):
         self.assertNotIn(
             "libremark_pdf.core", Path(chromium.__file__).read_text(encoding="utf-8")
         )

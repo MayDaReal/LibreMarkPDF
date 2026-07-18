@@ -250,7 +250,7 @@ States: `not started`, `in progress`, `blocked`, `completed`.
 | R05 | Chromium and atomic-output domain | completed | R04 |
 | R06 | Conversion jobs and batch domain | completed | R05 |
 | R07 | Preview domain | completed | R06 |
-| R08 | Core facade stabilization | not started | R07 |
+| R08 | Core facade stabilization | completed | R07 |
 | R09 | Desktop contracts and services | not started | R08 |
 | R10 | Tk package migration | not started | R09 |
 | R11 | Dialog boundary and desktop cleanup | not started | R10 |
@@ -967,6 +967,51 @@ Required checks:
 Exit criterion:
 
 - `core.py` is a small stable facade and every engine domain has one owner.
+
+Execution record:
+
+- Observable no-change criteria: the classified public `core` inventory,
+  function signatures/defaults, contract identities, exact `default@1` alias,
+  canonical prepared HTML, render-profile fingerprint, Chromium-only renderer,
+  atomic output, batch isolation, and toolkit-free engine boundary remain
+  unchanged.
+- Change: removed obsolete private transition aliases from `core`; owning
+  resource, document, Chromium, and theme tests now exercise those internals
+  directly. `_FONT_FILES` remains private facade data because the existing CLI
+  resource doctor consumes it through `core`. `engine/__init__.py` remains a
+  private package marker and exposes no alternate engine API.
+- Characterization: core tests inventory all public names and signatures,
+  assert unique contract identities, reject the retired private aliases, and
+  scan the CLI/GUI/desktop adapters and every engine module for forbidden
+  import directions or toolkit imports.
+- Architecture documentation: clarified `TARGET_ARCHITECTURE.md` to state the
+  authorized boundary explicitly: `core` is the sole public facade and
+  `engine/` contains its private canonical implementation.
+- Focused facade/domain/packaging suite:
+  `venv-linux/bin/python -m unittest tests.test_resources tests.test_chromium
+  tests.test_document tests.test_themes tests.test_jobs tests.test_preview
+  tests.test_packaging -v` — 40 tests, exit 0.
+- CLI, GUI, theme, preview, and packaging suite:
+  `PLAYWRIGHT_BROWSERS_PATH="$HOME/.cache/ms-playwright"
+  venv-linux/bin/python -m unittest tests.test_core tests.test_cli
+  tests.test_gui tests.test_i18n tests.test_themes tests.test_preview
+  tests.test_packaging -v` — exit 0 outside the filesystem sandbox. The
+  PyInstaller/wheel discovery assertions are included in `tests.test_packaging`.
+- Python 3.9: `PYENV_VERSION=3.9.23 python3.9 -m py_compile
+  libremark_pdf/core.py tests/test_core.py tests/test_resources.py
+  tests/test_chromium.py tests/test_themes.py` — exit 0.
+- Full suite: `PLAYWRIGHT_BROWSERS_PATH="$HOME/.cache/ms-playwright"
+  venv-linux/bin/python -m unittest discover -s tests -v` — exit 0 outside
+  the filesystem sandbox. `venv-linux/bin/python -m libremark_pdf convert
+  --help` and `venv-linux/bin/python -m libremark_pdf --version` — exit 0.
+- Determinism/resource review: exact fingerprint remains
+  `908aa157c6dbcdaac0fd71ca762d6f518d567341094622f2c984fc7a9147fe61`,
+  prepared HTML SHA-256 remains
+  `350bf1eccba49f4b8d81b5fd71360f3a78637cfd40c63ec7e9dd3f123b568d89`,
+  and `default@1` remains an exact alias. `git diff --check` — exit 0. No
+  profile, CSS, font, icon, golden, generated artifact, cache, PDF, immutable
+  audit, or G1 archive file changed. The independent PDFium `23-unicode` G2
+  limitation remains known and unchanged.
 
 Next dependency: R09.
 

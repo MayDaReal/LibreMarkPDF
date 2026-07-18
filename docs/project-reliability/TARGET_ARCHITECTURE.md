@@ -43,8 +43,9 @@ preview, but it must not define or replace the canonical PDF engine.
 
 The desktop implementation keeps UI technology separate from conversion:
 
-- `libremark_pdf/core.py` remains the only Markdown, HTML, Chromium, PDF, and
-  preview engine;
+- `libremark_pdf/core.py` remains the only public Markdown, HTML, Chromium,
+  PDF, and preview engine facade; its canonical implementation is private to
+  `libremark_pdf/engine/`;
 - `libremark_pdf/desktop_services.py` exposes toolkit-independent preview,
   conversion, and native-path services through queues and an injectable
   `DesktopServices` boundary;

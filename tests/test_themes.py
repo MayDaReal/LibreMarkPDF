@@ -194,7 +194,7 @@ class TestThemeLifecycle(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary) / "installed"
             original = core.install_theme(VALID_THEME, theme_root=root)
-            real_replace = core.os.replace
+            real_replace = themes.os.replace
             calls = []
 
             def fail_publication(source, destination):
@@ -203,7 +203,7 @@ class TestThemeLifecycle(unittest.TestCase):
                     raise PermissionError("simulated publication failure")
                 return real_replace(source, destination)
 
-            with mock.patch.object(core.os, "replace", side_effect=fail_publication):
+            with mock.patch.object(themes.os, "replace", side_effect=fail_publication):
                 with self.assertRaisesRegex(PermissionError, "publication failure"):
                     core.install_theme(VALID_THEME, theme_root=root, replace=True)
             restored = core.show_theme("community-blue@1", root)
@@ -227,7 +227,7 @@ class TestThemeLifecycle(unittest.TestCase):
                 if not ignore_errors:
                     raise PermissionError("locked")
 
-            with mock.patch.object(core.shutil, "rmtree", side_effect=delayed_cleanup):
+            with mock.patch.object(themes.shutil, "rmtree", side_effect=delayed_cleanup):
                 removed = core.remove_theme("community-blue@1", root)
             self.assertEqual(removed.reference, "community-blue@1")
             with self.assertRaisesRegex(core.ConversionError, "THEME_NOT_FOUND"):

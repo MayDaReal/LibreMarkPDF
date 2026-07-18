@@ -17,7 +17,7 @@ from unittest import mock
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from libremark_pdf import core
-from libremark_pdf.engine import chromium, contracts, document, jobs, preview
+from libremark_pdf.engine import chromium, contracts, document, jobs, preview, resources
 
 
 class TestCoreFacadeCharacterization(unittest.TestCase):
@@ -105,6 +105,51 @@ class TestCoreFacadeCharacterization(unittest.TestCase):
             self.assertIs(getattr(core, name), getattr(contracts, name), name)
         self.assertNotIn("libremark_pdf.core", Path(contracts.__file__).read_text(encoding="utf-8"))
 
+    def test_engine_and_adapters_keep_the_one_way_facade_boundary(self):
+        root = Path(__file__).resolve().parent.parent
+        for module in ("cli.py", "gui.py", "desktop_services.py"):
+            source = (root / "libremark_pdf" / module).read_text(encoding="utf-8")
+            self.assertNotIn(".engine", source, module)
+
+        forbidden = (
+            "libremark_pdf.core",
+            "libremark_pdf.cli",
+            "libremark_pdf.gui",
+            "libremark_pdf.desktop",
+            "tkinter",
+            "ImageTk",
+        )
+        for path in (root / "libremark_pdf" / "engine").glob("*.py"):
+            source = path.read_text(encoding="utf-8")
+            for name in forbidden:
+                self.assertNotIn(name, source, "{0}: {1}".format(path.name, name))
+
+    def test_obsolete_private_implementation_aliases_are_not_facade_api(self):
+        for name in (
+            "_sha256_file",
+            "_renderer_resource_hashes",
+            "_icon_data_uri",
+            "_font_face_css",
+            "_preview_template_font_css",
+            "_is_within",
+            "_validate_image_bytes",
+            "_css_has_forbidden_resources",
+            "_default_theme_info",
+            "_manifest_relative_path",
+            "_theme_file",
+            "_theme_root",
+            "_theme_error",
+            "_build_preview_template",
+            "_read_css",
+            "_resolve_style_profile",
+            "_validate_markdown_text",
+            "_BrowserRenderer",
+            "_render_pdf",
+            "_atomic_render_pdf",
+            "_first_page_png",
+        ):
+            self.assertFalse(hasattr(core, name), name)
+
     def test_contract_defaults_mutability_and_error_codes_are_stable(self):
         defaults = core.HeaderFooterConfig()
         self.assertEqual(defaults.bottom_center, "Page {page} / {total}")
@@ -191,20 +236,20 @@ class TestTemplateBuilding(unittest.TestCase):
         self.assertIn('style="text-align:center">middle</span>', html)
 
     def test_preview_latin_template_omits_unselected_large_families(self):
-        css = core._preview_template_font_css("Page 1 / 2")
+        css = resources._preview_template_font_css("Page 1 / 2")
         self.assertIn("G1 Noto Sans", css)
         self.assertNotIn("G1 Noto Sans Arabic", css)
         self.assertNotIn("G1 Noto Sans CJK SC", css)
 
     def test_preview_template_includes_fonts_required_by_its_text(self):
-        arabic = core._preview_template_font_css("العربية")
-        cjk = core._preview_template_font_css("中文")
+        arabic = resources._preview_template_font_css("العربية")
+        cjk = resources._preview_template_font_css("中文")
         self.assertIn("G1 Noto Sans Arabic", arabic)
         self.assertIn("G1 Noto Sans CJK SC", cjk)
 
     def test_empty_preview_template_has_no_font_payload(self):
         self.assertEqual(
-            core._build_preview_template("", "", "", None, ""),
+            document._build_preview_template("", "", "", None, ""),
             "<div></div>",
         )
 
@@ -316,21 +361,21 @@ class TestDeterministicCoreContract(unittest.TestCase):
             css = Path(tmp) / "unsafe.css"
             css.write_text("@import url(https://example.invalid/x.css);", encoding="utf-8")
             with self.assertRaisesRegex(core.ConversionError, "FORBIDDEN_CSS_URL"):
-                core._read_css(css)
+                document._read_css(css)
 
     def test_css_data_resources_are_rejected_until_embedded_support_exists(self):
         with tempfile.TemporaryDirectory() as tmp:
             css = Path(tmp) / "unsafe.css"
             css.write_text("p { background: url(data:image/png;base64,AA==) }", encoding="utf-8")
             with self.assertRaisesRegex(core.ConversionError, "FORBIDDEN_CSS_URL"):
-                core._read_css(css)
+                document._read_css(css)
 
     def test_invalid_css_is_rejected_with_a_stable_code(self):
         with tempfile.TemporaryDirectory() as tmp:
             css = Path(tmp) / "invalid.css"
             css.write_bytes(b"body { color: black; }\x00")
             with self.assertRaisesRegex(core.ConversionError, "INVALID_CSS"):
-                core._read_css(css)
+                document._read_css(css)
 
     def test_empty_and_limit_exceeding_markdown_have_defined_behavior(self):
         self.assertIn("<body>", core.prepare_render_document("").full_html)
@@ -416,7 +461,7 @@ class TestDeterministicCoreContract(unittest.TestCase):
             def new_context(self, **kwargs):
                 return Context()
 
-        renderer = core._BrowserRenderer()
+        renderer = chromium.BrowserRenderer()
         renderer._browser = Browser()
         with self.assertRaisesRegex(core.ConversionError, "RENDER_FAILED: engine diagnostic") as raised:
             renderer.render("<p>x</p>", Path("ignored.pdf"), core.HeaderFooterConfig.none(), None)
@@ -430,7 +475,7 @@ class TestDeterministicCoreContract(unittest.TestCase):
         with mock.patch(
             "playwright.sync_api.sync_playwright", return_value=manager
         ):
-            renderer = core._BrowserRenderer()
+            renderer = chromium.BrowserRenderer()
             renderer.__enter__()
             renderer.__exit__(None, None, None)
         playwright.chromium.launch.assert_called_once_with(
@@ -650,7 +695,7 @@ class TestEndToEndConversion(unittest.TestCase):
             source.write_text("![Static SVG](image.svg)", encoding="utf-8")
             (root / "image.svg").write_bytes(svg)
             output = root / "document.pdf"
-            with core._BrowserRenderer() as renderer:
+            with chromium.BrowserRenderer() as renderer:
                 core.convert_markdown_to_pdf(source, output, _renderer=renderer)
                 self.assertEqual(renderer.last_observed_requests, [])
             self.assertGreater(output.stat().st_size, 0)
@@ -660,7 +705,7 @@ class TestEndToEndConversion(unittest.TestCase):
             root = Path(tmp)
             safe_output = root / "safe.pdf"
             trusted_output = root / "trusted.pdf"
-            with core._BrowserRenderer() as renderer:
+            with chromium.BrowserRenderer() as renderer:
                 core.convert_markdown_text_to_pdf(
                     "# Safe\n\nLiteral <b>markup</b>", safe_output, _renderer=renderer
                 )

@@ -19,16 +19,15 @@ class TestResourceDomainCharacterization(unittest.TestCase):
 
     def test_core_reexports_the_canonical_resource_implementations(self):
         for name in (
-            "renderer_identity", "_sha256_file", "_renderer_resource_hashes",
-            "_font_face_css", "_preview_template_font_css",
-            "substitute_emoji_icons", "embed_local_resources",
-            "_is_within", "_validate_image_bytes", "_css_has_forbidden_resources",
+            "renderer_identity",
+            "substitute_emoji_icons",
+            "embed_local_resources",
         ):
             self.assertIs(getattr(core, name), getattr(resources, name), name)
         self.assertNotIn("libremark_pdf.core", Path(resources.__file__).read_text(encoding="utf-8"))
 
     def test_resource_hashes_match_the_frozen_runtime_files(self):
-        hashes = core._renderer_resource_hashes()
+        hashes = resources._renderer_resource_hashes()
         self.assertEqual(hashes["css"], hashlib.sha256(core.DEFAULT_CSS_PATH.read_bytes()).hexdigest())
         self.assertEqual(
             hashes["fonts"],
