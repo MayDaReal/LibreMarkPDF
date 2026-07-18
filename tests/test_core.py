@@ -16,6 +16,7 @@ from unittest import mock
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from libremark_pdf import core
+from libremark_pdf.engine import contracts
 
 
 class TestCoreFacadeCharacterization(unittest.TestCase):
@@ -90,6 +91,30 @@ class TestCoreFacadeCharacterization(unittest.TestCase):
             core.resolve_theme_css(None).as_dict(),
             core.resolve_theme_css("default@1").as_dict(),
         )
+
+    def test_extracted_contracts_keep_one_public_identity(self):
+        for name in (
+            "ConversionError",
+            "HeaderFooterConfig",
+            "RenderProfile",
+            "RenderDocument",
+            "BatchPlan",
+            "ThemeInfo",
+        ):
+            self.assertIs(getattr(core, name), getattr(contracts, name), name)
+        self.assertNotIn("libremark_pdf.core", Path(contracts.__file__).read_text(encoding="utf-8"))
+
+    def test_contract_defaults_mutability_and_error_codes_are_stable(self):
+        defaults = core.HeaderFooterConfig()
+        self.assertEqual(defaults.bottom_center, "Page {page} / {total}")
+        self.assertFalse(defaults.is_empty())
+        disabled = core.HeaderFooterConfig.none()
+        self.assertTrue(disabled.is_empty())
+        disabled.top_left = "Mutable"
+        self.assertEqual(disabled.top_left, "Mutable")
+        plan = core.BatchPlan(Path("input.md"), Path("output.pdf"), "INPUT_NOT_FOUND: absent")
+        self.assertEqual(plan.error_code, "INPUT_NOT_FOUND")
+        self.assertEqual(core.BatchPlan(Path("input.md"), Path("output.pdf")).error_code, None)
 
 
 class TestTitleExtraction(unittest.TestCase):

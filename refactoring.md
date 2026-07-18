@@ -243,7 +243,7 @@ States: `not started`, `in progress`, `blocked`, `completed`.
 | Lot | Domain | State | Dependency |
 | --- | --- | --- | --- |
 | R00 | Baseline and characterization | completed | owner go |
-| R01 | Engine package and contracts | not started | R00 |
+| R01 | Engine package and contracts | completed | R00 |
 | R02 | Theme domain | not started | R01 |
 | R03 | Resource domain | not started | R02 |
 | R04 | Document and render-profile domain | not started | R03 |
@@ -388,6 +388,44 @@ Exit criterion:
 
 - One canonical definition exists for each shared contract and no circular
   import is introduced.
+
+Execution record:
+
+- Status: completed (2026-07-18).
+- Owned files: `libremark_pdf/core.py`, `libremark_pdf/engine/__init__.py`,
+  `libremark_pdf/engine/contracts.py`, `tests/test_core.py`, and this plan.
+- Observable no-change criteria: the `core` façade continues to expose the
+  same contract classes, defaults, conversion signatures, fixed prepared HTML,
+  profile fingerprint, default-theme alias, error codes, and batch schema.
+- Change: `ConversionError`, `HeaderFooterConfig`, `RenderProfile`,
+  `ThemeInfo`, `RenderDocument`, and `BatchPlan` have one canonical definition
+  in `engine.contracts` and are re-exported unchanged from `core`. The resource
+  hash provider is injected by `core` after local resources initialize, so the
+  internal package never imports its public façade.
+- Contract checks: identity is exact for all six classes; header/footer keeps
+  its mutable default configuration and `none()` disables all fields; batch
+  `error_code` stays compatible. The R00 fixed profile fingerprint remains
+  `908aa157c6dbcdaac0fd71ca762d6f518d567341094622f2c984fc7a9147fe61` and
+  prepared-HTML SHA-256 remains
+  `350bf1eccba49f4b8d81b5fd71360f3a78637cfd40c63ec7e9dd3f123b568d89`.
+- Focused characterization: `venv-linux/bin/python -m unittest
+  tests.test_core.TestCoreFacadeCharacterization -v` — exit 0, 4 tests.
+- Focused engine/theme suite: `PLAYWRIGHT_BROWSERS_PATH="$HOME/.cache/ms-playwright"
+  venv-linux/bin/python -m unittest tests.test_core tests.test_themes -q` —
+  exit 0 outside the filesystem sandbox.
+- Python 3.9: `PYENV_VERSION=3.9.23 python3.9 -m py_compile
+  libremark_pdf/core.py libremark_pdf/engine/__init__.py
+  libremark_pdf/engine/contracts.py tests/test_core.py` — exit 0.
+- Full suite: `PLAYWRIGHT_BROWSERS_PATH="$HOME/.cache/ms-playwright"
+  venv-linux/bin/python -m unittest discover -s tests -q` — exit 0 outside
+  the filesystem sandbox.
+- Risks and deviations: no public signature, default, rendering setting, or
+  resource hash changed. The provider injection is the smallest adjustment
+  needed to keep the new internal package one-way; it introduces no alternate
+  renderer or circular import. The independent PDFium `23-unicode` G2
+  limitation remains known and unchanged.
+- Diff/resource review: `git diff --check` — exit 0. No golden, generated
+  artifact, cache, PDF, immutable audit, or G1 archive file changed.
 
 Next dependency: R02.
 
