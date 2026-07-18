@@ -60,8 +60,10 @@ fi
 mkdir -p "$evidence_root"
 evidence_root="$(realpath "$evidence_root")"
 repo_root="$(realpath "$repo_root")"
-python_bin="$(realpath "$python_bin")"
 browser_source="$(realpath "$browser_source")"
+if [[ "$python_bin" != /* ]]; then
+  python_bin="$(realpath "$repo_root/$python_bin")"
+fi
 case "$evidence_root/" in
   "$repo_root/"*)
     echo "Evidence root must be outside the repository." >&2

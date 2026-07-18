@@ -84,6 +84,7 @@ class TestLinuxPackaging(unittest.TestCase):
         ):
             self.assertIn(marker, script)
         self.assertNotIn("sudo ", script)
+        self.assertNotIn('python_bin="$(realpath "$python_bin")"', script)
 
     def test_elf_inspector_records_glibc_and_no_missing_library(self):
         true_path = Path(shutil.which("true") or "/bin/true")
