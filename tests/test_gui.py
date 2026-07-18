@@ -10,7 +10,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from libremark_pdf import gui
+from libremark_pdf import desktop_services, gui, gui_layout
 
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -320,19 +320,39 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
         app._schedule_preview.assert_not_called()
 
     def test_open_path_uses_argument_list_without_shell(self):
-        with mock.patch.object(gui.os, "name", "posix"):
-            with mock.patch.object(gui.sys, "platform", "linux"):
-                with mock.patch.object(gui.subprocess, "Popen") as popen:
-                    gui._open_path(Path("/tmp/report.pdf"))
+        with mock.patch.object(desktop_services.os, "name", "posix"):
+            with mock.patch.object(desktop_services.sys, "platform", "linux"):
+                with mock.patch.object(
+                    desktop_services.subprocess, "Popen"
+                ) as popen:
+                    desktop_services.open_path(Path("/tmp/report.pdf"))
         popen.assert_called_once_with(["xdg-open", "/tmp/report.pdf"])
 
     def test_source_contains_scroll_zoom_keyboard_and_focus_contracts(self):
-        source = Path(gui.__file__).read_text(encoding="utf-8")
+        source = "\n".join(
+            Path(module.__file__).read_text(encoding="utf-8")
+            for module in (gui, gui_layout)
+        )
         for marker in (
             "body_canvas", "file_canvas", "preview_canvas",
             "ZOOM_LEVELS", "<Control-o>", "<Control-r>", "focus_set()",
         ):
             self.assertIn(marker, source)
+
+    def test_tk_adapter_uses_an_injected_toolkit_neutral_service_boundary(self):
+        signature = inspect.signature(gui.LibreMarkPdfApp.__init__)
+        self.assertIn("services", signature.parameters)
+        service_source = Path(desktop_services.__file__).read_text(encoding="utf-8")
+        self.assertNotIn("tkinter", service_source)
+        self.assertNotIn("ImageTk", service_source)
+
+    def test_result_open_uses_the_injected_desktop_service(self):
+        app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
+        app.services = mock.Mock()
+        app._t = lambda key, **kwargs: key
+        output = Path("/tmp/report.pdf")
+        app._open_result(output)
+        app.services.open_path.assert_called_once_with(output)
 
 
 class TestOptionalDragAndDrop(unittest.TestCase):

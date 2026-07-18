@@ -39,6 +39,25 @@ gates pass.
 A browser-based companion may be considered later for discovery or lightweight
 preview, but it must not define or replace the canonical PDF engine.
 
+## Desktop front-end boundary
+
+The desktop implementation keeps UI technology separate from conversion:
+
+- `libremark_pdf/core.py` remains the only Markdown, HTML, Chromium, PDF, and
+  preview engine;
+- `libremark_pdf/desktop_services.py` exposes toolkit-independent preview,
+  conversion, and native-path services through queues and an injectable
+  `DesktopServices` boundary;
+- `libremark_pdf/gui.py` owns the Tk application lifecycle, localization, and
+  main-thread queue dispatch;
+- `gui_layout.py`, `gui_inputs.py`, `gui_preview.py`, and `gui_conversion.py`
+  isolate Tk layout, user inputs, preview interaction, and batch interaction.
+
+An experimental desktop technology may inject or reuse `DesktopServices` and
+must call the same core API. It must not copy rendering logic, add another PDF
+renderer, or change the default Tk entry point before its own focused
+interaction and packaging evidence exists.
+
 ## Render profile
 
 The profile must expose a stable identifier and fingerprint and contain at

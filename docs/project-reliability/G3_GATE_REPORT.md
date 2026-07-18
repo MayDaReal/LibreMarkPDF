@@ -79,6 +79,8 @@ Until that evidence is returned and verified, Windows G3 cannot pass.
 | final-PDF versus optimized-preview pixel comparison | 0 | Same raster dimensions; `ImageChops.difference(...).getbbox()` returned `None`, so every pixel matched for the retained Latin header/footer case. |
 | `/bin/bash -lc 'PLAYWRIGHT_BROWSERS_PATH="$HOME/.cache/ms-playwright" venv-linux/bin/python -m unittest tests.test_core tests.test_gui -v'` | 0 | 88 focused core/GUI tests passed in 66.981 seconds. |
 | final `/bin/bash -lc 'PLAYWRIGHT_BROWSERS_PATH="$HOME/.cache/ms-playwright" venv-linux/bin/python -m unittest discover -s tests -v'` after preview optimization | 0 | 182 tests passed in 93.075 seconds; the final PDF remains tagged and retains its outline. |
+| GUI architecture focused check: `venv-linux/bin/python -m unittest tests.test_gui tests.test_i18n -v` | 0 | 28 tests passed after splitting the 985-line Tk module; workers, optional DnD, queue transitions, injected desktop services, EN/FR parity, and native-path argument handling passed. |
+| GUI architecture full check: `/bin/bash -lc 'PLAYWRIGHT_BROWSERS_PATH="$HOME/.cache/ms-playwright" venv-linux/bin/python -m unittest discover -s tests -v'` | 0 | 184 tests passed in 91.259 seconds on the final implementation, including real Chromium conversion and preview, CLI subprocess, themes, Linux/Windows packaging contracts, and offline resource policy. |
 
 ## Implemented observable contracts
 
@@ -108,6 +110,16 @@ Until that evidence is returned and verified, Windows G3 cannot pass.
 - The Tk adapter uses scrollable file/body/preview canvases and 50–200% preview
   zoom. Preview requests debounce and carry a monotonically increasing
   generation; stale results are discarded.
+- The previous 985-line Tk module is separated by responsibility. `gui.py`
+  owns lifecycle, localization, and main-thread queue dispatch; `gui_layout.py`
+  owns widget construction; `gui_inputs.py`, `gui_preview.py`, and
+  `gui_conversion.py` own their respective interactions. No resulting GUI
+  module exceeds 285 lines.
+- `desktop_services.py` contains no Tk or Pillow import and provides an
+  injectable service boundary for preview workers, batch conversion, and
+  native path opening. A future UI technology can reuse this boundary and the
+  shared core without copying rendering logic; Tk remains the authoritative
+  current desktop entry point.
 - One durable preview worker owns one core `PreviewSession` on one background
   thread. It coalesces queued edits to the newest request, while the refresh
   action remains available and every Tk call remains on the main thread.
