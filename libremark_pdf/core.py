@@ -153,6 +153,7 @@ _EMOJI_FILES = {
 
 _icon_cache: dict[str, str] = {}
 _font_css_cache: Optional[str] = None
+_preview_font_css_cache = {}  # type: dict
 
 _FONT_FILES = (
     ("NotoSans-Regular.ttf", "G1 Noto Sans", "400"),
@@ -213,6 +214,44 @@ def _font_face_css() -> str:
             )
         _font_css_cache = "\n".join(rules)
     return _font_css_cache
+
+
+def _preview_template_font_css(text: str) -> str:
+    """Embed only font families that can be selected by preview templates."""
+    families = {"G1 Noto Sans"}
+    if re.search(
+        r"[\u0600-\u06ff\u0750-\u077f\u0870-\u089f"
+        r"\u08a0-\u08ff\ufb50-\ufdff\ufe70-\ufeff]",
+        text,
+    ):
+        families.add("G1 Noto Sans Arabic")
+    if re.search(
+        r"[\u2e80-\u2fff\u3040-\u30ff\u31f0-\u31ff"
+        r"\u3400-\u4dbf\u4e00-\u9fff\uac00-\ud7af\uf900-\ufaff]",
+        text,
+    ):
+        families.add("G1 Noto Sans CJK SC")
+    key = tuple(sorted(families))
+    cached = _preview_font_css_cache.get(key)
+    if cached is not None:
+        return cached
+    rules = []
+    for filename, family, weight in _FONT_FILES:
+        if family not in families or weight != "400":
+            continue
+        path = FONTS_DIR / filename
+        if not path.is_file():
+            raise ConversionError("FONT_NOT_FOUND: bundled font is missing: " + filename)
+        mime = "font/otf" if path.suffix == ".otf" else "font/ttf"
+        encoded = base64.b64encode(path.read_bytes()).decode("ascii")
+        rules.append(
+            "@font-face{font-family:'%s';src:url(data:%s;base64,%s);"
+            "font-style:normal;font-weight:%s;font-display:block;}"
+            % (family, mime, encoded, weight)
+        )
+    css = "\n".join(rules)
+    _preview_font_css_cache[key] = css
+    return css
 
 
 def substitute_emoji_icons(html: str) -> str:
@@ -480,6 +519,22 @@ def build_footer_template(cfg: HeaderFooterConfig, render_date: Optional[str] = 
     """Build the Chromium footer template for a configuration."""
     return "<style>%s</style>%s" % (
         _font_face_css(), _build_template(cfg.bottom_left, cfg.bottom_center, cfg.bottom_right, render_date)
+    )
+
+
+def _build_preview_template(
+    left: str,
+    center: str,
+    right: str,
+    render_date: Optional[str],
+    font_text: str,
+) -> str:
+    """Build a visually equivalent template without unrelated font payloads."""
+    if not any((left, center, right)):
+        return "<div></div>"
+    return "<style>%s</style>%s" % (
+        _preview_template_font_css(font_text),
+        _build_template(left, center, right, render_date),
     )
 
 
@@ -882,6 +937,7 @@ class RenderDocument:
     full_html: str
     profile: RenderProfile
     render_date: str
+    title: str = "Document"
 
 
 def error_code(exc: BaseException) -> str:
@@ -1016,6 +1072,78 @@ class _BrowserRenderer:
             self._browser = None
             self._playwright = None
 
+    def _open_page(self):
+        """Create one isolated, network-denied page owned by this renderer."""
+        if self._browser is None:
+            raise ConversionError("BROWSER_UNAVAILABLE: browser session is not active")
+        context = self._browser.new_context(
+            locale="en-US", timezone_id="UTC", color_scheme="light",
+            java_script_enabled=False, service_workers="block",
+        )
+        page = context.new_page()
+
+        def abort_request(route):
+            # Data URIs are validated and embedded by the core; every other
+            # request is retained as evidence then denied.
+            if route.request.url.startswith("data:"):
+                route.continue_()
+                return
+            self.last_observed_requests.append(route.request.url)
+            route.abort()
+
+        page.route("**/*", abort_request)
+        return context, page
+
+    def _render_loaded_page(
+        self,
+        page,
+        output_path: Path,
+        header_footer: HeaderFooterConfig,
+        render_date: Optional[str],
+        preview_font_text: Optional[str] = None,
+    ) -> None:
+        """Print an already loaded page through the locked PDF settings."""
+        display_hf = not header_footer.is_empty()
+        margin = MARGIN_WITH_HEADER_FOOTER if display_hf else MARGIN_NO_HEADER_FOOTER
+        if preview_font_text is None:
+            header_template = (
+                build_header_template(header_footer, render_date)
+                if display_hf else "<div></div>"
+            )
+            footer_template = (
+                build_footer_template(header_footer, render_date)
+                if display_hf else "<div></div>"
+            )
+        else:
+            header_template = _build_preview_template(
+                header_footer.top_left,
+                header_footer.top_center,
+                header_footer.top_right,
+                render_date,
+                preview_font_text,
+            )
+            footer_template = _build_preview_template(
+                header_footer.bottom_left,
+                header_footer.bottom_center,
+                header_footer.bottom_right,
+                render_date,
+                preview_font_text,
+            )
+        page.emulate_media(media="print")
+        page.pdf(
+            path=str(output_path),
+            format="A4",
+            margin=margin,
+            display_header_footer=display_hf,
+            header_template=header_template,
+            footer_template=footer_template,
+            print_background=True,
+            tagged=True,
+            outline=True,
+        )
+        if self.last_observed_requests:
+            raise ConversionError("NETWORK_BLOCKED: renderer attempted a network request")
+
     def render(
         self,
         full_html: str,
@@ -1025,48 +1153,14 @@ class _BrowserRenderer:
     ) -> None:
         if self._browser is None:
             raise ConversionError("BROWSER_UNAVAILABLE: browser session is not active")
-        display_hf = not header_footer.is_empty()
-        margin = MARGIN_WITH_HEADER_FOOTER if display_hf else MARGIN_NO_HEADER_FOOTER
         context = None
         try:
-            context = self._browser.new_context(
-                locale="en-US", timezone_id="UTC", color_scheme="light",
-                java_script_enabled=False, service_workers="block",
-            )
-            page = context.new_page()
             self.last_observed_requests = []
-
-            def abort_request(route):
-                # Data URIs are validated and embedded by the core; every other
-                # request is retained as evidence then denied.
-                if route.request.url.startswith("data:"):
-                    route.continue_()
-                    return
-                self.last_observed_requests.append(route.request.url)
-                route.abort()
-
-            page.route("**/*", abort_request)
+            context, page = self._open_page()
             page.set_content(full_html, wait_until="load", timeout=RENDER_TIMEOUT_MS)
-            page.emulate_media(media="print")
-            page.pdf(
-                path=str(output_path),
-                format="A4",
-                margin=margin,
-                display_header_footer=display_hf,
-                header_template=(
-                    build_header_template(header_footer, render_date)
-                    if display_hf else "<div></div>"
-                ),
-                footer_template=(
-                    build_footer_template(header_footer, render_date)
-                    if display_hf else "<div></div>"
-                ),
-                print_background=True,
-                tagged=True,
-                outline=True,
+            self._render_loaded_page(
+                page, output_path, header_footer, render_date
             )
-            if self.last_observed_requests:
-                raise ConversionError("NETWORK_BLOCKED: renderer attempted a network request")
         except ConversionError:
             raise
         except Exception as exc:
@@ -1137,6 +1231,7 @@ def prepare_render_document(
     header_footer: Optional[HeaderFooterConfig] = None,
     theme: Optional[str] = None,
     theme_root: Optional[_PathInput] = None,
+    _include_profile_fingerprint: bool = True,
 ) -> RenderDocument:
     """Resolve deterministic HTML and profile inputs without launching Chromium."""
     _validate_markdown_text(markdown_text)
@@ -1149,9 +1244,15 @@ def prepare_render_document(
     body_html = embed_local_resources(body_html, resource_root or Path.cwd())
     title = extract_title(body_html)
     return RenderDocument(
-        build_full_html(body_html, title, css_text, profile.fingerprint),
+        build_full_html(
+            body_html,
+            title,
+            css_text,
+            profile.fingerprint if _include_profile_fingerprint else None,
+        ),
         profile,
         resolved_date,
+        title,
     )
 
 
@@ -1400,6 +1501,119 @@ def convert_batch(
     return results
 
 
+def _first_page_png(pdf_path: Path, dpi: int) -> bytes:
+    """Rasterize the first page of a core-rendered PDF."""
+    try:
+        import pypdfium2 as pdfium
+    except ImportError as exc:
+        raise ConversionError(
+            "The 'pypdfium2' package is not installed. Run: pip install pypdfium2"
+        ) from exc
+
+    pdf = pdfium.PdfDocument(str(pdf_path))
+    try:
+        page = pdf[0]
+        bitmap = page.render(scale=dpi / 72)
+        pil_image = bitmap.to_pil()
+        buffer = io.BytesIO()
+        pil_image.save(buffer, format="PNG")
+        return buffer.getvalue()
+    finally:
+        pdf.close()
+
+
+class PreviewSession:
+    """Reuse one network-denied Chromium page for related desktop previews."""
+
+    def __init__(self) -> None:
+        self._renderer = None  # type: Optional[_BrowserRenderer]
+        self._context = None
+        self._page = None
+        self._loaded_html_hash = None  # type: Optional[bytes]
+
+    def __enter__(self) -> "PreviewSession":
+        renderer = _BrowserRenderer()
+        self._renderer = renderer.__enter__()
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback) -> None:
+        try:
+            if self._context is not None:
+                self._context.close()
+        finally:
+            if self._renderer is not None:
+                self._renderer.__exit__(exc_type, exc_value, traceback)
+            self._context = None
+            self._page = None
+            self._renderer = None
+            self._loaded_html_hash = None
+
+    def render_png(
+        self,
+        markdown_text: str,
+        css_path: Optional[_PathInput] = None,
+        header_footer: Optional[HeaderFooterConfig] = None,
+        dpi: int = 110,
+        render_date: Optional[str] = None,
+        trusted_html: bool = False,
+        resource_root: Optional[_PathInput] = None,
+        theme: Optional[str] = None,
+        theme_root: Optional[_PathInput] = None,
+    ) -> bytes:
+        """Render a preview, reloading its page only when visual content changes."""
+        if self._renderer is None:
+            raise ConversionError("BROWSER_UNAVAILABLE: preview session is not active")
+        hf = header_footer if header_footer is not None else HeaderFooterConfig()
+        document = prepare_render_document(
+            markdown_text,
+            css_path=css_path,
+            header_footer=hf,
+            render_date=render_date,
+            trusted_html=trusted_html,
+            resource_root=resource_root,
+            theme=theme,
+            theme_root=theme_root,
+            # Header/footer values affect the PDF templates, not the page pixels.
+            _include_profile_fingerprint=False,
+        )
+        html_hash = hashlib.sha256(document.full_html.encode("utf-8")).digest()
+        if self._page is None:
+            self._context, self._page = self._renderer._open_page()
+        self._renderer.last_observed_requests = []
+        if html_hash != self._loaded_html_hash:
+            self._page.set_content(
+                document.full_html, wait_until="load", timeout=RENDER_TIMEOUT_MS
+            )
+            self._loaded_html_hash = html_hash
+
+        template_text = " ".join((
+            hf.top_left,
+            hf.top_center,
+            hf.top_right,
+            hf.bottom_left,
+            hf.bottom_center,
+            hf.bottom_right,
+            document.render_date,
+        ))
+        if "{title}" in template_text or "{titre}" in template_text:
+            template_text += " " + document.title
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            pdf_path = Path(tmp_dir) / "preview.pdf"
+            try:
+                self._renderer._render_loaded_page(
+                    self._page,
+                    pdf_path,
+                    hf,
+                    document.render_date,
+                    preview_font_text=template_text,
+                )
+            except ConversionError:
+                # A failed page is never retained as trusted reusable state.
+                self._loaded_html_hash = None
+                raise
+            return _first_page_png(pdf_path, dpi)
+
+
 def render_preview_png(
     markdown_text: str,
     css_path: Optional[_PathInput] = None,
@@ -1412,27 +1626,15 @@ def render_preview_png(
     theme_root: Optional[_PathInput] = None,
 ) -> bytes:
     """Render the first PDF page as PNG bytes for the desktop preview."""
-    try:
-        import pypdfium2 as pdfium
-    except ImportError as exc:
-        raise ConversionError(
-            "The 'pypdfium2' package is not installed. Run: pip install pypdfium2"
-        ) from exc
-
-    with tempfile.TemporaryDirectory() as tmp_dir:
-        pdf_path = Path(tmp_dir) / "preview.pdf"
-        convert_markdown_text_to_pdf(
-            markdown_text, pdf_path, css_path=css_path, header_footer=header_footer,
-            render_date=render_date, trusted_html=trusted_html,
-            resource_root=resource_root, theme=theme, theme_root=theme_root,
+    with PreviewSession() as session:
+        return session.render_png(
+            markdown_text,
+            css_path=css_path,
+            header_footer=header_footer,
+            dpi=dpi,
+            render_date=render_date,
+            trusted_html=trusted_html,
+            resource_root=resource_root,
+            theme=theme,
+            theme_root=theme_root,
         )
-        pdf = pdfium.PdfDocument(str(pdf_path))
-        try:
-            page = pdf[0]
-            bitmap = page.render(scale=dpi / 72)
-            pil_image = bitmap.to_pil()
-            buffer = io.BytesIO()
-            pil_image.save(buffer, format="PNG")
-            return buffer.getvalue()
-        finally:
-            pdf.close()

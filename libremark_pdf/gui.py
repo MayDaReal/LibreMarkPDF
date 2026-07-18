@@ -60,21 +60,42 @@ def _open_path(path: Path) -> None:
         subprocess.Popen(["xdg-open", resolved])
 
 
-def _run_preview_job(
+def _run_preview_worker(
+    request_queue: "queue.Queue",
     result_queue: "queue.Queue",
-    generation: int,
-    source_path: Optional[Path],
-    markdown_text: Optional[str],
-    options: dict,
 ) -> None:
-    """Worker boundary: perform file I/O/rendering and communicate only by queue."""
+    """Own one preview session and render only the latest queued request."""
+    session = None  # type: Optional[core.PreviewSession]
     try:
-        if source_path is not None:
-            markdown_text = source_path.read_text(encoding="utf-8")
-        png = core.render_preview_png(markdown_text or "", **options)
-        result_queue.put(("preview_ok", generation, png))
-    except Exception as exc:
-        result_queue.put(("preview_error", generation, str(exc)))
+        while True:
+            request = request_queue.get()
+            if request is None:
+                return
+            # Changes can arrive while Chromium is busy. Intermediate previews
+            # have no value, so retain only the newest complete request.
+            while True:
+                try:
+                    newer = request_queue.get_nowait()
+                except queue.Empty:
+                    break
+                if newer is None:
+                    return
+                request = newer
+            generation, source_path, markdown_text, options = request
+            try:
+                if source_path is not None:
+                    markdown_text = source_path.read_text(encoding="utf-8")
+                if session is None:
+                    candidate = core.PreviewSession()
+                    candidate.__enter__()
+                    session = candidate
+                png = session.render_png(markdown_text or "", **options)
+                result_queue.put(("preview_ok", generation, png))
+            except Exception as exc:
+                result_queue.put(("preview_error", generation, str(exc)))
+    finally:
+        if session is not None:
+            session.__exit__(None, None, None)
 
 
 def _run_conversion_job(
@@ -115,10 +136,17 @@ class LibreMarkPdfApp:
         self._preview_generation = 0
         self._preview_after = None
         self._preview_running = False
-        self._preview_pending_generation = None
+        self._preview_last_submitted = None  # type: Optional[int]
         self._poll_after = None
         self._cancel_event = threading.Event()
         self._result_queue = queue.Queue()  # type: queue.Queue
+        self._preview_requests = queue.Queue()  # type: queue.Queue
+        self._preview_thread = threading.Thread(
+            target=_run_preview_worker,
+            args=(self._preview_requests, self._result_queue),
+            daemon=True,
+        )
+        self._preview_thread.start()
         self._preview_png = None  # type: Optional[bytes]
         self.preview_photo = None
         self.zoom_percent = tk.IntVar(value=100)
@@ -633,7 +661,6 @@ class LibreMarkPdfApp:
 
     def _invalidate_preview(self, clear_image: bool = False) -> None:
         self._preview_generation += 1
-        self._preview_pending_generation = None
         if self._preview_after is not None:
             self.root.after_cancel(self._preview_after)
             self._preview_after = None
@@ -667,9 +694,6 @@ class LibreMarkPdfApp:
         self._preview_after = None
         if generation != self._preview_generation or self.operation != "idle":
             return
-        if self._preview_running:
-            self._preview_pending_generation = generation
-            return
         options = self._render_options()
         try:
             profile = core.render_profile_for_options(**options)
@@ -689,16 +713,12 @@ class LibreMarkPdfApp:
             options["resource_root"] = source_path.resolve().parent
         options["dpi"] = PREVIEW_DPI
         self._preview_running = True
-        self.refresh_preview_button.config(state="disabled")
+        self._preview_last_submitted = generation
         self._refresh_generate_button()
         self._set_status("status_rendering_preview")
-        threading.Thread(
-            target=_run_preview_job,
-            args=(
-                self._result_queue, generation, source_path, markdown_text, options
-            ),
-            daemon=True,
-        ).start()
+        self._preview_requests.put(
+            (generation, source_path, markdown_text, options)
+        )
         self._schedule_queue_poll()
 
     def _apply_preview_image(self, png_bytes: bytes) -> None:
@@ -853,24 +873,17 @@ class LibreMarkPdfApp:
             kind = message[0]
             if kind in ("preview_ok", "preview_error"):
                 generation = message[1]
-                self._preview_running = False
-                self.refresh_preview_button.config(state="normal")
+                is_latest_request = generation == self._preview_last_submitted
+                if is_latest_request:
+                    self._preview_running = False
                 if generation == self._preview_generation:
                     if kind == "preview_ok":
                         self._apply_preview_image(message[2])
                         self._set_status("status_ready")
                     else:
                         self._set_status("status_preview_error", error=message[2])
-                pending = self._preview_pending_generation
-                self._preview_pending_generation = None
-                self._refresh_generate_button()
-                if (
-                    pending is not None
-                    and pending == self._preview_generation
-                    and self.operation == "idle"
-                    and not self._close_requested
-                ):
-                    self.root.after(0, lambda: self._start_preview(pending))
+                if is_latest_request:
+                    self._refresh_generate_button()
             elif kind == "progress":
                 _kind, index, total, _result = message
                 self.progress_var.set(index)
@@ -943,6 +956,9 @@ class LibreMarkPdfApp:
             )
 
     def _request_close(self) -> None:
+        requests = getattr(self, "_preview_requests", None)
+        if requests is not None:
+            requests.put(None)
         if self.operation == "idle":
             self._close_requested = True
             self._invalidate_preview()

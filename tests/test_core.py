@@ -88,6 +88,24 @@ class TestTemplateBuilding(unittest.TestCase):
         self.assertIn("grid-template-columns:1fr auto 1fr", html)
         self.assertIn('style="text-align:center">middle</span>', html)
 
+    def test_preview_latin_template_omits_unselected_large_families(self):
+        css = core._preview_template_font_css("Page 1 / 2")
+        self.assertIn("G1 Noto Sans", css)
+        self.assertNotIn("G1 Noto Sans Arabic", css)
+        self.assertNotIn("G1 Noto Sans CJK SC", css)
+
+    def test_preview_template_includes_fonts_required_by_its_text(self):
+        arabic = core._preview_template_font_css("العربية")
+        cjk = core._preview_template_font_css("中文")
+        self.assertIn("G1 Noto Sans Arabic", arabic)
+        self.assertIn("G1 Noto Sans CJK SC", cjk)
+
+    def test_empty_preview_template_has_no_font_payload(self):
+        self.assertEqual(
+            core._build_preview_template("", "", "", None, ""),
+            "<div></div>",
+        )
+
 
 class TestMarkdownConversion(unittest.TestCase):
     def test_basic_markdown_to_html(self):
@@ -579,6 +597,63 @@ class TestEndToEndConversion(unittest.TestCase):
             statuses = {Path(r["input"]).name: r["status"] for r in results}
             self.assertEqual(statuses["good.md"], "ok")
             self.assertEqual(statuses["missing.md"], "error")
+
+    def test_preview_session_reuses_loaded_page_for_header_footer_changes(self):
+        renderer = mock.MagicMock()
+        renderer.__enter__.return_value = renderer
+        context = mock.MagicMock()
+        page = mock.MagicMock()
+        renderer._open_page.return_value = (context, page)
+        document = core.RenderDocument(
+            "<html>same visual content</html>",
+            mock.MagicMock(),
+            "2026-07-18",
+        )
+        first = core.HeaderFooterConfig(top_left="First")
+        second = core.HeaderFooterConfig(top_left="Second")
+        with mock.patch.object(core, "_BrowserRenderer", return_value=renderer):
+            with mock.patch.object(
+                core, "prepare_render_document", return_value=document
+            ) as prepare:
+                with mock.patch.object(
+                    core, "_first_page_png", return_value=b"png"
+                ):
+                    with core.PreviewSession() as session:
+                        session.render_png("# Same", header_footer=first)
+                        session.render_png("# Same", header_footer=second)
+        self.assertEqual(page.set_content.call_count, 1)
+        self.assertEqual(renderer._render_loaded_page.call_count, 2)
+        self.assertIs(
+            renderer._render_loaded_page.call_args_list[0].args[2], first
+        )
+        self.assertIs(
+            renderer._render_loaded_page.call_args_list[1].args[2], second
+        )
+        self.assertTrue(
+            prepare.call_args_list[0].kwargs["_include_profile_fingerprint"]
+            is False
+        )
+
+    def test_preview_session_reloads_page_when_visual_content_changes(self):
+        renderer = mock.MagicMock()
+        renderer.__enter__.return_value = renderer
+        page = mock.MagicMock()
+        renderer._open_page.return_value = (mock.MagicMock(), page)
+        documents = [
+            core.RenderDocument("<html>one</html>", mock.MagicMock(), "2026-07-18"),
+            core.RenderDocument("<html>two</html>", mock.MagicMock(), "2026-07-18"),
+        ]
+        with mock.patch.object(core, "_BrowserRenderer", return_value=renderer):
+            with mock.patch.object(
+                core, "prepare_render_document", side_effect=documents
+            ):
+                with mock.patch.object(
+                    core, "_first_page_png", return_value=b"png"
+                ):
+                    with core.PreviewSession() as session:
+                        session.render_png("# One")
+                        session.render_png("# Two")
+        self.assertEqual(page.set_content.call_count, 2)
 
     def test_render_preview_png_returns_valid_png_bytes(self):
         png_bytes = core.render_preview_png("# Hello\n\nWorld.", dpi=60)

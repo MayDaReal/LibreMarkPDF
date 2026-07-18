@@ -17,30 +17,167 @@ ROOT = Path(__file__).resolve().parent.parent
 
 
 class TestGuiWorkerBoundaries(unittest.TestCase):
-    def test_preview_worker_uses_queue_and_never_calls_tk(self):
+    def test_preview_worker_reuses_session_and_never_calls_tk(self):
+        request_queue = queue.Queue()
         result_queue = queue.Queue()
         options = {"dpi": 90}
         worker_thread = []
 
-        def render(markdown, **kwargs):
+        session = mock.MagicMock()
+        session.render_png.side_effect = lambda markdown, **kwargs: (
             worker_thread.append(threading.get_ident())
-            return b"\x89PNG\r\n\x1a\nmock"
-
-        with mock.patch.object(gui.core, "render_preview_png", side_effect=render):
+            or b"\x89PNG\r\n\x1a\nmock"
+        )
+        request_queue.put((7, None, "# Preview", options))
+        with mock.patch.object(gui.core, "PreviewSession", return_value=session):
             thread = threading.Thread(
-                target=gui._run_preview_job,
-                args=(result_queue, 7, None, "# Preview", options),
+                target=gui._run_preview_worker,
+                args=(request_queue, result_queue),
             )
             thread.start()
-            thread.join()
+            message = result_queue.get(timeout=2)
+            request_queue.put(None)
+            thread.join(2)
+        self.assertFalse(thread.is_alive())
         self.assertNotEqual(worker_thread[0], threading.get_ident())
         self.assertEqual(
-            result_queue.get_nowait(),
+            message,
             ("preview_ok", 7, b"\x89PNG\r\n\x1a\nmock"),
         )
-        source = inspect.getsource(gui._run_preview_job)
+        session.__enter__.assert_called_once_with()
+        session.__exit__.assert_called_once_with(None, None, None)
+        source = inspect.getsource(gui._run_preview_worker)
         self.assertNotIn("tk.", source)
         self.assertNotIn("messagebox", source)
+
+    def test_preview_worker_coalesces_queued_requests_to_latest(self):
+        request_queue = queue.Queue()
+        result_queue = queue.Queue()
+        rendered = []
+
+        def render(markdown, **kwargs):
+            rendered.append(markdown)
+            return b"png"
+
+        session = mock.MagicMock()
+        session.render_png.side_effect = render
+        request_queue.put((1, None, "old", {}))
+        request_queue.put((2, None, "new", {}))
+        with mock.patch.object(gui.core, "PreviewSession", return_value=session):
+            thread = threading.Thread(
+                target=gui._run_preview_worker,
+                args=(request_queue, result_queue),
+            )
+            thread.start()
+            message = result_queue.get(timeout=2)
+            request_queue.put(None)
+            thread.join(2)
+        self.assertFalse(thread.is_alive())
+        self.assertEqual(rendered, ["new"])
+        self.assertEqual(message, ("preview_ok", 2, b"png"))
+
+    def test_preview_worker_reads_source_off_the_main_thread(self):
+        request_queue = queue.Queue()
+        result_queue = queue.Queue()
+        source = mock.MagicMock(spec=Path)
+
+        def read_text(encoding):
+            self.assertNotEqual(threading.get_ident(), main_thread)
+            return "# File"
+
+        source.read_text.side_effect = read_text
+        session = mock.MagicMock()
+        session.render_png.return_value = b"png"
+        main_thread = threading.get_ident()
+        request_queue.put((3, source, None, {}))
+        with mock.patch.object(gui.core, "PreviewSession", return_value=session):
+            thread = threading.Thread(
+                target=gui._run_preview_worker,
+                args=(request_queue, result_queue),
+            )
+            thread.start()
+            result_queue.get(timeout=2)
+            request_queue.put(None)
+            thread.join(2)
+        self.assertFalse(thread.is_alive())
+        source.read_text.assert_called_once_with(encoding="utf-8")
+        session.render_png.assert_called_once_with("# File")
+
+    def test_preview_worker_reports_actionable_error(self):
+        request_queue = queue.Queue()
+        result_queue = queue.Queue()
+        session = mock.MagicMock()
+        session.render_png.side_effect = RuntimeError("preview failed")
+        request_queue.put((4, None, "# Broken", {}))
+        with mock.patch.object(gui.core, "PreviewSession", return_value=session):
+            thread = threading.Thread(
+                target=gui._run_preview_worker,
+                args=(request_queue, result_queue),
+            )
+            thread.start()
+            message = result_queue.get(timeout=2)
+            request_queue.put(None)
+            thread.join(2)
+        self.assertFalse(thread.is_alive())
+        self.assertEqual(
+            message,
+            ("preview_error", 4, "preview failed"),
+        )
+
+    def test_preview_session_is_created_on_the_worker_thread(self):
+        request_queue = queue.Queue()
+        result_queue = queue.Queue()
+        created_on = []
+        main_thread = threading.get_ident()
+
+        class Session:
+            def __init__(self):
+                created_on.append(threading.get_ident())
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                pass
+
+            def render_png(self, markdown, **kwargs):
+                return b"png"
+
+        request_queue.put((5, None, "# Thread", {}))
+        with mock.patch.object(gui.core, "PreviewSession", Session):
+            thread = threading.Thread(
+                target=gui._run_preview_worker,
+                args=(request_queue, result_queue),
+            )
+            thread.start()
+            result_queue.get(timeout=2)
+            request_queue.put(None)
+            thread.join(2)
+        self.assertFalse(thread.is_alive())
+        self.assertNotEqual(created_on[0], main_thread)
+
+    def test_preview_refresh_remains_available_while_rendering(self):
+        source = inspect.getsource(gui.LibreMarkPdfApp._start_preview)
+        self.assertNotIn('refresh_preview_button.config(state="disabled")', source)
+
+    def test_preview_worker_uses_render_options(self):
+        request_queue = queue.Queue()
+        result_queue = queue.Queue()
+        options = {"dpi": 90}
+        session = mock.MagicMock()
+        session.render_png.return_value = b"png"
+        request_queue.put((6, None, "# Preview", options))
+        with mock.patch.object(gui.core, "PreviewSession", return_value=session):
+            thread = threading.Thread(
+                target=gui._run_preview_worker,
+                args=(request_queue, result_queue),
+            )
+            thread.start()
+            result_queue.get(timeout=2)
+            request_queue.put(None)
+            thread.join(2)
+        self.assertFalse(thread.is_alive())
+        session.render_png.assert_called_once_with("# Preview", dpi=90)
 
     def test_conversion_worker_reports_progress_then_completion_by_queue(self):
         result_queue = queue.Queue()
@@ -158,7 +295,6 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
         app._preview_after = "preview-after"
         app._poll_after = "poll-after"
         app._preview_generation = 2
-        app._preview_pending_generation = 2
         app._request_close()
         self.assertTrue(app._close_requested)
         self.assertEqual(app._preview_generation, 3)

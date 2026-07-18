@@ -72,6 +72,13 @@ Until that evidence is returned and verified, Windows G3 cannot pass.
 | `venv-linux/bin/python -m libremark_pdf doctor --json` | 0 | Read-only resource probe reports CSS, seven fonts, icons, licence, default theme, and staged browser present. No browser was launched or downloaded. |
 | `git diff --check` | 0 | No whitespace errors; Git reports only line-ending notices for pre-existing Windows-oriented spec/batch formats. |
 | final `/bin/bash -lc 'PLAYWRIGHT_BROWSERS_PATH="$HOME/.cache/ms-playwright" venv-linux/bin/python -m unittest discover -s tests -v'` | 0 | 158 tests passed in 100.446 seconds on the exact pre-commit implementation state. |
+| preview baseline timing with three independent `render_preview_png` calls | 0 | Profile resolution took 0.072 seconds; previews took 10.918, 10.116, and 10.699 seconds. |
+| persistent-browser diagnostic with the existing full templates | 0 | Browser startup was 0.280 seconds; each conversion still took 9.802–9.905 seconds and PDFium rasterization took 0.002–0.015 seconds, isolating HTML/template ingestion rather than browser startup or rasterization. |
+| persistent preview diagnostic before template payload reduction | 0 | First preview took 10.593 seconds; header-only changes still took 7.171 and 7.308 seconds because each header and footer template embedded the complete 29 MB font CSS. |
+| optimized `PreviewSession` timing, Latin header changes | 0 | Session startup took 0.283 seconds; first preview took 3.168 seconds and subsequent header changes took 0.123 and 0.103 seconds. |
+| final-PDF versus optimized-preview pixel comparison | 0 | Same raster dimensions; `ImageChops.difference(...).getbbox()` returned `None`, so every pixel matched for the retained Latin header/footer case. |
+| `/bin/bash -lc 'PLAYWRIGHT_BROWSERS_PATH="$HOME/.cache/ms-playwright" venv-linux/bin/python -m unittest tests.test_core tests.test_gui -v'` | 0 | 88 focused core/GUI tests passed in 66.981 seconds. |
+| final `/bin/bash -lc 'PLAYWRIGHT_BROWSERS_PATH="$HOME/.cache/ms-playwright" venv-linux/bin/python -m unittest discover -s tests -v'` after preview optimization | 0 | 182 tests passed in 93.075 seconds; the final PDF remains tagged and retains its outline. |
 
 ## Implemented observable contracts
 
@@ -101,6 +108,17 @@ Until that evidence is returned and verified, Windows G3 cannot pass.
 - The Tk adapter uses scrollable file/body/preview canvases and 50–200% preview
   zoom. Preview requests debounce and carry a monotonically increasing
   generation; stale results are discarded.
+- One durable preview worker owns one core `PreviewSession` on one background
+  thread. It coalesces queued edits to the newest request, while the refresh
+  action remains available and every Tk call remains on the main thread.
+- The core retains one network-denied Chromium page for visually identical
+  content. Header/footer-only changes reuse that loaded page. Preview templates
+  embed only font families selected by their actual text; final PDF templates
+  and their accessibility settings are unchanged.
+- On the Linux development host, Latin header edits improved from about
+  7.2 seconds to 0.10–0.12 seconds after the first preview. The optimized
+  preview and final-PDF raster were pixel-identical for the measured case.
+  Native Windows timing and non-Latin visual evidence remain required.
 - Workers call only shared-core functions and queue immutable messages. Every
   Tk mutation, dialog, and result action remains on the main thread.
 - Batch conversion exposes per-item progress, cooperative cancellation, and
@@ -200,6 +218,16 @@ profile and are emitted again by the native runner in
 
 ## Failed experiments and limitations
 
+- The first local Chromium timing command ran inside the filesystem sandbox and
+  failed with `BROWSER_UNAVAILABLE` after Chromium reported
+  `sandbox_host_linux.cc:41 ... Operation not permitted`. The same read-only
+  diagnostic outside that sandbox completed; this was an execution-environment
+  restriction, not an application failure.
+- Browser-process reuse alone did not improve preview latency: it retained
+  9.8-second conversions. A second diagnostic showed `page.pdf()` and PDFium
+  were fast, leading to the 29 MB document and duplicated 58 MB header/footer
+  font payloads. The intermediate persistent implementation improved repeat
+  latency only to 7.2 seconds and was not accepted as the final correction.
 - Two focused invocations used nonexistent unittest class selectors
   `tests.test_cli.TestCliContract` and `tests.test_cli.TestCli`; each returned
   exit `1` with `AttributeError`. The corrected
