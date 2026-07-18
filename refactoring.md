@@ -244,7 +244,7 @@ States: `not started`, `in progress`, `blocked`, `completed`.
 | --- | --- | --- | --- |
 | R00 | Baseline and characterization | completed | owner go |
 | R01 | Engine package and contracts | completed | R00 |
-| R02 | Theme domain | not started | R01 |
+| R02 | Theme domain | completed | R01 |
 | R03 | Resource domain | not started | R02 |
 | R04 | Document and render-profile domain | not started | R03 |
 | R05 | Chromium and atomic-output domain | not started | R04 |
@@ -473,6 +473,39 @@ Forbidden in this lot:
 Exit criterion:
 
 - Theme tests and the full suite pass with identical default inputs.
+
+Execution record:
+
+- Status: completed (2026-07-18).
+- Owned files: `libremark_pdf/core.py`, `libremark_pdf/engine/themes.py`,
+  `tests/test_themes.py`, and this plan.
+- Observable no-change criteria: `core` keeps the exact theme API, `default@1`
+  remains an exact default-CSS alias, manifest validation codes and messages,
+  atomic install/update/remove semantics, and all default rendering inputs are
+  unchanged.
+- Change: the validated local registry and atomic lifecycle now have one
+  canonical implementation in `engine.themes`; `core` configures its existing
+  resource/security services and re-exports the same callable objects.
+- Focused checks: `venv-linux/bin/python -m unittest tests.test_themes -v` —
+  exit 0, 14 tests; `PLAYWRIGHT_BROWSERS_PATH="$HOME/.cache/ms-playwright"
+  venv-linux/bin/python -m unittest tests.test_core tests.test_themes -v` —
+  exit 0 outside the filesystem sandbox.
+- Python 3.9: `PYENV_VERSION=3.9.23 python3.9 -m py_compile
+  libremark_pdf/core.py libremark_pdf/engine/themes.py tests/test_themes.py` —
+  exit 0.
+- Full suite: `PLAYWRIGHT_BROWSERS_PATH="$HOME/.cache/ms-playwright"
+  venv-linux/bin/python -m unittest discover -s tests -q` — exit 0, 190 tests
+  in 100.095s outside the filesystem sandbox.
+- Rendering/resource review: the fixed core characterization retains profile
+  fingerprint `908aa157c6dbcdaac0fd71ca762d6f518d567341094622f2c984fc7a9147fe61`
+  and prepared-HTML SHA-256
+  `350bf1eccba49f4b8d81b5fd71360f3a78637cfd40c63ec7e9dd3f123b568d89`.
+  No CSS, manifest schema, theme, golden, generated artifact, cache, PDF,
+  immutable audit, or G1 archive file changed.
+- Risks and deviations: service injection is the minimum one-way boundary:
+  `engine.themes` never imports the public façade and there is no alternate
+  renderer. The independent PDFium `23-unicode` G2 limitation remains known
+  and unchanged. `git diff --check` — exit 0.
 
 Next dependency: R03.
 

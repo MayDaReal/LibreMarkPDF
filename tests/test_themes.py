@@ -9,6 +9,7 @@ from pathlib import Path
 from unittest import mock
 
 from libremark_pdf import core
+from libremark_pdf.engine import themes
 
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -32,6 +33,14 @@ def rewrite_manifest(package: Path, change) -> None:
 
 
 class TestThemeValidation(unittest.TestCase):
+    def test_core_reexports_the_internal_theme_domain(self):
+        for name in (
+            "validate_theme_package", "list_themes", "show_theme", "install_theme",
+            "remove_theme", "resolve_theme_css",
+        ):
+            self.assertIs(getattr(core, name), getattr(themes, name), name)
+        self.assertNotIn("libremark_pdf.core", Path(themes.__file__).read_text(encoding="utf-8"))
+
     def test_default_theme_is_an_exact_style_css_alias(self):
         info = core.show_theme("default@1", theme_root=Path("unused"))
         self.assertEqual(info.css_path, core.DEFAULT_CSS_PATH)
