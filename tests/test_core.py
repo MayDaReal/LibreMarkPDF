@@ -17,7 +17,7 @@ from unittest import mock
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from libremark_pdf import core
-from libremark_pdf.engine import chromium, contracts, document, jobs
+from libremark_pdf.engine import chromium, contracts, document, jobs, preview
 
 
 class TestCoreFacadeCharacterization(unittest.TestCase):
@@ -713,12 +713,12 @@ class TestEndToEndConversion(unittest.TestCase):
         )
         first = core.HeaderFooterConfig(top_left="First")
         second = core.HeaderFooterConfig(top_left="Second")
-        with mock.patch.object(core, "_BrowserRenderer", return_value=renderer):
+        with mock.patch.object(preview.chromium, "BrowserRenderer", return_value=renderer):
             with mock.patch.object(
-                core, "prepare_render_document", return_value=document
+                preview.document, "prepare_render_document", return_value=document
             ) as prepare:
                 with mock.patch.object(
-                    core, "_first_page_png", return_value=b"png"
+                    preview, "first_page_png", return_value=b"png"
                 ):
                     with core.PreviewSession() as session:
                         session.render_png("# Same", header_footer=first)
@@ -745,12 +745,12 @@ class TestEndToEndConversion(unittest.TestCase):
             core.RenderDocument("<html>one</html>", mock.MagicMock(), "2026-07-18"),
             core.RenderDocument("<html>two</html>", mock.MagicMock(), "2026-07-18"),
         ]
-        with mock.patch.object(core, "_BrowserRenderer", return_value=renderer):
+        with mock.patch.object(preview.chromium, "BrowserRenderer", return_value=renderer):
             with mock.patch.object(
-                core, "prepare_render_document", side_effect=documents
+                preview.document, "prepare_render_document", side_effect=documents
             ):
                 with mock.patch.object(
-                    core, "_first_page_png", return_value=b"png"
+                    preview, "first_page_png", return_value=b"png"
                 ):
                     with core.PreviewSession() as session:
                         session.render_png("# One")

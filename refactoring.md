@@ -249,7 +249,7 @@ States: `not started`, `in progress`, `blocked`, `completed`.
 | R04 | Document and render-profile domain | completed | R03 |
 | R05 | Chromium and atomic-output domain | completed | R04 |
 | R06 | Conversion jobs and batch domain | completed | R05 |
-| R07 | Preview domain | not started | R06 |
+| R07 | Preview domain | completed | R06 |
 | R08 | Core facade stabilization | not started | R07 |
 | R09 | Desktop contracts and services | not started | R08 |
 | R10 | Tk package migration | not started | R09 |
@@ -891,6 +891,45 @@ Performance guard:
 Exit criterion:
 
 - Preview correctness, reuse, cleanup, and performance are preserved.
+
+Execution record:
+
+- Status: completed (2026-07-18).
+- Owned files: `libremark_pdf/core.py`, `libremark_pdf/engine/preview.py`,
+  `tests/test_core.py`, `tests/test_preview.py`, and this plan.
+- Observable no-change criteria: preview PNG bytes remain generated from the
+  locked Chromium PDF path and PDFium; identical visual document HTML reuses
+  the loaded page, header/footer-only changes do not reload it, failed pages
+  are invalidated, and context/browser cleanup stays deterministic.
+- Change: the canonical PDFium first-page rasterizer, reusable preview session,
+  and one-shot preview function now live in `engine.preview`. `core` reexports
+  the same class and function objects; the engine module has no upward import
+  to the public facade, CLI, desktop, GUI, or toolkit modules.
+- Characterization: preview-boundary tests prove facade identity, no upward
+  import, an actionable missing-PDFium error, failed-page invalidation, and
+  context/browser cleanup. Existing core tests preserve content-reload and
+  header/footer reuse assertions; GUI worker tests remain unchanged and keep
+  consuming `core.PreviewSession`.
+- Focused preview/core/GUI suite: `PLAYWRIGHT_BROWSERS_PATH="$HOME/.cache/ms-playwright"
+  venv-linux/bin/python -m unittest tests.test_core tests.test_gui
+  tests.test_preview -v` — exit 0 outside the filesystem sandbox.
+- Pixel comparison: a fixed same-platform render at 60 DPI produced matching
+  497×703 images from final PDF and `render_preview_png`; `ImageChops.difference`
+  returned `None`.
+- Performance measurement on this host with the retained Latin fixture:
+  `PreviewSession` first render 3.126 s; header-only repeated render 0.114 s.
+  The retained reference is 3.168 s then 0.123/0.103 s, so no material
+  repeated-preview regression was observed.
+- Python 3.9: `PYENV_VERSION=3.9.23 python3.9 -m py_compile
+  libremark_pdf/core.py libremark_pdf/engine/preview.py tests/test_core.py
+  tests/test_preview.py` — exit 0.
+- Full suite: `PLAYWRIGHT_BROWSERS_PATH="$HOME/.cache/ms-playwright"
+  venv-linux/bin/python -m unittest discover -s tests -q` — exit 0 outside
+  the filesystem sandbox.
+- Diff/resource review: `git diff --check` — exit 0. No profile, CSS, font,
+  icon, golden, generated artifact, cache, PDF, immutable audit, or G1 archive
+  file changed. The independent PDFium `23-unicode` G2 limitation remains
+  known and unchanged.
 
 Next dependency: R08.
 
