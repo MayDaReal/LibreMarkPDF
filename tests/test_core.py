@@ -17,7 +17,7 @@ from unittest import mock
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from libremark_pdf import core
-from libremark_pdf.engine import chromium, contracts, document
+from libremark_pdf.engine import chromium, contracts, document, jobs
 
 
 class TestCoreFacadeCharacterization(unittest.TestCase):
@@ -471,7 +471,7 @@ class TestDeterministicCoreContract(unittest.TestCase):
             second = root / "two.md"
             first.write_text("# One", encoding="utf-8")
             second.write_text("# Two", encoding="utf-8")
-            with mock.patch.object(core, "_BrowserRenderer", FakeRenderer):
+            with mock.patch.object(jobs.chromium, "BrowserRenderer", FakeRenderer):
                 results = core.convert_batch([first, second], output_dir=root)
             self.assertEqual([item["status"] for item in results], ["ok", "ok"])
             self.assertEqual(FakeRenderer.entered, 1)
@@ -526,7 +526,7 @@ class TestDeterministicCoreContract(unittest.TestCase):
                 if index == 1:
                     cancel.set()
 
-            with mock.patch.object(core, "_BrowserRenderer", FakeRenderer):
+            with mock.patch.object(jobs.chromium, "BrowserRenderer", FakeRenderer):
                 results = core.convert_batch(
                     files,
                     cancel_event=cancel,
@@ -547,7 +547,7 @@ class TestDeterministicCoreContract(unittest.TestCase):
             source.write_text("# One", encoding="utf-8")
             cancel = threading.Event()
             cancel.set()
-            with mock.patch.object(core, "_BrowserRenderer") as renderer:
+            with mock.patch.object(jobs.chromium, "BrowserRenderer") as renderer:
                 results = core.convert_batch([source], cancel_event=cancel)
             renderer.assert_not_called()
             self.assertEqual(results[0]["status"], "cancelled")

@@ -248,7 +248,7 @@ States: `not started`, `in progress`, `blocked`, `completed`.
 | R03 | Resource domain | completed | R02 |
 | R04 | Document and render-profile domain | completed | R03 |
 | R05 | Chromium and atomic-output domain | completed | R04 |
-| R06 | Conversion jobs and batch domain | not started | R05 |
+| R06 | Conversion jobs and batch domain | completed | R05 |
 | R07 | Preview domain | not started | R06 |
 | R08 | Core facade stabilization | not started | R07 |
 | R09 | Desktop contracts and services | not started | R08 |
@@ -806,6 +806,49 @@ Exit criterion:
 
 - CLI and GUI services continue to consume only `core`, and batch invariants
   pass unchanged.
+
+Execution record:
+
+- Status: completed (2026-07-18).
+- Owned files: `libremark_pdf/core.py`, `libremark_pdf/engine/jobs.py`,
+  `tests/test_core.py`, `tests/test_jobs.py`, and this plan.
+- Observable no-change criteria: the public conversion and batch signatures,
+  default and explicit destination handling, UTF-8 and size diagnostics,
+  collision and duplicate detection, atomic publication, one-result-per-input
+  continuation, cancellation, progress isolation, and one eligible Chromium
+  session per batch remain unchanged.
+- Change: canonical text/file conversion, output planning, and batch
+  orchestration now live in `engine.jobs`; `core` reexports the same function
+  objects. The jobs module imports only internal engine modules and no public
+  facade, CLI, desktop, GUI, or toolkit module. CLI and desktop adapters remain
+  consumers of `core` only.
+- Characterization: new jobs-boundary tests prove facade identity, preserve the
+  public batch parameter order, and reject an upward `core` import. Existing
+  deterministic tests retain validation, path planning, continuation,
+  cancellation, callback, and one-browser-session coverage.
+- Focused conversion/theme/jobs suite: `PLAYWRIGHT_BROWSERS_PATH="$HOME/.cache/ms-playwright"
+  venv-linux/bin/python -m unittest tests.test_core tests.test_themes
+  tests.test_jobs -v` — exit 0, 89 tests, outside the filesystem sandbox.
+- Focused deterministic CLI/jobs suite: `PLAYWRIGHT_BROWSERS_PATH="$HOME/.cache/ms-playwright"
+  venv-linux/bin/python -m unittest tests.test_cli tests.test_jobs -v` — exit
+  0, 21 tests, including clean JSON subprocess and partial-batch continuation.
+  Browser-owning commands inside the filesystem sandbox fail with the known
+  `sandbox_host_linux.cc: shutdown: Operation not permitted` restriction; no
+  test was skipped, weakened, or changed to mask it.
+- Python 3.9: `PYENV_VERSION=3.9.23 python3.9 -m py_compile
+  libremark_pdf/core.py libremark_pdf/engine/jobs.py tests/test_core.py
+  tests/test_jobs.py` — exit 0.
+- Full suite: `PLAYWRIGHT_BROWSERS_PATH="$HOME/.cache/ms-playwright"
+  venv-linux/bin/python -m unittest discover -s tests -q` — exit 0 outside
+  the filesystem sandbox.
+- Deterministic rendering inputs: fixed profile fingerprint remains
+  `908aa157c6dbcdaac0fd71ca762d6f518d567341094622f2c984fc7a9147fe61` and
+  fixed prepared-HTML SHA-256 remains
+  `350bf1eccba49f4b8d81b5fd71360f3a78637cfd40c63ec7e9dd3f123b568d89`.
+- Diff/resource review: `git diff --check` — exit 0. No profile, CSS, font,
+  icon, golden, generated artifact, cache, PDF, immutable audit, or G1 archive
+  file changed. The independent PDFium `23-unicode` G2 limitation remains
+  known and unchanged.
 
 Next dependency: R07.
 
