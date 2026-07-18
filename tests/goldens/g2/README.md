@@ -4,9 +4,9 @@
 the 31-fixture Gate G2 corpus.  The PNGs are required reference rasters for
 the frozen 144-DPI visual thresholds; no generated PDF is committed.
 
-The baseline was generated from the complete Linux evidence for candidate
-commit `90d7dafd282dfbac4cf1692e523f9410cb8a588d`, approved by `maydareal`,
-and recorded by the signed local tag `g2-golden-initial-2026-07-14`.
+The baseline is regenerated from complete Linux evidence for candidate commit
+`1822a7c538558622a088ef464f15ddee408eef1d`, approved by `maydareal`, and
+recorded by the signed local tag `g2-golden-regeneration-2026-07-18`.
 `expected.json` retains the review identity and source-evidence SHA-256.
 
 Normal harness execution never modifies these files.  Replacement requires

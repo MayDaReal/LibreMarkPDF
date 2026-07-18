@@ -29,7 +29,8 @@ RASTER_DPI = 144
 SSIM_MINIMUM = 0.70
 DELTA_THRESHOLD = 16
 CHANGED_PIXEL_MAXIMUM_PERCENT = 4.20
-LARGEST_REGION_MAXIMUM_PERCENT = 0.05
+# ADR-009 records the owner-approved G2 cross-platform antialiasing envelope.
+LARGEST_REGION_MAXIMUM_PERCENT = 0.10
 
 
 def sha256_file(path):

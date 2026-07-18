@@ -105,14 +105,15 @@ artifact must have:
 - exact canonical pre-render HTML and render-profile fingerprint;
 - raster comparison at 144 DPI with SSIM at least `0.70`;
 - at most `4.20%` of pixels exceeding an RGB-channel delta of `16`;
-- no contiguous changed region larger than `0.05%` of a page;
+- no contiguous changed region larger than `0.10%` of a page;
 - no semantic, missing-resource, or pagination difference, regardless of image
   metric results.
 
-The one permitted antialiasing review was completed from an exact native
-Windows/Linux pair and is recorded in ADR-002. These thresholds are frozen
-before implementation release candidates are scored. Any later change requires
-a superseding ADR and explicit golden review.
+The first antialiasing review is recorded in ADR-002.  The owner-approved G2
+cross-platform amendment, including the `0.10%` connected-region ceiling, is
+recorded in ADR-009. These thresholds are frozen before implementation release
+candidates are scored. Any later change requires a superseding ADR and
+explicit golden review.
 
 Byte-for-byte PDF equality is not required. Creation timestamps, document IDs,
 compression, and object serialization can differ without a user-visible change.

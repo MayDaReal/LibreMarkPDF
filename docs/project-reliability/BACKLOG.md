@@ -32,7 +32,8 @@ remain:
 - Playwright 1.60.0 with Chromium/headless shell 148.0.7778.96 revision 1223;
 - seven-file static Noto candidate and recorded OFL licenses;
 - deny-all runtime network direction with local embedded resources;
-- frozen ADR-002 visual thresholds and strict structural equality;
+- ADR-002 G1 thresholds plus the ADR-009 G2 connected-region amendment, and
+  strict structural equality;
 - zipped portable Windows directory as the primary distribution format.
 
 These are architecture selections, not production implementation or official

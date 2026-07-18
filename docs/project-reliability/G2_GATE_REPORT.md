@@ -126,6 +126,45 @@ named human reviewer, and explanation before it can replace expected data.
 | `venv-linux/bin/python -m ruff check libremark_pdf/core.py tools/g2_visual_harness.py tools/update_g2_goldens.py tests/test_core.py tests/test_g2_harness.py` | 0 | Syntax/undefined-name policy passed. |
 | `git diff --check` | 0 | No whitespace errors. |
 
+## Incremental evidence — regenerated G2 baseline and ADR-009
+
+The owner approved regeneration of the canonical G2 expected data from the
+exact candidate `1822a7c538558622a088ef464f15ddee408eef1d` after review, and
+approved a `0.10%` (rather than `0.05%`) maximum connected changed region for
+G2. ADR-009 records the narrow amendment. It leaves SSIM, changed-pixel,
+semantic, resource, pagination, and geometry requirements unchanged; the G1
+archive remains historical immutable evidence.
+
+The signed local tag `g2-golden-regeneration-2026-07-18` verifies for
+`maydareality@gmail.com`, ED25519 `SHA256:/uZzs39mv1QxR2FXYN9ewOlf4FqeNZXzcYD5lKIievM`,
+and resolves to the exact candidate commit. The writer used a complete
+checkpoint corpus extracted from retained Linux evidence; it did not render or
+download anything while replacing the approved manifest and PNGs.
+
+| Command | Exit | Result |
+| --- | ---: | --- |
+| `git tag -v g2-golden-regeneration-2026-07-18` | 0 | Signed tag verified on `1822a7c538558622a088ef464f15ddee408eef1d`. |
+| `/tmp/libremark-g2-linux-venv/bin/python tools/update_g2_goldens.py --manifest tests/fixtures/g2/manifest.json --expected tests/goldens/g2/expected.json --actual-dir /tmp/libremark-g2-linux-1822a7c-regenerated/actual --candidate-commit 1822a7c538558622a088ef464f15ddee408eef1d --review-tag g2-golden-regeneration-2026-07-18 --review-ticket G2-GOLDEN-REGEN-1822a7c --reviewer maydareal ...` | 0 | Regenerated manifest and 34 reviewed PNGs from complete evidence. |
+| `/tmp/libremark-g2-linux-venv/bin/python tools/g2_visual_harness.py ... --actual-dir /tmp/libremark-g2-linux-1822a7c-regenerated/actual --collect-only` | 0 | Linux-to-regenerated-golden comparison passed all 31 fixtures. |
+| `/tmp/libremark-g2-linux-venv/bin/python -X faulthandler tools/g2_visual_harness.py ... --actual-dir /tmp/libremark-g2-windows-1822a7c/actual --collect-only` | 1 | Windows comparison has identical non-raster inputs and passes all raster thresholds, but fails strict PDFium text-geometry equality for all 31 fixtures. |
+
+Evidence hashes:
+
+- reviewed Linux candidate evidence: `/tmp/libremark-g2-linux-1822a7c-regenerated/actual/evidence.json`, SHA-256 `116b65d0153b018d20613356c26a028467a625df8abdb65f2085e510f53ba146`;
+- regenerated expected manifest: `tests/goldens/g2/expected.json`, SHA-256 `dd32efe4bb7728f80a4e9d7c47d77d7f136c3b54e6de37ddaa8184c08c277464`;
+- Linux comparison report: `/tmp/libremark-g2-linux-1822a7c-regenerated/regenerated-linux-report.json`, SHA-256 `9e4207be6b8fe8dc5cd68b8177324168cb415fa854297e189013b1c257e61ab5`;
+- Windows comparison report: `/tmp/libremark-g2-linux-1822a7c-regenerated/regenerated-windows-report.json`, SHA-256 `a06363f4d65cb50326cedc2946ae45b90b7ce668289b0a31bcaa7050ab6e3b44`.
+
+For `09-inline-code`, the Windows/Linux metrics are SSIM `0.7036256698`,
+changed pixels `0.3705008479%`, and largest connected region `0.0608047322%`;
+all pass ADR-009. Its and every other fixture's `text_geometry_sha256`
+nevertheless differs between platforms (for example, `01-headings` Linux
+`4f44d875...70e021`, Windows `7774a979...00d861`). This is a strict structural
+failure under ADR-002 and the target architecture, not an antialiasing metric
+failure. G2 therefore remains open pending an owner decision: preserve strict
+geometry and correct the cross-platform rendering discrepancy, or explicitly
+supersede that structural contract with a separately reviewed tolerance policy.
+
 ## Incremental evidence — resumable Linux candidate generation
 
 The interactive executor terminated the initial all-fixture candidate run after

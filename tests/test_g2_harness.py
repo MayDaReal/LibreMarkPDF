@@ -35,6 +35,9 @@ class TestG2VisualHarness(unittest.TestCase):
         self.assertEqual(metrics["changed_pixel_percent"], 0.0)
         self.assertEqual(metrics["largest_changed_region_percent"], 0.0)
 
+    def test_g2_cross_platform_region_limit_matches_approved_adr(self):
+        self.assertEqual(g2_visual_harness.LARGEST_REGION_MAXIMUM_PERCENT, 0.10)
+
     def test_dimension_mismatch_fails_unconditionally(self):
         metrics = g2_visual_harness.raster_metrics(
             Image.new("RGB", (4, 4), "white"), Image.new("RGB", (5, 4), "white")
