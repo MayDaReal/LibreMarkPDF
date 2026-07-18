@@ -349,19 +349,20 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
         self.assertNotIn("tkinter", service_source)
         self.assertNotIn("ImageTk", service_source)
 
-    def test_root_gui_and_legacy_modules_are_toolkit_free_facades(self):
-        root_modules = (
-            gui,
-            __import__("libremark_pdf.gui_layout", fromlist=["*"]),
-            __import__("libremark_pdf.gui_inputs", fromlist=["*"]),
-            __import__("libremark_pdf.gui_preview", fromlist=["*"]),
-            __import__("libremark_pdf.gui_conversion", fromlist=["*"]),
-        )
-        for module in root_modules:
-            source = Path(module.__file__).read_text(encoding="utf-8")
-            self.assertNotIn("import tkinter", source)
-            self.assertNotIn("ImageTk", source)
+    def test_root_gui_is_a_toolkit_free_launch_facade(self):
+        source = Path(gui.__file__).read_text(encoding="utf-8")
+        self.assertNotIn("import tkinter", source)
+        self.assertNotIn("ImageTk", source)
         self.assertIs(gui.LibreMarkPdfApp, tk_app.LibreMarkPdfApp)
+
+    def test_obsolete_root_tk_compatibility_facades_are_absent(self):
+        for name in (
+            "gui_layout.py",
+            "gui_inputs.py",
+            "gui_preview.py",
+            "gui_conversion.py",
+        ):
+            self.assertFalse((ROOT / "libremark_pdf" / name).exists())
 
     def test_result_open_uses_the_injected_desktop_service(self):
         app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)

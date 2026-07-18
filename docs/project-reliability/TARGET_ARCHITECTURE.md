@@ -51,8 +51,9 @@ The desktop implementation keeps UI technology separate from conversion:
   `DesktopServices` boundary;
 - `libremark_pdf/gui.py` owns the Tk application lifecycle, localization, and
   main-thread queue dispatch;
-- `gui_layout.py`, `gui_inputs.py`, `gui_preview.py`, and `gui_conversion.py`
-  isolate Tk layout, user inputs, preview interaction, and batch interaction.
+- `libremark_pdf/desktop/tk/` contains the private Tk layout, user-input,
+  preview-interaction, and batch-interaction modules; `gui.py` remains their
+  stable launch facade.
 
 An experimental desktop technology may inject or reuse `DesktopServices` and
 must call the same core API. It must not copy rendering logic, add another PDF
