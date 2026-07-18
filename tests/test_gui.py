@@ -10,8 +10,12 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from libremark_pdf import desktop_services, gui, gui_layout
+from libremark_pdf import desktop_services, gui
 from libremark_pdf.desktop import services
+from libremark_pdf.desktop.tk import app as tk_app
+from libremark_pdf.desktop.tk import conversion as tk_conversion
+from libremark_pdf.desktop.tk import layout as tk_layout
+from libremark_pdf.desktop.tk import preview as tk_preview
 
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -30,7 +34,7 @@ class TestGuiWorkerBoundaries(unittest.TestCase):
             or b"\x89PNG\r\n\x1a\nmock"
         )
         request_queue.put((7, None, "# Preview", options))
-        with mock.patch.object(gui.core, "PreviewSession", return_value=session):
+        with mock.patch.object(services.core, "PreviewSession", return_value=session):
             thread = threading.Thread(
                 target=gui._run_preview_worker,
                 args=(request_queue, result_queue),
@@ -64,7 +68,7 @@ class TestGuiWorkerBoundaries(unittest.TestCase):
         session.render_png.side_effect = render
         request_queue.put((1, None, "old", {}))
         request_queue.put((2, None, "new", {}))
-        with mock.patch.object(gui.core, "PreviewSession", return_value=session):
+        with mock.patch.object(services.core, "PreviewSession", return_value=session):
             thread = threading.Thread(
                 target=gui._run_preview_worker,
                 args=(request_queue, result_queue),
@@ -91,7 +95,7 @@ class TestGuiWorkerBoundaries(unittest.TestCase):
         session.render_png.return_value = b"png"
         main_thread = threading.get_ident()
         request_queue.put((3, source, None, {}))
-        with mock.patch.object(gui.core, "PreviewSession", return_value=session):
+        with mock.patch.object(services.core, "PreviewSession", return_value=session):
             thread = threading.Thread(
                 target=gui._run_preview_worker,
                 args=(request_queue, result_queue),
@@ -110,7 +114,7 @@ class TestGuiWorkerBoundaries(unittest.TestCase):
         session = mock.MagicMock()
         session.render_png.side_effect = RuntimeError("preview failed")
         request_queue.put((4, None, "# Broken", {}))
-        with mock.patch.object(gui.core, "PreviewSession", return_value=session):
+        with mock.patch.object(services.core, "PreviewSession", return_value=session):
             thread = threading.Thread(
                 target=gui._run_preview_worker,
                 args=(request_queue, result_queue),
@@ -145,7 +149,7 @@ class TestGuiWorkerBoundaries(unittest.TestCase):
                 return b"png"
 
         request_queue.put((5, None, "# Thread", {}))
-        with mock.patch.object(gui.core, "PreviewSession", Session):
+        with mock.patch.object(services.core, "PreviewSession", Session):
             thread = threading.Thread(
                 target=gui._run_preview_worker,
                 args=(request_queue, result_queue),
@@ -168,7 +172,7 @@ class TestGuiWorkerBoundaries(unittest.TestCase):
         session = mock.MagicMock()
         session.render_png.return_value = b"png"
         request_queue.put((6, None, "# Preview", options))
-        with mock.patch.object(gui.core, "PreviewSession", return_value=session):
+        with mock.patch.object(services.core, "PreviewSession", return_value=session):
             thread = threading.Thread(
                 target=gui._run_preview_worker,
                 args=(request_queue, result_queue),
@@ -192,7 +196,7 @@ class TestGuiWorkerBoundaries(unittest.TestCase):
             progress_callback(1, 1, result)
             return [result]
 
-        with mock.patch.object(gui.core, "convert_batch", side_effect=convert):
+        with mock.patch.object(services.core, "convert_batch", side_effect=convert):
             gui._run_conversion_job(result_queue, [Path("one.md")], {}, cancel)
         self.assertEqual(result_queue.get_nowait()[0:3], ("progress", 1, 1))
         self.assertEqual(result_queue.get_nowait()[0], "generate_done")
@@ -233,21 +237,21 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
         app.output_dir = None
         app._t = lambda key, **kwargs: key
         plans = [
-            gui.core.BatchPlan(
+            services.core.BatchPlan(
                 Path("one.md"), Path("same.pdf"),
                 "DUPLICATE_OUTPUT: duplicate destination",
             ),
-            gui.core.BatchPlan(
+            services.core.BatchPlan(
                 Path("two.md"), Path("two.pdf"),
                 "OUTPUT_EXISTS: refusing overwrite",
             ),
         ]
-        with mock.patch.object(gui.core, "plan_batch_outputs", return_value=plans):
+        with mock.patch.object(services.core, "plan_batch_outputs", return_value=plans):
             with mock.patch.object(
-                gui.messagebox, "askokcancel", return_value=True
+                tk_conversion.messagebox, "askokcancel", return_value=True
             ) as collision:
                 with mock.patch.object(
-                    gui.messagebox, "askyesnocancel", return_value=False
+                    tk_conversion.messagebox, "askyesnocancel", return_value=False
                 ) as overwrite:
                     choice = app._overwrite_choice()
         self.assertFalse(choice)
@@ -269,7 +273,7 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
                 "error": "failed", "error_code": "RENDER_FAILED",
             },
         ]
-        with mock.patch.object(gui.messagebox, "showerror"):
+        with mock.patch.object(tk_conversion.messagebox, "showerror"):
             app._handle_generate_done(results)
         app._render_results.assert_called_once_with([results[0]])
 
@@ -332,7 +336,7 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
     def test_source_contains_scroll_zoom_keyboard_and_focus_contracts(self):
         source = "\n".join(
             Path(module.__file__).read_text(encoding="utf-8")
-            for module in (gui, gui_layout)
+            for module in (tk_app, tk_layout, tk_preview)
         )
         for marker in (
             "body_canvas", "file_canvas", "preview_canvas",
@@ -346,6 +350,20 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
         service_source = Path(desktop_services.__file__).read_text(encoding="utf-8")
         self.assertNotIn("tkinter", service_source)
         self.assertNotIn("ImageTk", service_source)
+
+    def test_root_gui_and_legacy_modules_are_toolkit_free_facades(self):
+        root_modules = (
+            gui,
+            __import__("libremark_pdf.gui_layout", fromlist=["*"]),
+            __import__("libremark_pdf.gui_inputs", fromlist=["*"]),
+            __import__("libremark_pdf.gui_preview", fromlist=["*"]),
+            __import__("libremark_pdf.gui_conversion", fromlist=["*"]),
+        )
+        for module in root_modules:
+            source = Path(module.__file__).read_text(encoding="utf-8")
+            self.assertNotIn("import tkinter", source)
+            self.assertNotIn("ImageTk", source)
+        self.assertIs(gui.LibreMarkPdfApp, tk_app.LibreMarkPdfApp)
 
     def test_result_open_uses_the_injected_desktop_service(self):
         app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)

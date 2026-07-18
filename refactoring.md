@@ -252,7 +252,7 @@ States: `not started`, `in progress`, `blocked`, `completed`.
 | R07 | Preview domain | completed | R06 |
 | R08 | Core facade stabilization | completed | R07 |
 | R09 | Desktop contracts and services | completed | R08 |
-| R10 | Tk package migration | not started | R09 |
+| R10 | Tk package migration | completed | R09 |
 | R11 | Dialog boundary and desktop cleanup | not started | R10 |
 | R12 | Final refactoring validation | not started | R11 |
 
@@ -1157,6 +1157,47 @@ Exit criterion:
 
 - Root GUI modules are facades or removed safely, and the Tk implementation is
   isolated under `desktop/tk`.
+
+Execution record:
+
+- Observable no-change criteria: window geometry, minimum size, widget tree,
+  ordering, colors, fonts, spacing, EN/FR text, bindings, preview rendering,
+  conversion/cancellation/close decisions, and optional drag-and-drop remain
+  mechanically identical. Tk stays on the main thread; workers remain in the
+  toolkit-neutral desktop-service boundary.
+- Change: moved the canonical Tk lifecycle, layout, input, preview, and batch
+  interaction code to `desktop/tk/{app,layout,inputs,preview,conversion}.py`.
+  `gui.py` is now the stable launch facade; the prior `gui_*.py` modules are
+  import-compatible facades that reexport their canonical Tk objects. No
+  widget, dialog, layout, wording, workflow, renderer, or service behavior was
+  changed.
+- Characterization: GUI tests now address the owning Tk modules for structural
+  assertions, retain all queue, stale-preview, close/cancel, injected-service,
+  EN/FR, keyboard, and optional-DnD checks, and add root/legacy facade checks:
+  the facades contain no toolkit import and `gui.LibreMarkPdfApp` has the same
+  identity as `desktop.tk.app.LibreMarkPdfApp`.
+- Focused desktop/GUI/i18n suite:
+  `venv-linux/bin/python -m unittest tests.test_desktop_services tests.test_gui
+  tests.test_i18n -v` — 35 tests, exit 0.
+- Python 3.9: `PYENV_VERSION=3.9.23 python3.9 -m py_compile
+  libremark_pdf/gui.py libremark_pdf/gui_layout.py libremark_pdf/gui_inputs.py
+  libremark_pdf/gui_preview.py libremark_pdf/gui_conversion.py
+  libremark_pdf/desktop/tk/__init__.py libremark_pdf/desktop/tk/app.py
+  libremark_pdf/desktop/tk/layout.py libremark_pdf/desktop/tk/inputs.py
+  libremark_pdf/desktop/tk/preview.py libremark_pdf/desktop/tk/conversion.py
+  tests/test_gui.py` — exit 0.
+- Full suite: `PLAYWRIGHT_BROWSERS_PATH="$HOME/.cache/ms-playwright"
+  venv-linux/bin/python -m unittest discover -s tests -v` — exit 0 outside the
+  filesystem sandbox; Chromium requires that execution context. CLI `convert
+  --help` and `--version` — exit 0.
+- Determinism/resource review: exact fingerprint remains
+  `908aa157c6dbcdaac0fd71ca762d6f518d567341094622f2c984fc7a9147fe61`,
+  prepared HTML SHA-256 remains
+  `350bf1eccba49f4b8d81b5fd71360f3a78637cfd40c63ec7e9dd3f123b568d89`,
+  and `default@1` remains an exact alias. `git diff --check` — exit 0. No
+  rendering resource, profile, golden, generated artifact, cache, PDF,
+  immutable audit, or G1 archive file changed. The independent PDFium
+  `23-unicode` G2 limitation remains known and unchanged.
 
 Next dependency: R11.
 
