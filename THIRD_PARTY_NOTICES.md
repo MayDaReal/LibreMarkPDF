@@ -4,10 +4,10 @@ The repository's MIT license covers LibreMark PDF source. It does not replace
 the licenses of Python dependencies, Chromium, PDFium, fonts, icons, themes, or
 other bundled resources.
 
-The native G3 workflow generates an SPDX 2.3 JSON inventory from the exact
-hashed Windows dependency lock and every file in the packaged candidate. That
-inventory is candidate evidence, not a claim that an official release notice
-review is complete.
+The native G3 workflows generate SPDX 2.3 JSON inventories from the exact
+hashed Windows or Linux dependency lock and every file in the corresponding
+packaged candidate. Those inventories are candidate evidence, not a claim that
+an official release notice review is complete.
 
 The current locked Python components and declared licence expressions are:
 
@@ -25,11 +25,12 @@ The current locked Python components and declared licence expressions are:
 | tkinterdnd2 | MIT |
 | typing-extensions | PSF-2.0 |
 
-The exact versions and archive SHA-256 values are in
-`requirements/locks/windows-x64-py39.txt` and are copied into the generated
-SBOM. Chromium/headless shell `148.0.7778.96` revision `1223` carries its
-packaged `LICENSE.headless_shell`; the evidence inventory hashes that file and
-the complete browser payload.
+The exact versions and platform-specific archive SHA-256 values are in
+`requirements/locks/windows-x64-py39.txt` and
+`requirements/locks/linux-x86_64-py39.txt`; the applicable records are copied
+into each generated SBOM. Chromium/headless shell `148.0.7778.96` revision
+`1223` carries its packaged `LICENSE.headless_shell`; the evidence inventory
+hashes that file and the complete browser payload.
 
 The seven bundled Noto faces are licensed under OFL-1.1. Their retained texts
 are:

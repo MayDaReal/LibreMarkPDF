@@ -30,6 +30,8 @@ the command that produced it.
 | Closed G1 decision and command results | `archive/g1/README.md` and its indexed reports |
 | File-level integrity of G1 evidence | manifests under `archive/g1/` |
 | Current task assignment format | `AGENT_PROMPTS.md` |
+| Active Windows G3 evidence | `G3_EXECUTION_BOARD.md` and `G3_GATE_REPORT.md` |
+| Active optional Linux G3 evidence | `G3_LINUX_EXECUTION_BOARD.md` and `G3_LINUX_GATE_REPORT.md` |
 
 Do not duplicate a decision in a new report. Update the owning ADR or active
 backlog entry, then link the evidence from the gate report. When a gate closes,

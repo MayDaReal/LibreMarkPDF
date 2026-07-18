@@ -108,8 +108,9 @@ default footer is `Page {page} / {total}`.
 
 ## Build a local artifact
 
-Builds download dependencies and Chromium, so the build step requires network
-access. Conversion is intended to run locally with the bundled resources.
+Dependency and browser acquisition may require network. The authoritative
+candidate build steps consume already staged inputs and perform no download.
+Conversion runs locally with the bundled resources.
 
 ### Windows
 
@@ -127,15 +128,22 @@ gates.
 
 ### Linux
 
-Install Tk for your distribution, then run:
+Prepare the hash-locked CPython 3.9 x86_64 environment and exact browser
+payload described by the
+[`Linux validation guide`](docs/LINUX_BUILD_VALIDATION.md), then run:
 
 ```bash
-chmod +x build.sh
-./build.sh
+export LIBREMARK_PDF_PYTHON="$PWD/.venv-linux-g3/bin/python"
+export LIBREMARK_PDF_BROWSER_SOURCE=/absolute/staging/browser
+./build_linux_portable.sh
 ```
 
-The resulting `dist/LibreMarkPDF` is native to the build environment. Linux is
-not advertised as portable until its native compatibility gate passes.
+The candidate is `dist/LibreMarkPDF-linux-x86_64-candidate.tar.gz`. It expands
+to an onedir layout with `LibreMarkPDF` (GUI), `LibreMarkPDF-cli`
+(authoritative streams), and `LibreMarkPDF-debug` (diagnostic GUI). The
+tarball avoids FUSE but still requires compatible glibc and Chromium host
+libraries. Linux is not advertised as supported or portable until its
+independent native matrix gate passes.
 
 ## Architecture
 

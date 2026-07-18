@@ -51,7 +51,9 @@ Vous pouvez associer du texte aux jetons, par exemple :
 ## Ligne de commande
 
 Depuis les sources, utilisez `python -m libremark_pdf`. Avec un exécutable
-construit en mode console, remplacez ce préfixe par le chemin de l’exécutable.
+construit en mode console, remplacez ce préfixe par le chemin de l’exécutable
+(`LibreMarkPDF-cli.exe` sous Windows ou `LibreMarkPDF-cli` dans le dossier du
+candidat Linux).
 
 ```bash
 # Créer report.pdf à côté de report.md
@@ -130,6 +132,11 @@ conversion.
   rétablissez le style intégré.
 - **L’application se ferme sous Windows :** lancez
   `dist\LibreMarkPDF\LibreMarkPDF-debug.exe` pour conserver le diagnostic.
+- **Le candidat Linux ne démarre pas :** conservez tout son dossier
+  `_internal`, lancez `LibreMarkPDF-debug` depuis un terminal et gardez la
+  liste des bibliothèques manquantes produite par `ldd`. L’archive n’utilise
+  pas FUSE, mais dépend toujours d’une glibc et de bibliothèques de bureau
+  compatibles avec Chromium.
 - **Un tableau revient à la ligne de manière inattendue :** le style par défaut
   utilise une mise en page fixe ; un contenu long peut augmenter la pagination.
 

@@ -46,7 +46,9 @@ Literal text is allowed around tokens, for example:
 ## Command line
 
 When running from source, use `python -m libremark_pdf`. In a built console
-artifact, replace that prefix with the executable path.
+artifact, replace that prefix with the executable path
+(`LibreMarkPDF-cli.exe` on Windows or `LibreMarkPDF-cli` inside the Linux
+candidate directory).
 
 ```bash
 # Create report.pdf beside report.md
@@ -122,6 +124,10 @@ conversion.
   default.
 - **The application closes on Windows:** start
   `dist\LibreMarkPDF\LibreMarkPDF-debug.exe` to retain startup diagnostics.
+- **The Linux candidate does not start:** keep its complete `_internal`
+  directory, start `LibreMarkPDF-debug` from a terminal, and retain the `ldd`
+  missing-library output. The tarball does not use FUSE, but it still depends
+  on compatible glibc and Chromium desktop libraries.
 - **A table wraps unexpectedly:** the default stylesheet uses a fixed table
   layout; long content may wrap or increase pagination.
 

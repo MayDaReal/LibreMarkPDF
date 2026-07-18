@@ -10,12 +10,14 @@ unmodified native build scripts. Its historical lower bounds are intentionally
 not presented as reproducible. Switching production builds to a platform lock
 requires the remaining G1 renderer/golden and native validation evidence.
 
-The initial release candidate is Windows x64 on CPython 3.9:
-`locks/windows-x64-py39.txt`. It selects Playwright 1.60.0, whose wheel manifest
-selects Chromium/headless-shell 148.0.7778.96 at revision 1223 and FFmpeg 1011.
-Changing Playwright or its browser manifest requires a dedicated dependency PR,
-an updated lock, renderer-spike review, and golden evidence; Dependabot must not
-merge it automatically.
+The mandatory initial release candidate is Windows x64 on CPython 3.9:
+`locks/windows-x64-py39.txt`. The optional G3 Linux x86_64 candidate uses
+`locks/linux-x86_64-py39.txt`; that lock is not a distribution support claim.
+Both select Playwright 1.60.0, whose wheel manifest selects Chromium/headless
+shell 148.0.7778.96 at revision 1223 and FFmpeg 1011. Changing Playwright or
+its browser manifest requires a dedicated dependency PR, an updated
+platform-specific lock, renderer-spike review, and golden evidence; Dependabot
+must not merge it automatically.
 
 ## Contributor setup
 
@@ -67,3 +69,17 @@ The initial coverage floor is 30% overall, based on a measured 31% branch-aware
 pure-suite result. Reports retain per-module values so GUI, CLI, core, and i18n
 gaps remain visible. Raising the floor requires added tests; it must never be
 lowered to accept a regression.
+
+## Hashed Linux candidate install
+
+On native Linux x86_64 with CPython 3.9:
+
+```bash
+python -m pip install --require-hashes \
+  -r requirements/locks/linux-x86_64-py39.txt
+```
+
+The wheels were resolved for a manylinux2014 x86_64 input set. This ensures
+archive integrity, not runtime compatibility. The exact candidate still
+requires the distribution, glibc, desktop-library, offline, GUI/CLI and
+canonical checks in `docs/LINUX_BUILD_VALIDATION.md`.
