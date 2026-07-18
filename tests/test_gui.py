@@ -11,6 +11,7 @@ from pathlib import Path
 from unittest import mock
 
 from libremark_pdf import desktop_services, gui, gui_layout
+from libremark_pdf.desktop import services
 
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -320,10 +321,10 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
         app._schedule_preview.assert_not_called()
 
     def test_open_path_uses_argument_list_without_shell(self):
-        with mock.patch.object(desktop_services.os, "name", "posix"):
-            with mock.patch.object(desktop_services.sys, "platform", "linux"):
+        with mock.patch.object(services.os, "name", "posix"):
+            with mock.patch.object(services.sys, "platform", "linux"):
                 with mock.patch.object(
-                    desktop_services.subprocess, "Popen"
+                    services.subprocess, "Popen"
                 ) as popen:
                     desktop_services.open_path(Path("/tmp/report.pdf"))
         popen.assert_called_once_with(["xdg-open", "/tmp/report.pdf"])

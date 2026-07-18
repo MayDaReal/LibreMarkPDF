@@ -251,7 +251,7 @@ States: `not started`, `in progress`, `blocked`, `completed`.
 | R06 | Conversion jobs and batch domain | completed | R05 |
 | R07 | Preview domain | completed | R06 |
 | R08 | Core facade stabilization | completed | R07 |
-| R09 | Desktop contracts and services | not started | R08 |
+| R09 | Desktop contracts and services | completed | R08 |
 | R10 | Tk package migration | not started | R09 |
 | R11 | Dialog boundary and desktop cleanup | not started | R10 |
 | R12 | Final refactoring validation | not started | R11 |
@@ -1059,6 +1059,50 @@ Required checks:
 Exit criterion:
 
 - Desktop work can be exercised without constructing a Tk root.
+
+Execution record:
+
+- Observable no-change criteria: GUI queue consumers retain the exact legacy
+  positional tuple shapes; preview requests still coalesce to the latest item,
+  file reads and Chromium work remain off the Tk thread, conversion reports
+  each progress and terminal event, native open commands retain their argument
+  lists, and injected services remain usable by the existing GUI adapter.
+- Change: created private `desktop.contracts` typed `NamedTuple` queue
+  messages and moved toolkit-independent preview, conversion, and native-path
+  operations to `desktop.services`. The root `desktop_services` module is a
+  compatibility facade reexporting the same service objects. Named tuples keep
+  tuple indexing, unpacking, and equality so the unchanged GUI consumes the
+  same messages while the internal worker boundary is typed.
+- Characterization: new desktop-service tests prove root-facade identities,
+  no Tk/Pillow or engine imports in services, public-core use only, typed and
+  legacy preview request compatibility, latest-request coalescing, worker
+  error isolation, progress/terminal messages, and no Tk calls in workers.
+  Existing GUI tests continue to prove optional drag-and-drop import, worker
+  thread ownership, stale-preview handling, close/cancel behavior, injection,
+  and native command safety.
+- Focused desktop/GUI/i18n suite:
+  `PLAYWRIGHT_BROWSERS_PATH="$HOME/.cache/ms-playwright"
+  venv-linux/bin/python -m unittest tests.test_desktop_services tests.test_gui
+  tests.test_i18n -v` — 34 tests, exit 0.
+- Python 3.9: `PYENV_VERSION=3.9.23 python3.9 -m py_compile
+  libremark_pdf/desktop_services.py libremark_pdf/desktop/__init__.py
+  libremark_pdf/desktop/contracts.py libremark_pdf/desktop/services.py
+  tests/test_desktop_services.py tests/test_gui.py` — exit 0.
+- Focused CLI/core/preview/theme suite and full suite:
+  `PLAYWRIGHT_BROWSERS_PATH="$HOME/.cache/ms-playwright"
+  venv-linux/bin/python -m unittest tests.test_desktop_services tests.test_gui
+  tests.test_i18n tests.test_core tests.test_preview tests.test_themes
+  tests.test_cli -v` — exit 0; `venv-linux/bin/python -m unittest discover
+  -s tests -v` — exit 0, both outside the filesystem sandbox. CLI `convert
+  --help` and `--version` — exit 0.
+- Determinism/resource review: exact fingerprint remains
+  `908aa157c6dbcdaac0fd71ca762d6f518d567341094622f2c984fc7a9147fe61`,
+  prepared HTML SHA-256 remains
+  `350bf1eccba49f4b8d81b5fd71360f3a78637cfd40c63ec7e9dd3f123b568d89`,
+  and `default@1` remains an exact alias. `git diff --check` — exit 0. No
+  rendering resource, profile, golden, generated artifact, cache, PDF,
+  immutable audit, or G1 archive file changed. The independent PDFium
+  `23-unicode` G2 limitation remains known and unchanged.
 
 Next dependency: R10.
 
