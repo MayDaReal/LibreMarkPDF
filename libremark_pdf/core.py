@@ -9,12 +9,13 @@ import io
 import json
 import os
 import re
+import shutil
 import sys
 import tempfile
 from dataclasses import dataclass
 from datetime import date, datetime, timezone
-from pathlib import Path
-from typing import Optional, Sequence, Union
+from pathlib import Path, PurePosixPath
+from typing import Any, Callable, Optional, Sequence, Union
 from urllib.parse import unquote, urlparse
 
 import markdown as md_lib
@@ -22,6 +23,13 @@ import markdown as md_lib
 _PathInput = Union[str, os.PathLike]
 
 PROFILE_SCHEMA = 1
+DEFAULT_PROFILE_VERSION = "default@1"
+DEFAULT_THEME_ID = "default@1"
+THEME_MANIFEST_SCHEMA = 1
+THEME_MANIFEST_NAME = "theme.json"
+PLAYWRIGHT_VERSION = "1.60.0"
+CHROMIUM_VERSION = "148.0.7778.96"
+CHROMIUM_REVISION = "1223"
 MARKDOWN_EXTENSIONS = ("extra", "sane_lists")
 MAX_RESOURCE_BYTES = 5 * 1024 * 1024
 MAX_RESOURCE_COUNT = 32
@@ -41,14 +49,14 @@ class RenderProfile:
     render_date: str
     raw_html_policy: str = "safe"
     network_policy: str = "deny-all"
-    profile_version: str = "default@1"
-    theme_name: str = "bundled-default"
+    profile_version: str = DEFAULT_PROFILE_VERSION
+    theme_name: str = DEFAULT_THEME_ID
     theme_hash: Optional[str] = None
     header_footer: tuple = ()
 
     def canonical_json(self) -> str:
         payload = {
-            "chrome_revision": "1223",
+            "chrome_revision": CHROMIUM_REVISION,
             "color_scheme": "light",
             "locale": "en-US",
             "markdown_extensions": list(MARKDOWN_EXTENSIONS),
@@ -57,7 +65,7 @@ class RenderProfile:
                         "none": MARGIN_NO_HEADER_FOOTER},
             "network_policy": self.network_policy,
             "page": {"background": True, "format": "A4", "media": "print", "scale": 1},
-            "playwright_version": "1.60.0",
+            "playwright_version": PLAYWRIGHT_VERSION,
             "profile_schema": PROFILE_SCHEMA,
             "profile_version": self.profile_version,
             "raw_html_policy": self.raw_html_policy,
@@ -106,10 +114,31 @@ DEFAULT_CSS_PATH = resource_path("style.css")
 ICONS_DIR = resource_path("icons")
 FONTS_DIR = resource_path("fonts")
 BROWSERS_DIR = resource_path("browsers")
+DEFAULT_THEME_ROOT = Path.home() / ".libremark-pdf" / "themes"
 
 # A frozen artifact must prefer its bundled browser over the user's cache.
 if BROWSERS_DIR.exists():
     os.environ.setdefault("PLAYWRIGHT_BROWSERS_PATH", str(BROWSERS_DIR))
+
+
+def renderer_identity() -> dict:
+    """Return pinned renderer identities without starting or installing it."""
+    executable_names = {"chrome-headless-shell", "chrome-headless-shell.exe"}
+    browser_executables = []
+    if BROWSERS_DIR.is_dir():
+        browser_executables = sorted(
+            str(path)
+            for path in BROWSERS_DIR.rglob("*")
+            if path.is_file() and path.name in executable_names
+        )
+    return {
+        "chromium_revision": CHROMIUM_REVISION,
+        "chromium_version": CHROMIUM_VERSION,
+        "playwright_version": PLAYWRIGHT_VERSION,
+        "render_profile": DEFAULT_PROFILE_VERSION,
+        "browser_path": str(BROWSERS_DIR),
+        "browser_executables": browser_executables,
+    }
 
 # Embedded PNGs avoid dependence on platform emoji fonts for these status
 # symbols. Cross-platform page equivalence is validated separately.
@@ -384,6 +413,19 @@ def _today_str() -> str:
     return datetime.now(timezone.utc).date().isoformat()
 
 
+def resolve_render_date(render_date: Optional[str] = None) -> str:
+    """Resolve and validate one calendar date for an entire conversion job."""
+    if render_date is not None:
+        if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", render_date):
+            raise ConversionError("INVALID_DATE: use YYYY-MM-DD")
+        try:
+            date.fromisoformat(render_date)
+        except ValueError as exc:
+            raise ConversionError("INVALID_DATE: use YYYY-MM-DD") from exc
+        return render_date
+    return _today_str()
+
+
 def _token_template_to_html(template: str, render_date: Optional[str] = None) -> str:
     """Translate user tokens into a Chromium header/footer fragment.
 
@@ -481,6 +523,359 @@ class ConversionError(Exception):
 
 
 @dataclass(frozen=True)
+class ThemeInfo:
+    """Validated local theme metadata returned by the shared core API."""
+
+    identifier: str
+    version: str
+    names: dict
+    css_path: Path
+    css_sha256: str
+    licenses: tuple
+    render_profiles: tuple
+    source: str
+    preview_markdown: Optional[Path] = None
+    preview_image: Optional[Path] = None
+
+    @property
+    def reference(self) -> str:
+        return "{0}@{1}".format(self.identifier, self.version)
+
+    def as_dict(self) -> dict:
+        return {
+            "css_sha256": self.css_sha256,
+            "id": self.identifier,
+            "licenses": [str(path) for path in self.licenses],
+            "name": dict(self.names),
+            "preview_image": (
+                str(self.preview_image) if self.preview_image is not None else None
+            ),
+            "preview_markdown": (
+                str(self.preview_markdown)
+                if self.preview_markdown is not None else None
+            ),
+            "reference": self.reference,
+            "render_profiles": list(self.render_profiles),
+            "source": self.source,
+            "version": self.version,
+        }
+
+
+_THEME_ID_RE = re.compile(r"^[a-z0-9][a-z0-9._-]{0,63}$")
+_THEME_VERSION_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,31}$")
+_THEME_ALLOWED_SUFFIXES = {
+    ".css", ".gif", ".jpeg", ".jpg", ".md", ".png", ".svg", ".txt",
+}
+
+
+def _default_theme_info() -> ThemeInfo:
+    return ThemeInfo(
+        identifier="default",
+        version="1",
+        names={"en": "Default", "fr": "Par défaut"},
+        css_path=DEFAULT_CSS_PATH,
+        css_sha256=_sha256_file(DEFAULT_CSS_PATH),
+        licenses=(resource_path("LICENSE"),),
+        render_profiles=(DEFAULT_PROFILE_VERSION,),
+        source="bundled",
+    )
+
+
+def _theme_error(code: str, message: str) -> ConversionError:
+    return ConversionError("{0}: {1}".format(code, message))
+
+
+def _manifest_relative_path(value: Any, field: str) -> PurePosixPath:
+    if not isinstance(value, str) or not value or "\\" in value:
+        raise _theme_error("THEME_INVALID", "{0} must be a relative POSIX path".format(field))
+    path = PurePosixPath(value)
+    if path.is_absolute() or any(part in ("", ".", "..") for part in path.parts):
+        raise _theme_error("THEME_TRAVERSAL", "{0} escapes the theme package".format(field))
+    return path
+
+
+def _theme_file(root: Path, value: Any, field: str) -> Path:
+    relative = _manifest_relative_path(value, field)
+    path = root.joinpath(*relative.parts)
+    current = root
+    for part in relative.parts:
+        current = current / part
+        if current.is_symlink():
+            raise _theme_error("THEME_TRAVERSAL", "{0} uses a symbolic link".format(field))
+    resolved = path.resolve()
+    if not _is_within(resolved, root.resolve()):
+        raise _theme_error("THEME_TRAVERSAL", "{0} escapes the theme package".format(field))
+    return path
+
+
+def validate_theme_package(package_path: _PathInput) -> ThemeInfo:
+    """Validate a local theme package without installing or rendering it."""
+    root = Path(package_path)
+    if not root.is_dir() or root.is_symlink():
+        raise _theme_error("THEME_NOT_FOUND", "theme package directory is unavailable")
+    manifest_path = root / THEME_MANIFEST_NAME
+    if not manifest_path.is_file() or manifest_path.is_symlink():
+        raise _theme_error("THEME_INVALID", "theme.json is missing")
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise _theme_error("THEME_INVALID", "theme.json must be valid UTF-8 JSON") from exc
+    if not isinstance(manifest, dict) or manifest.get("schema") != THEME_MANIFEST_SCHEMA:
+        raise _theme_error("THEME_INCOMPATIBLE", "unsupported theme manifest schema")
+
+    identifier = manifest.get("id")
+    version = manifest.get("version")
+    names = manifest.get("name")
+    profiles = manifest.get("render_profiles")
+    files = manifest.get("files")
+    licenses = manifest.get("licenses")
+    if not isinstance(identifier, str) or not _THEME_ID_RE.fullmatch(identifier):
+        raise _theme_error("THEME_INVALID", "theme id is invalid")
+    if identifier == "default":
+        raise _theme_error("THEME_DUPLICATE", "the bundled default id is reserved")
+    if not isinstance(version, str) or not _THEME_VERSION_RE.fullmatch(version):
+        raise _theme_error("THEME_INVALID", "theme version is invalid")
+    if (
+        not isinstance(names, dict)
+        or not isinstance(names.get("en"), str)
+        or not names["en"].strip()
+        or not isinstance(names.get("fr"), str)
+        or not names["fr"].strip()
+    ):
+        raise _theme_error("THEME_INVALID", "name must contain non-empty en and fr values")
+    if (
+        not isinstance(profiles, list)
+        or DEFAULT_PROFILE_VERSION not in profiles
+        or any(not isinstance(item, str) for item in profiles)
+    ):
+        raise _theme_error(
+            "THEME_INCOMPATIBLE",
+            "theme does not support render profile " + DEFAULT_PROFILE_VERSION,
+        )
+    if not isinstance(files, dict) or not files:
+        raise _theme_error("THEME_INVALID", "files must contain hashed package files")
+    if not isinstance(licenses, list) or not licenses:
+        raise _theme_error("THEME_LICENSE_MISSING", "at least one licence file is required")
+
+    expected_files = {}
+    total_bytes = 0
+    for raw_name, digest in files.items():
+        path = _theme_file(root, raw_name, "files")
+        relative = _manifest_relative_path(raw_name, "files")
+        if path.suffix.lower() not in _THEME_ALLOWED_SUFFIXES:
+            raise _theme_error("THEME_UNSUPPORTED_FILE", str(relative))
+        if not isinstance(digest, str) or not re.fullmatch(r"[0-9a-f]{64}", digest):
+            raise _theme_error("THEME_INVALID", "file hashes must be lowercase SHA-256")
+        if not path.is_file():
+            raise _theme_error("THEME_INVALID", "declared file is missing: " + str(relative))
+        size = path.stat().st_size
+        total_bytes += size
+        if size > MAX_RESOURCE_BYTES or total_bytes > MAX_TOTAL_RESOURCE_BYTES:
+            raise _theme_error("THEME_TOO_LARGE", "theme exceeds configured size limits")
+        if _sha256_file(path) != digest:
+            raise _theme_error("THEME_HASH_MISMATCH", str(relative))
+        if path.suffix.lower() in {".gif", ".jpeg", ".jpg", ".png", ".svg"}:
+            try:
+                _validate_image_bytes(path.read_bytes(), path.suffix.lower())
+            except ConversionError as exc:
+                raise _theme_error(
+                    "THEME_FORBIDDEN_CONTENT",
+                    "unsafe image asset: " + str(relative),
+                ) from exc
+        expected_files[str(relative)] = path
+
+    actual_files = {
+        path.relative_to(root).as_posix()
+        for path in root.rglob("*")
+        if path.is_file() and path != manifest_path
+    }
+    if actual_files != set(expected_files):
+        raise _theme_error("THEME_UNDECLARED_FILE", "every package file must be hashed")
+
+    css_relative = _manifest_relative_path(manifest.get("css"), "css")
+    css_path = expected_files.get(str(css_relative))
+    if css_path is None or css_path.suffix.lower() != ".css":
+        raise _theme_error("THEME_INVALID", "css must name a declared CSS file")
+    try:
+        css_text = css_path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError) as exc:
+        raise _theme_error("THEME_INVALID", "theme CSS must be UTF-8") from exc
+    if "\x00" in css_text:
+        raise _theme_error("THEME_INVALID", "theme CSS contains a null byte")
+    if (
+        _css_has_forbidden_resources(css_text)
+        or re.search(r"(?is)<\s*script\b|javascript\s*:|https?\s*:|file\s*:", css_text)
+    ):
+        raise _theme_error(
+            "THEME_FORBIDDEN_CONTENT",
+            "theme CSS contains script, remote, file, or resource-loader content",
+        )
+
+    license_paths = []
+    for raw_license in licenses:
+        relative = _manifest_relative_path(raw_license, "licenses")
+        license_path = expected_files.get(str(relative))
+        if license_path is None or license_path.suffix.lower() != ".txt":
+            raise _theme_error("THEME_LICENSE_MISSING", str(relative))
+        try:
+            license_text = license_path.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError) as exc:
+            raise _theme_error(
+                "THEME_LICENSE_MISSING", "licence must be non-empty UTF-8 text"
+            ) from exc
+        if not license_text.strip():
+            raise _theme_error("THEME_LICENSE_MISSING", str(relative))
+        license_paths.append(license_path)
+
+    preview = manifest.get("preview", {})
+    if not isinstance(preview, dict):
+        raise _theme_error("THEME_INVALID", "preview must be an object")
+
+    def preview_path(role: str, suffixes: set) -> Optional[Path]:
+        value = preview.get(role)
+        if value is None:
+            return None
+        relative = _manifest_relative_path(value, "preview." + role)
+        path = expected_files.get(str(relative))
+        if path is None or path.suffix.lower() not in suffixes:
+            raise _theme_error("THEME_INVALID", "invalid preview " + role)
+        return path
+
+    preview_markdown = preview_path("markdown", {".md"})
+    preview_image = preview_path("image", {".gif", ".jpeg", ".jpg", ".png", ".svg"})
+    if preview_markdown is not None:
+        try:
+            preview_text = preview_markdown.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError) as exc:
+            raise _theme_error(
+                "THEME_INVALID", "theme preview Markdown must be UTF-8"
+            ) from exc
+        if re.search(
+            r"(?is)<\s*script\b|javascript\s*:|(?:https?|file)\s*:|(?<!:)//",
+            preview_text,
+        ):
+            raise _theme_error(
+                "THEME_FORBIDDEN_CONTENT",
+                "theme preview contains script, remote, or file content",
+            )
+
+    return ThemeInfo(
+        identifier=identifier,
+        version=version,
+        names={"en": names["en"].strip(), "fr": names["fr"].strip()},
+        css_path=css_path,
+        css_sha256=files[str(css_relative)],
+        licenses=tuple(license_paths),
+        render_profiles=tuple(profiles),
+        source="local",
+        preview_markdown=preview_markdown,
+        preview_image=preview_image,
+    )
+
+
+def _theme_root(theme_root: Optional[_PathInput]) -> Path:
+    return Path(theme_root) if theme_root is not None else DEFAULT_THEME_ROOT
+
+
+def list_themes(theme_root: Optional[_PathInput] = None) -> list:
+    """List the bundled default and every validated installed local theme."""
+    root = _theme_root(theme_root)
+    themes = [_default_theme_info()]
+    if root.is_dir():
+        for package in sorted(path for path in root.iterdir() if not path.name.startswith(".")):
+            themes.append(validate_theme_package(package))
+    return themes
+
+
+def show_theme(reference: str, theme_root: Optional[_PathInput] = None) -> ThemeInfo:
+    """Return one installed theme by id or exact id@version reference."""
+    if reference in ("default", DEFAULT_THEME_ID):
+        return _default_theme_info()
+    identifier, separator, version = reference.partition("@")
+    if not _THEME_ID_RE.fullmatch(identifier):
+        raise _theme_error("THEME_NOT_FOUND", "unknown theme: " + reference)
+    package = _theme_root(theme_root) / identifier
+    if not package.is_dir():
+        raise _theme_error("THEME_NOT_FOUND", "unknown theme: " + reference)
+    info = validate_theme_package(package)
+    if separator and info.version != version:
+        raise _theme_error("THEME_NOT_FOUND", "unknown theme version: " + reference)
+    return info
+
+
+def install_theme(
+    package_path: _PathInput,
+    theme_root: Optional[_PathInput] = None,
+    replace: bool = False,
+) -> ThemeInfo:
+    """Validate and atomically install or update one local theme package."""
+    source = Path(package_path)
+    info = validate_theme_package(source)
+    root = _theme_root(theme_root)
+    try:
+        root.mkdir(parents=True, exist_ok=True)
+    except OSError as exc:
+        raise _theme_error("THEME_INSTALL_FAILED", "cannot create theme directory") from exc
+    destination = root / info.identifier
+    if destination.exists() and not replace:
+        raise _theme_error("THEME_DUPLICATE", "theme id is already installed")
+    temporary = Path(tempfile.mkdtemp(prefix=".libremark-theme-", dir=str(root)))
+    backup = root / (".libremark-backup-" + info.identifier)
+    moved_old = False
+    try:
+        shutil.copytree(str(source), str(temporary), dirs_exist_ok=True)
+        validate_theme_package(temporary)
+        if destination.exists():
+            if backup.exists():
+                raise _theme_error("THEME_INSTALL_FAILED", "stale theme backup exists")
+            os.replace(str(destination), str(backup))
+            moved_old = True
+        os.replace(str(temporary), str(destination))
+        temporary = None
+        if moved_old:
+            # Publication is already atomic at this point. Cleanup must not
+            # turn a successfully installed theme into a reported failure or
+            # restore a backup that may be partly deleted.
+            shutil.rmtree(str(backup), ignore_errors=True)
+        return validate_theme_package(destination)
+    except Exception:
+        if moved_old and backup.exists() and not destination.exists():
+            os.replace(str(backup), str(destination))
+        raise
+    finally:
+        if temporary is not None and temporary.exists():
+            shutil.rmtree(str(temporary), ignore_errors=True)
+
+
+def remove_theme(reference: str, theme_root: Optional[_PathInput] = None) -> ThemeInfo:
+    """Atomically remove one installed theme; the bundled default is immutable."""
+    info = show_theme(reference, theme_root)
+    if info.identifier == "default":
+        raise _theme_error("THEME_DEFAULT_IMMUTABLE", "default@1 cannot be removed")
+    root = _theme_root(theme_root)
+    destination = root / info.identifier
+    tombstone = root / (".libremark-remove-" + info.identifier)
+    if tombstone.exists():
+        raise _theme_error("THEME_REMOVE_FAILED", "stale removal path exists")
+    try:
+        os.replace(str(destination), str(tombstone))
+    except OSError as exc:
+        raise _theme_error("THEME_REMOVE_FAILED", "could not remove theme") from exc
+    # The registry-visible removal is the atomic rename above. A Windows file
+    # lock may delay physical cleanup; a hidden tombstone is never selectable.
+    shutil.rmtree(str(tombstone), ignore_errors=True)
+    return info
+
+
+def resolve_theme_css(
+    reference: Optional[str],
+    theme_root: Optional[_PathInput] = None,
+) -> ThemeInfo:
+    """Resolve the selected theme through the validated shared-core registry."""
+    return show_theme(reference or DEFAULT_THEME_ID, theme_root)
+
+
+@dataclass(frozen=True)
 class RenderDocument:
     """Fully resolved deterministic document passed to the locked renderer."""
 
@@ -513,6 +908,62 @@ def _read_css(css_path: Optional[_PathInput]) -> str:
     if _css_has_forbidden_resources(css):
         raise ConversionError("FORBIDDEN_CSS_URL: CSS resources are not allowed")
     return _font_face_css() + "\n" + css
+
+
+def _resolve_style_profile(
+    css_path: Optional[_PathInput],
+    render_date: Optional[str],
+    trusted_html: bool,
+    header_footer: HeaderFooterConfig,
+    theme: Optional[str],
+    theme_root: Optional[_PathInput],
+) -> tuple:
+    if css_path is not None and theme is not None:
+        raise ConversionError("INVALID_OPTIONS: --css and --theme cannot be used together")
+    theme_info = None
+    if theme is not None:
+        theme_info = resolve_theme_css(theme, theme_root)
+        css_path = theme_info.css_path
+    css_text = _read_css(css_path)
+    if theme_info is not None and theme_info.identifier != "default":
+        profile_theme = theme_info.reference
+    elif css_path is not None and theme_info is None:
+        profile_theme = "custom-css"
+    else:
+        # Keep the already approved G2 profile identity byte-for-byte. The
+        # public default@1 theme is an exact alias of this internal value.
+        profile_theme = "bundled-default"
+    profile = RenderProfile(
+        resolve_render_date(render_date),
+        raw_html_policy="trusted-static" if trusted_html else "safe",
+        theme_name=profile_theme,
+        theme_hash=hashlib.sha256(css_text.encode("utf-8")).hexdigest(),
+        header_footer=(
+            header_footer.top_left,
+            header_footer.top_center,
+            header_footer.top_right,
+            header_footer.bottom_left,
+            header_footer.bottom_center,
+            header_footer.bottom_right,
+        ),
+    )
+    return css_text, profile
+
+
+def render_profile_for_options(
+    css_path: Optional[_PathInput] = None,
+    header_footer: Optional[HeaderFooterConfig] = None,
+    render_date: Optional[str] = None,
+    trusted_html: bool = False,
+    theme: Optional[str] = None,
+    theme_root: Optional[_PathInput] = None,
+) -> RenderProfile:
+    """Resolve the exact profile used by conversion without launching Chromium."""
+    hf = header_footer if header_footer is not None else HeaderFooterConfig()
+    _css_text, profile = _resolve_style_profile(
+        css_path, render_date, trusted_html, hf, theme, theme_root
+    )
+    return profile
 
 
 def _validate_markdown_text(markdown_text: str) -> None:
@@ -683,29 +1134,16 @@ def prepare_render_document(
     trusted_html: bool = False,
     resource_root: Optional[_PathInput] = None,
     header_footer: Optional[HeaderFooterConfig] = None,
+    theme: Optional[str] = None,
+    theme_root: Optional[_PathInput] = None,
 ) -> RenderDocument:
     """Resolve deterministic HTML and profile inputs without launching Chromium."""
     _validate_markdown_text(markdown_text)
-    if render_date is not None:
-        if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", render_date):
-            raise ConversionError("INVALID_DATE: use YYYY-MM-DD")
-        try:
-            date.fromisoformat(render_date)
-        except ValueError as exc:
-            raise ConversionError("INVALID_DATE: use YYYY-MM-DD") from exc
-    resolved_date = render_date or _today_str()
-    css_text = _read_css(css_path)
     hf = header_footer if header_footer is not None else HeaderFooterConfig()
-    profile = RenderProfile(
-        resolved_date,
-        raw_html_policy="trusted-static" if trusted_html else "safe",
-        theme_name="custom-css" if css_path else "bundled-default",
-        theme_hash=hashlib.sha256(css_text.encode("utf-8")).hexdigest(),
-        header_footer=(
-            hf.top_left, hf.top_center, hf.top_right,
-            hf.bottom_left, hf.bottom_center, hf.bottom_right,
-        ),
+    css_text, profile = _resolve_style_profile(
+        css_path, render_date, trusted_html, hf, theme, theme_root
     )
+    resolved_date = profile.render_date
     body_html = markdown_to_html(markdown_text, trusted_html=trusted_html)
     body_html = embed_local_resources(body_html, resource_root or Path.cwd())
     title = extract_title(body_html)
@@ -725,6 +1163,8 @@ def convert_markdown_text_to_pdf(
     trusted_html: bool = False,
     overwrite: bool = False,
     resource_root: Optional[_PathInput] = None,
+    theme: Optional[str] = None,
+    theme_root: Optional[_PathInput] = None,
     _renderer: Optional[_BrowserRenderer] = None,
 ) -> Path:
     """Convert Markdown text to a PDF and return its output path."""
@@ -746,6 +1186,8 @@ def convert_markdown_text_to_pdf(
         trusted_html=trusted_html,
         resource_root=resource_root,
         header_footer=hf,
+        theme=theme,
+        theme_root=theme_root,
     )
 
     _atomic_render_pdf(
@@ -766,6 +1208,8 @@ def convert_markdown_to_pdf(
     render_date: Optional[str] = None,
     trusted_html: bool = False,
     overwrite: bool = False,
+    theme: Optional[str] = None,
+    theme_root: Optional[_PathInput] = None,
     _renderer: Optional[_BrowserRenderer] = None,
 ) -> Path:
     """Convert one Markdown file, defaulting to a sibling `.pdf` output."""
@@ -795,8 +1239,66 @@ def convert_markdown_to_pdf(
     return convert_markdown_text_to_pdf(
         markdown_text, resolved_output, css_path=css_path, header_footer=header_footer,
         render_date=render_date, trusted_html=trusted_html, overwrite=overwrite,
-        resource_root=input_path.resolve().parent, _renderer=_renderer,
+        resource_root=input_path.resolve().parent, theme=theme,
+        theme_root=theme_root, _renderer=_renderer,
     )
+
+
+@dataclass(frozen=True)
+class BatchPlan:
+    """One preflighted batch destination exposed to interactive adapters."""
+
+    input_path: Path
+    output_path: Path
+    error: Optional[str] = None
+
+    @property
+    def error_code(self) -> Optional[str]:
+        return error_code(ConversionError(self.error)) if self.error else None
+
+
+def plan_batch_outputs(
+    input_paths: Sequence[_PathInput],
+    output_dir: Optional[_PathInput] = None,
+    overwrite: bool = False,
+) -> list:
+    """Preflight batch paths without launching a browser or writing output."""
+    provisional = []
+    duplicate_targets = set()
+    seen_targets = set()
+    for raw_path in input_paths:
+        input_path = Path(raw_path)
+        target = (
+            Path(output_dir) / (input_path.stem + ".pdf")
+            if output_dir else input_path.with_suffix(".pdf")
+        )
+        try:
+            key = str(target.resolve())
+        except OSError:
+            key = str(target.absolute())
+        if key in seen_targets:
+            duplicate_targets.add(key)
+        seen_targets.add(key)
+        provisional.append((input_path, target, key))
+
+    plans = []
+    for input_path, target, key in provisional:
+        message = None
+        if key in duplicate_targets:
+            message = "DUPLICATE_OUTPUT: batch contains duplicate destinations"
+        elif not input_path.exists():
+            message = "INPUT_NOT_FOUND: input file not found: {0}".format(input_path)
+        else:
+            try:
+                same_path = input_path.resolve() == target.resolve()
+            except OSError:
+                same_path = input_path.absolute() == target.absolute()
+            if same_path:
+                message = "INPUT_OUTPUT_COLLISION: input and output paths are identical"
+            elif target.exists() and not overwrite:
+                message = "OUTPUT_EXISTS: refusing to overwrite: {0}".format(target)
+        plans.append(BatchPlan(input_path, target, message))
+    return plans
 
 
 def convert_batch(
@@ -807,41 +1309,28 @@ def convert_batch(
     render_date: Optional[str] = None,
     trusted_html: bool = False,
     overwrite: bool = False,
+    theme: Optional[str] = None,
+    theme_root: Optional[_PathInput] = None,
+    cancel_event: Optional[Any] = None,
+    progress_callback: Optional[Callable[[int, int, dict], None]] = None,
 ) -> list[dict[str, Optional[str]]]:
     """Convert every input independently and return one result per input."""
-    planned = []
-    duplicate_targets = set()
-    seen_targets = set()
-    for raw_path in input_paths:
-        input_path = Path(raw_path)
-        target = Path(output_dir) / (input_path.stem + ".pdf") if output_dir else input_path.with_suffix(".pdf")
-        try:
-            key = str(target.resolve())
-        except OSError:
-            key = str(target.absolute())
-        if key in seen_targets:
-            duplicate_targets.add(key)
-        seen_targets.add(key)
-        planned.append((input_path, target, key))
-
-    plan_errors = {}
-    for input_path, target, key in planned:
-        if key in duplicate_targets:
-            plan_errors[key] = "DUPLICATE_OUTPUT: batch contains duplicate destinations"
-            continue
-        try:
-            same_path = input_path.resolve() == target.resolve()
-        except OSError:
-            same_path = input_path.absolute() == target.absolute()
-        if same_path:
-            plan_errors[key] = "INPUT_OUTPUT_COLLISION: input and output paths are identical"
-        elif target.exists() and not overwrite:
-            plan_errors[key] = "OUTPUT_EXISTS: refusing to overwrite: {0}".format(target)
+    try:
+        resolved_date = resolve_render_date(render_date)
+        date_error = None
+    except ConversionError as exc:
+        resolved_date = render_date
+        date_error = str(exc)
+    planned = plan_batch_outputs(input_paths, output_dir, overwrite)
 
     renderer = None
     renderer_manager = None
     renderer_error = None
-    if any(key not in plan_errors for _input_path, _target, key in planned):
+    initially_cancelled = cancel_event is not None and cancel_event.is_set()
+    if (
+        not initially_cancelled
+        and any(plan.error is None and date_error is None for plan in planned)
+    ):
         try:
             renderer_manager = _BrowserRenderer()
             renderer = renderer_manager.__enter__()
@@ -850,37 +1339,60 @@ def convert_batch(
 
     results = []
     try:
-        for input_path, target, key in planned:
+        for index, plan in enumerate(planned, start=1):
+            input_path = plan.input_path
+            target = plan.output_path
             try:
-                if key in plan_errors:
-                    raise ConversionError(plan_errors[key])
+                if cancel_event is not None and cancel_event.is_set():
+                    result = {
+                        "input": str(input_path),
+                        "output": None,
+                        "status": "cancelled",
+                        "error": "CANCELLED: conversion cancelled before this item",
+                        "error_code": "CANCELLED",
+                    }
+                    results.append(result)
+                    if progress_callback is not None:
+                        try:
+                            progress_callback(index, len(planned), result)
+                        except Exception:
+                            pass
+                    continue
+                if date_error is not None:
+                    raise ConversionError(date_error)
+                if plan.error is not None:
+                    raise ConversionError(plan.error)
                 if renderer_error is not None:
                     raise renderer_error
                 result_path = convert_markdown_to_pdf(
                     input_path, target, css_path=css_path, header_footer=header_footer,
-                    render_date=render_date, trusted_html=trusted_html, overwrite=overwrite,
-                    _renderer=renderer,
+                    render_date=resolved_date, trusted_html=trusted_html, overwrite=overwrite,
+                    theme=theme, theme_root=theme_root, _renderer=renderer,
                 )
-                results.append(
-                    {
-                        "input": str(input_path),
-                        "output": str(result_path),
-                        "status": "ok",
-                        "error": None,
-                        "error_code": None,
-                    }
-                )
+                result = {
+                    "input": str(input_path),
+                    "output": str(result_path),
+                    "status": "ok",
+                    "error": None,
+                    "error_code": None,
+                }
+                results.append(result)
             except Exception as exc:
                 # A failed item must not abort the remaining batch.
-                results.append(
-                    {
-                        "input": str(input_path),
-                        "output": None,
-                        "status": "error",
-                        "error": str(exc),
-                        "error_code": error_code(exc),
-                    }
-                )
+                result = {
+                    "input": str(input_path),
+                    "output": None,
+                    "status": "error",
+                    "error": str(exc),
+                    "error_code": error_code(exc),
+                }
+                results.append(result)
+            if progress_callback is not None:
+                try:
+                    progress_callback(index, len(planned), result)
+                except Exception:
+                    # Presentation callbacks cannot change conversion results.
+                    pass
     finally:
         if renderer_manager is not None and renderer is not None:
             renderer_manager.__exit__(None, None, None)
@@ -892,6 +1404,11 @@ def render_preview_png(
     css_path: Optional[_PathInput] = None,
     header_footer: Optional[HeaderFooterConfig] = None,
     dpi: int = 110,
+    render_date: Optional[str] = None,
+    trusted_html: bool = False,
+    resource_root: Optional[_PathInput] = None,
+    theme: Optional[str] = None,
+    theme_root: Optional[_PathInput] = None,
 ) -> bytes:
     """Render the first PDF page as PNG bytes for the desktop preview."""
     try:
@@ -904,7 +1421,9 @@ def render_preview_png(
     with tempfile.TemporaryDirectory() as tmp_dir:
         pdf_path = Path(tmp_dir) / "preview.pdf"
         convert_markdown_text_to_pdf(
-            markdown_text, pdf_path, css_path=css_path, header_footer=header_footer
+            markdown_text, pdf_path, css_path=css_path, header_footer=header_footer,
+            render_date=render_date, trusted_html=trusted_html,
+            resource_root=resource_root, theme=theme, theme_root=theme_root,
         )
         pdf = pdfium.PdfDocument(str(pdf_path))
         try:

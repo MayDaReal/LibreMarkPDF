@@ -1,0 +1,90 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://libremark-pdf.invalid/schema/cli-result-v1.json",
+  "title": "LibreMark PDF CLI JSON contract",
+  "description": "Schema for conversion results emitted by `convert --json`. Diagnostic and theme commands expose separately documented read-only objects.",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/result"
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "results"
+      ],
+      "properties": {
+        "results": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/result"
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "nullableString": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "result": {
+      "type": "object",
+      "required": [
+        "error",
+        "error_code",
+        "input",
+        "output",
+        "status"
+      ],
+      "properties": {
+        "chromium_revision": {
+          "type": "string"
+        },
+        "chromium_version": {
+          "type": "string"
+        },
+        "error": {
+          "$ref": "#/$defs/nullableString"
+        },
+        "error_code": {
+          "$ref": "#/$defs/nullableString"
+        },
+        "input": {
+          "$ref": "#/$defs/nullableString"
+        },
+        "output": {
+          "$ref": "#/$defs/nullableString"
+        },
+        "playwright_version": {
+          "type": "string"
+        },
+        "render_date": {
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+        },
+        "render_profile": {
+          "type": "string"
+        },
+        "renderer_fingerprint": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "status": {
+          "enum": [
+            "ok",
+            "error",
+            "cancelled"
+          ]
+        },
+        "theme": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

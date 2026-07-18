@@ -1,0 +1,24 @@
+{
+  "css": "style.css",
+  "files": {
+    "LICENSE.txt": "4b50962e452c45b58d5aa3287d4074ae2c4c99a2ca2230c59bdc78da40dfa14d",
+    "preview.md": "e568e21c4458cca377e008170fa82cf9b40ffb46ecace242bab4f88b00103536",
+    "style.css": "81b0804d4d15e816aaad4307948160880113bbd5c89475e4fdd5a69ceab79a00"
+  },
+  "id": "community-blue",
+  "licenses": [
+    "LICENSE.txt"
+  ],
+  "name": {
+    "en": "Community Blue",
+    "fr": "Bleu communautaire"
+  },
+  "preview": {
+    "markdown": "preview.md"
+  },
+  "render_profiles": [
+    "default@1"
+  ],
+  "schema": 1,
+  "version": "1"
+}

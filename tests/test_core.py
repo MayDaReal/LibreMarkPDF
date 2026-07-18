@@ -6,6 +6,7 @@ Run with:  python -m unittest discover -s tests
 
 import sys
 import tempfile
+import threading
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -340,6 +341,99 @@ class TestDeterministicCoreContract(unittest.TestCase):
             self.assertEqual([item["status"] for item in results], ["ok", "ok"])
             self.assertEqual(FakeRenderer.entered, 1)
             self.assertEqual(FakeRenderer.exited, 1)
+
+    def test_batch_plan_exposes_collisions_and_existing_outputs_without_writes(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            first = root / "one" / "same.md"
+            second = root / "two" / "same.md"
+            first.parent.mkdir()
+            second.parent.mkdir()
+            first.write_text("# One", encoding="utf-8")
+            second.write_text("# Two", encoding="utf-8")
+            duplicate = core.plan_batch_outputs([first, second], root / "out")
+            self.assertEqual(
+                [item.error_code for item in duplicate],
+                ["DUPLICATE_OUTPUT", "DUPLICATE_OUTPUT"],
+            )
+
+            existing = root / "existing.md"
+            existing.write_text("# Existing", encoding="utf-8")
+            existing.with_suffix(".pdf").write_bytes(b"old")
+            plan = core.plan_batch_outputs([existing])
+            self.assertEqual(plan[0].error_code, "OUTPUT_EXISTS")
+            self.assertEqual(existing.with_suffix(".pdf").read_bytes(), b"old")
+
+    def test_batch_cancellation_returns_one_result_per_input_and_reports_progress(self):
+        class FakeRenderer:
+            entered = 0
+
+            def __enter__(self):
+                type(self).entered += 1
+                return self
+
+            def __exit__(self, exc_type, exc_value, traceback):
+                return None
+
+            def render(self, full_html, output_path, header_footer, render_date):
+                output_path.write_bytes(b"%PDF-1.4\nmock")
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            files = [root / "one.md", root / "two.md", root / "three.md"]
+            for path in files:
+                path.write_text("# " + path.stem, encoding="utf-8")
+            cancel = threading.Event()
+            progress = []
+
+            def on_progress(index, total, result):
+                progress.append((index, total, result["status"]))
+                if index == 1:
+                    cancel.set()
+
+            with mock.patch.object(core, "_BrowserRenderer", FakeRenderer):
+                results = core.convert_batch(
+                    files,
+                    cancel_event=cancel,
+                    progress_callback=on_progress,
+                )
+            self.assertEqual(
+                [item["status"] for item in results],
+                ["ok", "cancelled", "cancelled"],
+            )
+            self.assertEqual(progress, [
+                (1, 3, "ok"), (2, 3, "cancelled"), (3, 3, "cancelled"),
+            ])
+            self.assertEqual(FakeRenderer.entered, 1)
+
+    def test_already_cancelled_batch_does_not_launch_browser(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / "one.md"
+            source.write_text("# One", encoding="utf-8")
+            cancel = threading.Event()
+            cancel.set()
+            with mock.patch.object(core, "_BrowserRenderer") as renderer:
+                results = core.convert_batch([source], cancel_event=cancel)
+            renderer.assert_not_called()
+            self.assertEqual(results[0]["status"], "cancelled")
+
+    def test_cancelled_batch_ignores_presentation_callback_failure(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / "one.md"
+            source.write_text("# One", encoding="utf-8")
+            cancel = threading.Event()
+            cancel.set()
+
+            def broken_callback(*unused):
+                raise RuntimeError("presentation failed")
+
+            results = core.convert_batch(
+                [source],
+                cancel_event=cancel,
+                progress_callback=broken_callback,
+            )
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0]["status"], "cancelled")
 
 
 class TestResourcePolicy(unittest.TestCase):
