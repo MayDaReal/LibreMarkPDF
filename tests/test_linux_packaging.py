@@ -83,6 +83,8 @@ class TestLinuxPackaging(unittest.TestCase):
             "manual-linux-gui-review.md",
             'PLAYWRIGHT_BROWSERS_PATH="$browser_source"',
             "run env",
+            "git-porcelain-before.txt",
+            "cmp -s",
         ):
             self.assertIn(marker, script)
         self.assertNotIn("sudo ", script)

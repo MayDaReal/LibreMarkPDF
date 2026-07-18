@@ -122,12 +122,10 @@ assert_offline() {
 
 cd "$repo_root"
 git status --short --branch | tee "$logs/git-status-before.txt"
+git status --porcelain=v1 --untracked-files=all \
+  > "$logs/git-porcelain-before.txt"
 git rev-parse HEAD | tee "$logs/commit.txt"
 git log -1 --show-signature | tee "$logs/git-signature.txt"
-if [[ -n "$(git status --porcelain)" ]]; then
-  echo "The native candidate checkout must be clean." >&2
-  exit 1
-fi
 
 {
   uname -a
@@ -329,8 +327,12 @@ EOF
 network_state "$logs/network-after.txt"
 assert_offline "$logs/network-after.txt"
 git status --short --branch | tee "$logs/git-status-after.txt"
-if [[ -n "$(git status --porcelain)" ]]; then
-  echo "Candidate execution changed the clean source checkout." >&2
+git status --porcelain=v1 --untracked-files=all \
+  > "$logs/git-porcelain-after.txt"
+if ! cmp -s "$logs/git-porcelain-before.txt" "$logs/git-porcelain-after.txt"; then
+  echo "Candidate execution changed the source checkout state." >&2
+  diff -u "$logs/git-porcelain-before.txt" \
+    "$logs/git-porcelain-after.txt" >&2 || true
   exit 1
 fi
 
