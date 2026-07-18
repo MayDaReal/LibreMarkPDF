@@ -71,7 +71,14 @@ def spdx_id(prefix, value):
     return "SPDXRef-{0}-{1}".format(prefix, cleaned)
 
 
-def generate(lock_path, artifact_dir, commit, created):
+def generate(
+    lock_path,
+    artifact_dir,
+    commit,
+    created,
+    package_name="LibreMark PDF Windows portable candidate",
+    document_name=None,
+):
     files = []
     for path in sorted(item for item in artifact_dir.rglob("*") if item.is_file()):
         relative = path.relative_to(artifact_dir).as_posix()
@@ -111,7 +118,7 @@ def generate(lock_path, artifact_dir, commit, created):
         "filesAnalyzed": True,
         "licenseConcluded": "MIT",
         "licenseDeclared": "MIT",
-        "name": "LibreMark PDF Windows portable candidate",
+        "name": package_name,
         "packageVerificationCode": {
             "packageVerificationCodeValue": verification_code
         },
@@ -174,7 +181,7 @@ def generate(lock_path, artifact_dir, commit, created):
         "dataLicense": "CC0-1.0",
         "documentNamespace": "https://libremark.invalid/spdx/" + str(namespace_uuid),
         "files": files,
-        "name": "LibreMark-PDF-Windows-x64-" + commit[:12],
+        "name": document_name or "LibreMark-PDF-Windows-x64-" + commit[:12],
         "packages": packages,
         "relationships": relationships,
         "spdxVersion": "SPDX-2.3",
@@ -188,11 +195,21 @@ def main():
     parser.add_argument("--commit", required=True)
     parser.add_argument("--created", required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument(
+        "--package-name",
+        default="LibreMark PDF Windows portable candidate",
+    )
+    parser.add_argument("--document-name")
     args = parser.parse_args()
     if not args.artifact_dir.is_dir():
         parser.error("artifact directory is unavailable")
     document = generate(
-        args.lock, args.artifact_dir, args.commit, args.created
+        args.lock,
+        args.artifact_dir,
+        args.commit,
+        args.created,
+        package_name=args.package_name,
+        document_name=args.document_name,
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(

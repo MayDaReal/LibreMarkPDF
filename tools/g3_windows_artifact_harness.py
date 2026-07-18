@@ -1,8 +1,8 @@
-"""Inspect PDFs produced by the exact frozen Windows CLI artifact.
+"""Inspect PDFs produced by an exact frozen LibreMark PDF CLI artifact.
 
-Rendering is delegated exclusively to ``LibreMarkPDF-cli.exe``. This harness
-reuses the immutable G2 inspection and comparison functions and never writes
-expected data.
+Rendering is delegated exclusively to the supplied console entry path. This
+harness reuses the immutable G2 inspection and comparison functions and never
+writes expected data.
 """
 
 import argparse
@@ -134,7 +134,7 @@ def generate(converter, manifest_path, actual_dir, fixture_ids=None):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Run canonical comparisons through a frozen Windows CLI artifact"
+        description="Run canonical comparisons through a frozen CLI artifact"
     )
     parser.add_argument("--converter", type=Path, required=True)
     parser.add_argument("--manifest", type=Path, required=True)

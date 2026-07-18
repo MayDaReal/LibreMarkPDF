@@ -9,7 +9,7 @@
 set -e
 cd "$(dirname "$0")"
 
-EXE_PATH="$(pwd)/dist/LibreMarkPDF"
+EXE_PATH="$(pwd)/dist/LibreMarkPDF/LibreMarkPDF"
 ICON_PATH="$(pwd)/assets/libremark-pdf-logo-256.png"
 DESKTOP_DIR="$HOME/.local/share/applications"
 DESKTOP_FILE="$DESKTOP_DIR/libremark-pdf.desktop"
