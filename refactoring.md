@@ -245,7 +245,7 @@ States: `not started`, `in progress`, `blocked`, `completed`.
 | R00 | Baseline and characterization | completed | owner go |
 | R01 | Engine package and contracts | completed | R00 |
 | R02 | Theme domain | completed | R01 |
-| R03 | Resource domain | not started | R02 |
+| R03 | Resource domain | completed | R02 |
 | R04 | Document and render-profile domain | not started | R03 |
 | R05 | Chromium and atomic-output domain | not started | R04 |
 | R06 | Conversion jobs and batch domain | not started | R05 |
@@ -553,6 +553,47 @@ Exit criterion:
 
 - Frozen and source resource behavior is unchanged and packaging tests discover
   all required modules/resources.
+
+Execution record:
+
+- Status: completed (2026-07-18).
+- Owned files: `libremark_pdf/core.py`, `libremark_pdf/engine/resources.py`,
+  `tests/test_core.py`, `tests/test_resources.py`, and this plan.
+- Observable no-change criteria: source, installed-wheel, and PyInstaller
+  resource resolution; import-time `PLAYWRIGHT_BROWSERS_PATH` preference;
+  renderer identity; font/icon/CSS hashes; embedded data URIs; emoji
+  substitution; resource rejection codes/messages; prepared HTML/profile; and
+  zero-request rendering remain unchanged.
+- Change: canonical resource resolution, browser preference, renderer identity,
+  hashes, font and icon embedding, validation, local-resource embedding, and
+  CSS resource policy now live in `engine.resources`. `core` retains the public
+  façade and performs the location binding and browser environment preference
+  at its original import-time boundary.
+- Characterization: resource-domain tests prove the one-way façade boundary,
+  all three resource layouts, runtime hashes, valid data URIs, and count/total
+  limits. Existing policy tests retain traversal, symbolic-link, missing-file,
+  active-SVG, URL, malformed-image, and emoji coverage.
+- Focused checks: `PLAYWRIGHT_BROWSERS_PATH="$HOME/.cache/ms-playwright"
+  venv-linux/bin/python -m unittest tests.test_core tests.test_resources -v` —
+  exit 0, 76 tests outside the filesystem sandbox; `venv-linux/bin/python -m
+  unittest tests.test_themes tests.test_resources -v` — exit 0, 18 tests.
+- Python 3.9: `PYENV_VERSION=3.9.23 python3.9 -m py_compile
+  libremark_pdf/core.py libremark_pdf/engine/resources.py tests/test_core.py
+  tests/test_resources.py` — exit 0.
+- Full suite: `PLAYWRIGHT_BROWSERS_PATH="$HOME/.cache/ms-playwright"
+  venv-linux/bin/python -m unittest discover -s tests -q` — exit 0, 194 tests
+  outside the filesystem sandbox.
+- Deterministic/resource review: the fixed characterization retains profile
+  fingerprint `908aa157c6dbcdaac0fd71ca762d6f518d567341094622f2c984fc7a9147fe61`
+  and prepared-HTML SHA-256
+  `350bf1eccba49f4b8d81b5fd71360f3a78637cfd40c63ec7e9dd3f123b568d89`.
+  No CSS, fonts, icons, golden, generated artifact, cache, PDF, immutable
+  audit, or G1 archive file changed.
+- Risks and deviations: the resource module receives only façade-resolved
+  locations and never imports `core`, CLI, desktop, or GUI. No new renderer or
+  mutable cross-job state was introduced; existing process-local caches remain
+  process-local. The independent PDFium `23-unicode` G2 limitation remains
+  known and unchanged. `git diff --check` — exit 0.
 
 Next dependency: R04.
 

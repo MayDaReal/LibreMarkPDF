@@ -4,6 +4,7 @@ tests/test_core.py — automated tests for the LibreMark PDF conversion engine.
 Run with:  python -m unittest discover -s tests
 """
 
+import base64
 import hashlib
 import inspect
 import sys
@@ -596,7 +597,7 @@ class TestResourcePolicy(unittest.TestCase):
 
     def test_data_svg_with_active_content_is_rejected(self):
         payload = b'<svg xmlns="http://www.w3.org/2000/svg"><script/></svg>'
-        encoded = core.base64.b64encode(payload).decode("ascii")
+        encoded = base64.b64encode(payload).decode("ascii")
         with tempfile.TemporaryDirectory() as tmp:
             with self.assertRaisesRegex(core.ConversionError, "FORBIDDEN_RESOURCE"):
                 core.embed_local_resources(
@@ -604,7 +605,7 @@ class TestResourcePolicy(unittest.TestCase):
                 )
 
     def test_svg_extension_requires_svg_content(self):
-        payload = core.base64.b64encode(b"not an SVG").decode("ascii")
+        payload = base64.b64encode(b"not an SVG").decode("ascii")
         with tempfile.TemporaryDirectory() as tmp:
             with self.assertRaisesRegex(core.ConversionError, "SVG signature"):
                 core.embed_local_resources(
