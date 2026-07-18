@@ -8,6 +8,7 @@ writes expected data.
 import argparse
 import hashlib
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -51,6 +52,13 @@ def converter_command(converter, fixture, output_path):
     return command
 
 
+def converter_environment():
+    """Let the exact frozen artifact select its own bundled browser."""
+    environment = os.environ.copy()
+    environment.pop("PLAYWRIGHT_BROWSERS_PATH", None)
+    return environment
+
+
 def render_fixture(converter, fixture, actual_dir):
     """Run the exact artifact once and checkpoint inspected evidence."""
     header_footer = core.HeaderFooterConfig(**fixture["header_footer"])
@@ -65,6 +73,7 @@ def render_fixture(converter, fixture, actual_dir):
     completed = subprocess.run(
         converter_command(converter, fixture, pdf_path),
         capture_output=True,
+        env=converter_environment(),
         text=True,
         encoding="utf-8",
         check=False,

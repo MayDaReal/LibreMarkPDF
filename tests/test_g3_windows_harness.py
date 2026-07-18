@@ -1,6 +1,7 @@
 """Focused checks for the frozen-artifact G3 comparison adapter."""
 
 import importlib.util
+import os
 import sys
 import tempfile
 import unittest
@@ -42,6 +43,18 @@ class TestG3WindowsArtifactHarness(unittest.TestCase):
         self.assertNotIn("core.convert_markdown_text_to_pdf", source)
         self.assertIn("subprocess.run(", source)
         self.assertNotIn("update_g2_goldens", source)
+
+    def test_frozen_converter_does_not_inherit_source_browser_path(self):
+        previous = os.environ.get("PLAYWRIGHT_BROWSERS_PATH")
+        os.environ["PLAYWRIGHT_BROWSERS_PATH"] = "source-browser"
+        try:
+            environment = module.converter_environment()
+        finally:
+            if previous is None:
+                os.environ.pop("PLAYWRIGHT_BROWSERS_PATH", None)
+            else:
+                os.environ["PLAYWRIGHT_BROWSERS_PATH"] = previous
+        self.assertNotIn("PLAYWRIGHT_BROWSERS_PATH", environment)
 
     def test_missing_converter_is_rejected_without_expected_writes(self):
         source = HARNESS.read_text(encoding="utf-8")

@@ -345,9 +345,12 @@ find "$evidence_root" -type f \
   ! -name 'G3_LINUX_EVIDENCE.tar.gz.sha256' \
   -print0 | sort -z | xargs -0 sha256sum \
   > "$evidence_root/G3_LINUX_EVIDENCE_MANIFEST.sha256"
+archive_staging="$(dirname "$evidence_root")/.G3_LINUX_EVIDENCE.tar.gz.tmp"
+rm -f "$archive_staging"
 tar --exclude='G3_LINUX_EVIDENCE.tar.gz' \
   --exclude='G3_LINUX_EVIDENCE.tar.gz.sha256' \
-  -C "$evidence_root" -czf "$evidence_root/G3_LINUX_EVIDENCE.tar.gz" .
+  -C "$evidence_root" -czf "$archive_staging" .
+mv "$archive_staging" "$evidence_root/G3_LINUX_EVIDENCE.tar.gz"
 sha256sum "$evidence_root/G3_LINUX_EVIDENCE.tar.gz" \
   > "$evidence_root/G3_LINUX_EVIDENCE.tar.gz.sha256"
 
