@@ -303,6 +303,21 @@ class TestDeterministicCoreContract(unittest.TestCase):
         self.assertEqual(core.error_code(raised.exception), "RENDER_FAILED")
         self.assertTrue(Context.closed)
 
+    def test_browser_launch_uses_the_locked_render_timeout(self):
+        playwright = mock.Mock()
+        manager = mock.Mock()
+        manager.start.return_value = playwright
+        with mock.patch(
+            "playwright.sync_api.sync_playwright", return_value=manager
+        ):
+            renderer = core._BrowserRenderer()
+            renderer.__enter__()
+            renderer.__exit__(None, None, None)
+        playwright.chromium.launch.assert_called_once_with(
+            args=["--disable-font-subpixel-positioning"],
+            timeout=core.RENDER_TIMEOUT_MS,
+        )
+
     def test_batch_duplicate_destinations_are_rejected_per_input(self):
         with tempfile.TemporaryDirectory() as tmp:
             first = Path(tmp) / "one" / "same.md"

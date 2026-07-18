@@ -994,7 +994,8 @@ class _BrowserRenderer:
         self._playwright = sync_playwright().start()
         try:
             self._browser = self._playwright.chromium.launch(
-                args=["--disable-font-subpixel-positioning"]
+                args=["--disable-font-subpixel-positioning"],
+                timeout=RENDER_TIMEOUT_MS,
             )
         except Exception as exc:
             self._playwright.stop()

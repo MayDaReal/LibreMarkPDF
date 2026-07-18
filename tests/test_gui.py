@@ -64,17 +64,23 @@ class TestGuiWorkerBoundaries(unittest.TestCase):
 
     def test_stale_preview_generation_is_explicitly_checked(self):
         source = inspect.getsource(gui.LibreMarkPdfApp._poll_queue)
-        self.assertIn("generation != self._preview_generation", source)
+        self.assertIn("generation == self._preview_generation", source)
 
     def test_queue_completion_suppresses_dialogs_after_close_request(self):
         source = inspect.getsource(gui.LibreMarkPdfApp._poll_queue)
         self.assertGreaterEqual(source.count("if not self._close_requested"), 2)
+
+    def test_preview_does_not_enter_the_global_blocking_operation(self):
+        source = inspect.getsource(gui.LibreMarkPdfApp._start_preview)
+        self.assertNotIn('_begin_operation("preview")', source)
+        self.assertIn("self._preview_running = True", source)
 
 
 class TestGuiStateAndPlatformAdapters(unittest.TestCase):
     def test_declined_collision_stops_before_render_options_or_worker(self):
         app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
         app.operation = "idle"
+        app._preview_running = False
         app.files = [Path("one.md")]
         app._overwrite_choice = mock.Mock(return_value=None)
         app._render_options = mock.Mock()
@@ -148,8 +154,34 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
         app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
         app.operation = "idle"
         app.root = mock.Mock()
+        app._close_requested = False
+        app._preview_after = "preview-after"
+        app._poll_after = "poll-after"
+        app._preview_generation = 2
+        app._preview_pending_generation = 2
         app._request_close()
+        self.assertTrue(app._close_requested)
+        self.assertEqual(app._preview_generation, 3)
+        self.assertIsNone(app._preview_after)
+        self.assertIsNone(app._poll_after)
+        self.assertEqual(
+            app.root.after_cancel.call_args_list,
+            [mock.call("preview-after"), mock.call("poll-after")],
+        )
         app.root.destroy.assert_called_once_with()
+
+    def test_clear_files_does_not_start_a_sample_preview(self):
+        app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
+        app.operation = "idle"
+        app.files = [Path("one.md")]
+        app._render_file_list = mock.Mock()
+        app._refresh_generate_button = mock.Mock()
+        app._invalidate_preview = mock.Mock()
+        app._schedule_preview = mock.Mock()
+        app._clear_files()
+        self.assertEqual(app.files, [])
+        app._invalidate_preview.assert_called_once_with(clear_image=True)
+        app._schedule_preview.assert_not_called()
 
     def test_open_path_uses_argument_list_without_shell(self):
         with mock.patch.object(gui.os, "name", "posix"):

@@ -114,6 +114,8 @@ class LibreMarkPdfApp:
         self._close_requested = False
         self._preview_generation = 0
         self._preview_after = None
+        self._preview_running = False
+        self._preview_pending_generation = None
         self._poll_after = None
         self._cancel_event = threading.Event()
         self._result_queue = queue.Queue()  # type: queue.Queue
@@ -492,14 +494,17 @@ class LibreMarkPdfApp:
         self.files = [item for item in self.files if item != path]
         self._render_file_list()
         self._refresh_generate_button()
-        self._schedule_preview()
+        if self.files:
+            self._schedule_preview()
+        else:
+            self._invalidate_preview(clear_image=True)
 
     def _clear_files(self) -> None:
         if self.operation == "idle":
             self.files = []
             self._render_file_list()
             self._refresh_generate_button()
-            self._schedule_preview()
+            self._invalidate_preview(clear_image=True)
 
     def _render_file_list(self) -> None:
         for child in self.file_list_frame.winfo_children():
@@ -626,6 +631,18 @@ class LibreMarkPdfApp:
     def _on_preview_input_changed(self, *unused) -> None:
         self._schedule_preview()
 
+    def _invalidate_preview(self, clear_image: bool = False) -> None:
+        self._preview_generation += 1
+        self._preview_pending_generation = None
+        if self._preview_after is not None:
+            self.root.after_cancel(self._preview_after)
+            self._preview_after = None
+        if clear_image:
+            self._preview_png = None
+            self.preview_photo = None
+            self.preview_canvas.delete("all")
+            self._set_status("status_ready")
+
     def _schedule_preview(self) -> None:
         if self.operation != "idle" or not hasattr(self, "refresh_preview_button"):
             return
@@ -650,6 +667,9 @@ class LibreMarkPdfApp:
         self._preview_after = None
         if generation != self._preview_generation or self.operation != "idle":
             return
+        if self._preview_running:
+            self._preview_pending_generation = generation
+            return
         options = self._render_options()
         try:
             profile = core.render_profile_for_options(**options)
@@ -668,7 +688,9 @@ class LibreMarkPdfApp:
         else:
             options["resource_root"] = source_path.resolve().parent
         options["dpi"] = PREVIEW_DPI
-        self._begin_operation("preview")
+        self._preview_running = True
+        self.refresh_preview_button.config(state="disabled")
+        self._refresh_generate_button()
         self._set_status("status_rendering_preview")
         threading.Thread(
             target=_run_preview_job,
@@ -713,7 +735,13 @@ class LibreMarkPdfApp:
     def _refresh_generate_button(self) -> None:
         self.generate_button.config(
             text=self._t("generate_button", count=len(self.files)),
-            state=("normal" if self.files and self.operation == "idle" else "disabled"),
+            state=(
+                "normal"
+                if self.files
+                and self.operation == "idle"
+                and not self._preview_running
+                else "disabled"
+            ),
         )
 
     def _overwrite_choice(self) -> Optional[bool]:
@@ -741,7 +769,7 @@ class LibreMarkPdfApp:
         )
 
     def _on_generate_clicked(self) -> None:
-        if self.operation != "idle":
+        if self.operation != "idle" or self._preview_running:
             return
         if not self.files:
             messagebox.showerror(self._t("error_title"), self._t("error_no_files"))
@@ -750,6 +778,7 @@ class LibreMarkPdfApp:
         if overwrite is None:
             self._set_status("status_cancelled")
             return
+        self._invalidate_preview()
         options = self._render_options()
         try:
             profile = core.render_profile_for_options(**options)
@@ -824,16 +853,24 @@ class LibreMarkPdfApp:
             kind = message[0]
             if kind in ("preview_ok", "preview_error"):
                 generation = message[1]
-                if generation != self._preview_generation:
-                    if self.operation == "preview":
-                        self._finish_operation()
-                    continue
-                if kind == "preview_ok":
-                    self._apply_preview_image(message[2])
-                    self._set_status("status_ready")
-                else:
-                    self._set_status("status_preview_error", error=message[2])
-                self._finish_operation()
+                self._preview_running = False
+                self.refresh_preview_button.config(state="normal")
+                if generation == self._preview_generation:
+                    if kind == "preview_ok":
+                        self._apply_preview_image(message[2])
+                        self._set_status("status_ready")
+                    else:
+                        self._set_status("status_preview_error", error=message[2])
+                pending = self._preview_pending_generation
+                self._preview_pending_generation = None
+                self._refresh_generate_button()
+                if (
+                    pending is not None
+                    and pending == self._preview_generation
+                    and self.operation == "idle"
+                    and not self._close_requested
+                ):
+                    self.root.after(0, lambda: self._start_preview(pending))
             elif kind == "progress":
                 _kind, index, total, _result = message
                 self.progress_var.set(index)
@@ -849,7 +886,7 @@ class LibreMarkPdfApp:
                     self._set_status("status_generation_error", error=message[1])
                     messagebox.showerror(self._t("error_title"), message[1])
                 self._finish_operation()
-        if self.operation != "idle":
+        if self.operation != "idle" or self._preview_running:
             self._schedule_queue_poll()
 
     def _handle_generate_done(self, results: list) -> None:
@@ -907,6 +944,11 @@ class LibreMarkPdfApp:
 
     def _request_close(self) -> None:
         if self.operation == "idle":
+            self._close_requested = True
+            self._invalidate_preview()
+            if self._poll_after is not None:
+                self.root.after_cancel(self._poll_after)
+                self._poll_after = None
             self.root.destroy()
             return
         self._close_requested = True
