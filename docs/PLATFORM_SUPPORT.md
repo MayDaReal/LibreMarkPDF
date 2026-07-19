@@ -6,7 +6,8 @@ embedded browser and without Python or a Playwright cache available at runtime.
 
 Linux x86_64 is a separate candidate lane. The portable tarball is tested
 against an explicitly declared matrix; no general Linux compatibility is
-promised until that matrix has been validated. macOS remains out of scope.
+promised until that matrix has been validated — aucune compatibilité Linux générale
+n’est annoncée avant cette validation. macOS remains out of scope.
 
 Playwright payloads are also platform-native. A shared checkout therefore keeps
 generated Windows resources in `browser-win/` and Linux resources in

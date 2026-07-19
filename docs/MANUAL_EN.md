@@ -14,6 +14,9 @@ payloads separate in `browser-win/` and `browser-linux/`. On Windows,
 missing recommended tools. On Linux, use
 `bootstrap-linux.sh --install-python --install-make`. Without explicit options,
 an interactive terminal asks before installing a missing tool.
+On Ubuntu 24.04 and other distributions without a native CPython 3.9 package,
+install CPython 3.9 with pyenv first; the Linux bootstrap detects an installed
+`3.9.x` pyenv version automatically.
 
 ## Desktop workflow
 

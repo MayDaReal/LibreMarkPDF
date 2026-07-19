@@ -16,6 +16,9 @@ Windows, `bootstrap-windows.ps1 -InstallPython -InstallMake` peut installer
 explicitement les outils recommandés manquants. Sous Linux, utilisez
 `bootstrap-linux.sh --install-python --install-make`. Sans ces options, un
 terminal interactif demande confirmation avant toute installation.
+Sur Ubuntu 24.04 et les distributions qui ne proposent plus de paquet CPython
+3.9 natif, installez d’abord CPython 3.9 avec pyenv ; le bootstrap Linux détecte
+automatiquement une version pyenv `3.9.x` déjà installée.
 
 ## Utilisation de l’interface graphique
 

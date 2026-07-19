@@ -54,6 +54,15 @@ if command -v "$python_bin" >/dev/null 2>&1 &&
 then
   python_ready=1
 fi
+if [[ "$python_ready" -eq 0 ]] && command -v pyenv >/dev/null 2>&1; then
+  pyenv_version="$(pyenv versions --bare 2>/dev/null | awk '$1 ~ /^3\.9([.]|$)/ { print $1; exit }')"
+  if [[ -n "$pyenv_version" ]]; then
+    python_bin="$(PYENV_VERSION="$pyenv_version" pyenv prefix 2>/dev/null)/bin/python"
+    if "$python_bin" -c 'import sys; raise SystemExit(0 if sys.version_info[:2] == (3, 9) else 1)' 2>/dev/null; then
+      python_ready=1
+    fi
+  fi
+fi
 if [[ "$python_ready" -eq 0 ]] && confirm_install "CPython 3.9" "$install_python"; then
   if command -v apt-get >/dev/null 2>&1; then
     install_linux_packages python3.9 python3.9-venv
@@ -69,7 +78,7 @@ if [[ "$python_ready" -eq 0 ]] && confirm_install "CPython 3.9" "$install_python
   fi
 fi
 [[ "$python_ready" -eq 1 ]] || {
-  echo "CPython 3.9 is required. Install it manually or rerun with --install-python." >&2
+  echo "CPython 3.9 is required. Install it manually (for example with pyenv) or rerun with --install-python." >&2
   exit 1
 }
 
