@@ -6,11 +6,11 @@ LibreMark PDF is currently a pre-release prototype. No released version is
 receiving a formal security-support guarantee yet. Security fixes target the
 current `main` branch until the first supported release policy is published.
 
-The current renderer does not yet enforce the target network, raw-HTML, local
-resource, custom-CSS, or overwrite protections. Convert only trusted Markdown
-and CSS and avoid remote resources. These known limitations are tracked in
-`docs/project-reliability/BACKLOG.md` and must not be reported as newly
-discovered vulnerabilities without additional impact.
+Default conversion blocks network-capable HTML and CSS, validates supported
+local images, and refuses replacement unless overwrite is explicit. The
+documented `--trusted-html` mode accepts a narrow static subset and is not a
+general-purpose HTML sandbox. Reports that demonstrate a bypass, unexpected
+filesystem access, active content, or output-integrity failure are in scope.
 
 ## Report a vulnerability privately
 

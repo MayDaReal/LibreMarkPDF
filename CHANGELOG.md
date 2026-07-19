@@ -13,5 +13,5 @@ native releases and link compatibility migrations when applicable.
 
 ### Added
 
-- Gate G1 quality, supply-chain, contribution, security, support, governance,
-  and evidence foundations.
+- Quality, supply-chain, contribution, security, support, governance, and
+  validation foundations.

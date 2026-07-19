@@ -5,13 +5,12 @@ inputs in the adjacent `*.in` files. `constraints.txt` fixes development
 resolution. Release environments use an OS, architecture, and Python-specific
 lock with hashes.
 
-The existing `requirements.txt` remains the compatibility input used by the
-unmodified native build scripts. Its historical lower bounds are intentionally
-not presented as reproducible. Switching production builds to a platform lock
-requires the remaining G1 renderer/golden and native validation evidence.
+The existing `requirements.txt` remains a convenient compatibility input for
+source development. Its lower bounds are intentionally not presented as
+reproducible; native candidates use the platform locks exclusively.
 
 The mandatory initial release candidate is Windows x64 on CPython 3.9:
-`locks/windows-x64-py39.txt`. The optional G3 Linux x86_64 candidate uses
+`locks/windows-x64-py39.txt`. The optional Linux x86_64 candidate uses
 `locks/linux-x86_64-py39.txt`; that lock is not a distribution support claim.
 Both select Playwright 1.60.0, whose wheel manifest selects Chromium/headless
 shell 148.0.7778.96 at revision 1223 and FFmpeg 1011. Changing Playwright or
@@ -21,7 +20,13 @@ must not merge it automatically.
 
 ## Contributor setup
 
-From a clean checkout with Python 3.9 or newer:
+From a clean checkout, use `bootstrap-windows.ps1` or `bootstrap-linux.sh`.
+They create the platform environment from its hashed lock and acquire the
+exact browser payload in `browser-win/` or `browser-linux/`. On Windows,
+`-InstallPython` and `-InstallMake` opt in to installing missing recommended
+tools; Linux accepts `--install-python` and `--install-make`. Interactive
+terminals ask before installation when these options are omitted. The
+equivalent manual development setup is:
 
 ```bash
 python -m venv .venv
@@ -36,8 +41,8 @@ python -m unittest tests.test_cli tests.test_community tests.test_i18n tests.tes
   tests.test_core.TestMarkdownConversion
 ```
 
-On Windows, activate with `.venv\Scripts\activate` and use the same `python`
-commands. The command above is the pure, browser-free gate. Browser-backed
+On Windows, activate with `.venv-windows-py39\Scripts\Activate.ps1` and use
+the same `python` commands. The command above is the pure, browser-free gate. Browser-backed
 tests additionally require the exact Playwright browser payload:
 
 ```bash
@@ -82,4 +87,5 @@ python -m pip install --require-hashes \
 The wheels were resolved for a manylinux2014 x86_64 input set. This ensures
 archive integrity, not runtime compatibility. The exact candidate still
 requires the distribution, glibc, desktop-library, offline, GUI/CLI and
-canonical checks in `docs/LINUX_BUILD_VALIDATION.md`.
+canonical checks described in `docs/VALIDATION.md` and
+`docs/PLATFORM_SUPPORT.md`.

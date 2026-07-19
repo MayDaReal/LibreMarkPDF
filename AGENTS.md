@@ -25,13 +25,12 @@ completely:
 | CLI or skill | `libremark_pdf/cli.py`, `libremark_pdf/__main__.py`, `SKILL.md` |
 | GUI or translations | `libremark_pdf/gui.py`, `libremark_pdf/i18n.py` |
 | Packaging/release | build scripts, both specs, `requirements.txt`, Windows validation guide |
-| Reliability work | `TARGET_ARCHITECTURE.md`, `BACKLOG.md`, relevant ADRs |
+| Reliability work | `docs/VALIDATION.md`, `docs/RELEASE.md`, `docs/PLATFORM_SUPPORT.md` |
 
-The local `docs/project-reliability/BASELINE_AUDIT.md` is an immutable historical
-input and is intentionally excluded from Git. If present, read it for
-reliability work; never edit, stage, or publish it. If a required document and
-the implementation disagree, report the discrepancy instead of silently
-choosing one.
+Historical reliability material is preserved by the local Git tag
+`reliability-evidence-2026-07`; it is not part of normal contributor work. If
+a required document and the implementation disagree, report the discrepancy
+instead of silently choosing one.
 
 ## Repository boundaries
 
@@ -119,7 +118,7 @@ python3 -m libremark_pdf convert README.md --json
 ```powershell
 python -m unittest discover -s tests -v
 python -m libremark_pdf convert --help
-build.bat
+make build-windows
 ```
 
 Browser tests require the compatible Chromium payload. If it is unavailable,

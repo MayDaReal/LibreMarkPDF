@@ -8,6 +8,15 @@ une ligne de commande non interactive.
 > encore publié. L’application actuelle doit être lancée depuis les sources ou
 > construite localement.
 
+Depuis un clone, lancez `bootstrap-windows.ps1` sous Windows ou
+`bootstrap-linux.sh` sous Linux. Ces scripts préparent l’environnement Python
+3.9 verrouillé et le navigateur Chromium local requis. Un clone partagé garde
+les payloads natifs séparés dans `browser-win/` et `browser-linux/`. Sous
+Windows, `bootstrap-windows.ps1 -InstallPython -InstallMake` peut installer
+explicitement les outils recommandés manquants. Sous Linux, utilisez
+`bootstrap-linux.sh --install-python --install-make`. Sans ces options, un
+terminal interactif demande confirmation avant toute installation.
+
 ## Utilisation de l’interface graphique
 
 1. Ouvrez LibreMark PDF.

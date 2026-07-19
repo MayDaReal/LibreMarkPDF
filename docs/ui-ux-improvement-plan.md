@@ -1303,7 +1303,7 @@ Pour EN et FR :
 - signalement avec et sans diagnostic.
 
 Les captures ne sont pas des goldens de rendu PDF et ne doivent pas modifier
-les goldens G2.
+les goldens canoniques.
 
 ### Tailles à vérifier
 

@@ -56,7 +56,7 @@ version = {attr = "libremark_pdf.__version__"}
 include = ["libremark_pdf*"]
 
 [tool.setuptools.data-files]
-"libremark_pdf" = ["style.css", "LICENSE", "THIRD_PARTY_NOTICES.md"]
+"libremark_pdf" = ["VERSION", "style.css", "LICENSE", "THIRD_PARTY_NOTICES.md"]
 "libremark_pdf/docs" = ["docs/CLI_JSON_SCHEMA.json", "docs/THEME_CONTRIBUTING.md"]
 "libremark_pdf/icons" = [
   "icons/icons_check.png",

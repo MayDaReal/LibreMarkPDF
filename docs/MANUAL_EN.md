@@ -6,6 +6,15 @@ computer. It provides a desktop interface and a non-interactive command line.
 > **Pre-release notice:** there is no officially validated download yet. The
 > current application must be run from source or built locally.
 
+For a source checkout, run `bootstrap-windows.ps1` on Windows or
+`bootstrap-linux.sh` on Linux. They prepare the locked Python 3.9 environment
+and the required local Chromium payload. A shared checkout keeps the native
+payloads separate in `browser-win/` and `browser-linux/`. On Windows,
+`bootstrap-windows.ps1 -InstallPython -InstallMake` can explicitly install
+missing recommended tools. On Linux, use
+`bootstrap-linux.sh --install-python --install-make`. Without explicit options,
+an interactive terminal asks before installing a missing tool.
+
 ## Desktop workflow
 
 1. Open LibreMark PDF.

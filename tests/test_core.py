@@ -80,11 +80,11 @@ class TestCoreFacadeCharacterization(unittest.TestCase):
         )
         self.assertEqual(
             document.profile.fingerprint,
-            "908aa157c6dbcdaac0fd71ca762d6f518d567341094622f2c984fc7a9147fe61",
+            "a39b293f471e820e9afb87c46267de0776fa15c7ab68b69c9dae403af78c6805",
         )
         self.assertEqual(
             hashlib.sha256(document.full_html.encode("utf-8")).hexdigest(),
-            "350bf1eccba49f4b8d81b5fd71360f3a78637cfd40c63ec7e9dd3f123b568d89",
+            "484685c815fe500442ce13bf7dd7b54a8124dc730e9b2895d6742dfa7d22d5af",
         )
 
     def test_default_theme_alias_is_exact(self):
@@ -344,6 +344,16 @@ class TestDeterministicCoreContract(unittest.TestCase):
             with mock.patch.object(core, "__file__", str(prefix / "missing" / "core.py")):
                 with mock.patch.object(sys, "prefix", str(prefix)):
                     self.assertEqual(core.resource_path("style.css"), target)
+
+    def test_browser_resource_path_prefers_the_configured_platform_payload(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            with mock.patch.dict(
+                "os.environ", {"PLAYWRIGHT_BROWSERS_PATH": tmp}
+            ):
+                self.assertEqual(
+                    resources.browser_resource_path(core.__file__),
+                    Path(tmp).resolve(),
+                )
 
     def test_render_profile_has_stable_canonical_fingerprint(self):
         first = core.RenderProfile("2026-07-14")

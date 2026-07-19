@@ -2,23 +2,22 @@
 
 LibreMark PDF is a pre-release, local-first Markdown-to-PDF application. Read
 `AGENTS.md` before changing code: it defines module ownership, compatibility
-constraints, required documents, and verification gates.
+constraints, required documents, and validation rules.
 
 ## Where to start
 
 Use the smallest path that matches your change. The product README and the two
 user manuals are the public behavior reference; this file is the contributor
-workflow; `AGENTS.md` contains repository-wide constraints. The reliability
-records under [`docs/project-reliability/`](docs/project-reliability/README.md)
-are maintainer evidence, not a prerequisite to every pull request.
+workflow; `AGENTS.md` contains repository-wide constraints. Use the focused
+validation, release, and platform documents only when the change needs them.
 
 | Change | Read first |
 | --- | --- |
-| Core conversion or rendering | `libremark_pdf/core.py`, relevant tests, and the rendering ADRs |
+| Core conversion or rendering | `libremark_pdf/core.py`, relevant tests, and `docs/VALIDATION.md` |
 | CLI or agent contract | `libremark_pdf/cli.py`, `libremark_pdf/__main__.py`, `SKILL.md` |
 | GUI or translations | `libremark_pdf/gui.py`, `libremark_pdf/i18n.py`, both manuals |
-| Packaging or release validation | build scripts, specs, requirements, and the Windows guide |
-| Reliability work | the reliability index, then the named backlog/ADR/evidence files |
+| Packaging or release validation | `Makefile`, native tools, requirements, and `docs/RELEASE.md` |
+| Validation or platform policy | `docs/VALIDATION.md` and `docs/PLATFORM_SUPPORT.md` |
 
 When a change crosses more than one row, read each affected canonical source;
 avoid copying the same contract into a new document.
@@ -67,20 +66,19 @@ English and French entries with identical formatting placeholders. Use
 
 ## Themes
 
-The community theme package format is not implemented yet. Do not present an
-arbitrary CSS file as a validated theme. For proposals, include purpose,
+Theme packages must follow `docs/THEME_CONTRIBUTING.md`. Include purpose,
 license/SPDX identifier, local assets and their licenses, a representative
-Markdown fixture, screenshots or PDFs as review artifacts (not source files),
-and confirm that the CSS contains no remote URLs, `@import`, scripts, or path
-traversal. The approved default stylesheet must remain unchanged.
+Markdown fixture, and reviewed visual evidence. Remote URLs, `@import`,
+scripts, and path traversal are rejected. The approved default stylesheet must
+remain unchanged.
 
 ## Pull requests
 
 Use one coherent change per pull request. Complete the template with observable
 before/after behavior, exact commands and exit codes, environment, evidence,
-risks, and unverified platforms. Maintainers review against the current gate in
-`docs/project-reliability/BACKLOG.md`. Code presence alone does not complete a
-backlog item.
+risks, and unverified platforms. Maintainers review against
+`docs/VALIDATION.md` and the relevant release criteria. Code presence alone
+does not establish successful validation.
 
 By contributing, you agree that your contribution is licensed under the
 repository's MIT License and that you have the right to submit it.

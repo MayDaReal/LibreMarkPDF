@@ -1,4 +1,4 @@
-"""Focused checks for G1 package and source-hygiene foundations."""
+"""Focused checks for package and source-hygiene foundations."""
 
 import unittest
 from pathlib import Path

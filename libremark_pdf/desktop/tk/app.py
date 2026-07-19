@@ -77,6 +77,7 @@ class LibreMarkPdfApp(
         }
         self._operation_controls = []  # type: list
         self._theme_buttons = []  # type: list
+        self._automation_widgets = {}  # type: dict[str, tk.Misc]
 
         self._build_ui()
         self._bind_accessibility()
@@ -95,6 +96,13 @@ class LibreMarkPdfApp(
 
     def _t(self, key: str, **kwargs) -> str:
         return i18n.t(key, self.lang, **kwargs)
+
+    def automation_widget(self, action: str) -> tk.Misc:
+        """Return the semantic control used by stable UI automation."""
+        try:
+            return self._automation_widgets[action]
+        except KeyError:
+            raise ValueError("Unknown desktop automation action: {0}".format(action))
 
     def _set_status(self, key: str, **kwargs) -> None:
         self._status_key = key

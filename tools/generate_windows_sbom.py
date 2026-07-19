@@ -176,7 +176,7 @@ def generate(
         "SPDXID": "SPDXRef-DOCUMENT",
         "creationInfo": {
             "created": created,
-            "creators": ["Tool: LibreMark-PDF-G3-SBOM-1"],
+            "creators": ["Tool: LibreMark-PDF-SBOM-1"],
         },
         "dataLicense": "CC0-1.0",
         "documentNamespace": "https://libremark.invalid/spdx/" + str(namespace_uuid),

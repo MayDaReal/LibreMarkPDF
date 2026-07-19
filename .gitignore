@@ -3,6 +3,8 @@ __pycache__/
 *.py[cod]
 *.egg-info/
 .venv/
+.venv-windows-py39/
+.venv-linux-py39/
 venv/
 venv-linux/
 
@@ -17,7 +19,10 @@ htmlcov/
 # Generated application artifacts
 build/
 dist/
+# Legacy shared location; retained only to avoid staging old generated payloads.
 browsers/
+browser-win/
+browser-linux/
 *.pdf
 *.spec.bak
 

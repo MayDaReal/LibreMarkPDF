@@ -180,7 +180,9 @@ class TestConvertCommand(unittest.TestCase):
                 Path(__file__).resolve().parent
                 / "fixtures" / "themes" / "community-blue"
             )
-            with mock.patch.object(cli.core, "DEFAULT_THEME_ROOT", theme_root):
+            with mock.patch.object(
+                cli.core._themes, "_default_theme_root", theme_root
+            ):
                 outputs = []
                 for arguments in (
                     ["theme", "install", str(fixture), "--json"],
@@ -210,6 +212,7 @@ class TestCliSubprocessContract(unittest.TestCase):
         root = str(Path(__file__).resolve().parent.parent)
         existing = environment.get("PYTHONPATH")
         environment["PYTHONPATH"] = root if not existing else root + os.pathsep + existing
+        environment["PYTHONIOENCODING"] = "utf-8"
         return subprocess.run(
             [sys.executable, "-m", "libremark_pdf", *arguments],
             cwd=cwd or root,
@@ -225,7 +228,7 @@ class TestCliSubprocessContract(unittest.TestCase):
         self.assertEqual(completed.returncode, 0)
         self.assertEqual(completed.stderr, "")
         for identity in (
-            "LibreMark PDF 1.0.0", "render-profile default@1",
+            "LibreMark PDF 0.1.0.dev1", "render-profile default@1",
             "Playwright 1.60.0", "Chromium 148.0.7778.96", "revision 1223",
         ):
             self.assertIn(identity, completed.stdout)
@@ -341,7 +344,7 @@ class TestCliSubprocessBrowserContract(unittest.TestCase):
             image.write_bytes(
                 (
                     Path(__file__).resolve().parent
-                    / "fixtures" / "g2" / "resources" / "blue-square.svg"
+                    / "fixtures" / "canonical" / "resources" / "blue-square.svg"
                 ).read_bytes()
             )
             source.write_text(

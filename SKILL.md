@@ -16,8 +16,9 @@ Use the first command form that is actually available:
 3. `LibreMarkPDF-cli.exe` on Windows or `LibreMarkPDF` on another platform from
    a locally built, validated artifact.
 
-If none exists, explain that LibreMark PDF must be installed or built. Do not
-claim that `build.sh` or `build.bat` installs a command on `PATH`.
+If none exists, explain that LibreMark PDF must be installed or built. The
+repository build commands create local artifacts; they do not install a
+command on `PATH`.
 
 The examples below use `python -m libremark_pdf`; replace that prefix when
 another verified form is selected.

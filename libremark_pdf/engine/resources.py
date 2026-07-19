@@ -72,6 +72,17 @@ def resource_path(relative: str, module_file: str) -> Path:
     return source_candidate
 
 
+def browser_resource_path(module_file: str) -> Path:
+    """Resolve the external source payload or frozen browser directory."""
+    configured = os.environ.get("PLAYWRIGHT_BROWSERS_PATH")
+    if configured:
+        return Path(configured).expanduser().resolve()
+    if getattr(sys, "_MEIPASS", None):
+        return resource_path("browsers", module_file)
+    platform_directory = "browser-win" if os.name == "nt" else "browser-linux"
+    return resource_path(platform_directory, module_file)
+
+
 def configure_resource_locations(
     default_css_path: Path, icons_dir: Path, fonts_dir: Path, browsers_dir: Path
 ) -> None:
@@ -149,7 +160,7 @@ def _icon_data_uri(filename: str) -> str:
 
 
 def _font_face_css() -> str:
-    """Embed the seven exact static G1 font files in renderer input."""
+    """Embed the seven exact static font files in renderer input."""
     global _font_css_cache
     _configured()
     if _font_css_cache is None:

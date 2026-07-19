@@ -18,6 +18,12 @@ except ImportError:  # Browsing and launch remain available without optional DnD
 
 LOGO_ICON_CACHE: dict[int, tk.PhotoImage] = {}
 
+AUTOMATION_ACTIONS = frozenset((
+    "files.add", "files.clear", "language.en", "language.fr",
+    "advanced.toggle", "preview.refresh", "output.choose", "output.reset",
+    "convert.start", "convert.cancel",
+))
+
 
 def load_logo(size: int) -> tk.PhotoImage:
     if size not in LOGO_ICON_CACHE:
@@ -55,6 +61,8 @@ class TkLayoutMixin:
         )
         self.btn_en.pack(side="left")
         self.btn_fr.pack(side="left")
+        self._register_automation_widget("language.en", self.btn_en)
+        self._register_automation_widget("language.fr", self.btn_fr)
 
         container = ttk.Frame(self.root)
         container.pack(fill="both", expand=True)
@@ -108,6 +116,8 @@ class TkLayoutMixin:
             source_actions, command=self._clear_files
         )
         self.clear_files_button.pack(side="left", padx=6)
+        self._register_automation_widget("files.add", self.browse_button)
+        self._register_automation_widget("files.clear", self.clear_files_button)
 
         file_box = ttk.Frame(self.source_group)
         file_box.pack(fill="x")
@@ -158,6 +168,7 @@ class TkLayoutMixin:
             self.advanced_group, command=self._toggle_advanced
         )
         self.advanced_toggle.pack(fill="x")
+        self._register_automation_widget("advanced.toggle", self.advanced_toggle)
         self.advanced_content = ttk.Frame(self.advanced_group)
         self.tokens_hint_label = ttk.Label(self.advanced_content)
         self.tokens_hint_label.pack(anchor="w", pady=(6, 4))
@@ -195,6 +206,7 @@ class TkLayoutMixin:
             preview_header, command=self._refresh_preview
         )
         self.refresh_preview_button.pack(side="left")
+        self._register_automation_widget("preview.refresh", self.refresh_preview_button)
         self.zoom_out_button = ttk.Button(
             preview_header, width=3, text="−", command=lambda: self._change_zoom(-1)
         )
@@ -240,6 +252,8 @@ class TkLayoutMixin:
             output_row, command=self._reset_output_dir
         )
         self.output_reset_button.pack(side="left", padx=(6, 0))
+        self._register_automation_widget("output.choose", self.output_button)
+        self._register_automation_widget("output.reset", self.output_reset_button)
 
         action_row = ttk.Frame(self.body)
         action_row.pack(fill="x")
@@ -251,6 +265,8 @@ class TkLayoutMixin:
             action_row, command=self._cancel_conversion, state="disabled"
         )
         self.cancel_button.pack(side="left", padx=(6, 0))
+        self._register_automation_widget("convert.start", self.generate_button)
+        self._register_automation_widget("convert.cancel", self.cancel_button)
         self.progress = ttk.Progressbar(
             self.body, variable=self.progress_var, maximum=1
         )
@@ -266,6 +282,12 @@ class TkLayoutMixin:
             self.trusted_html_check, self.refresh_preview_button,
             self.output_button, self.output_reset_button,
         ])
+
+    def _register_automation_widget(self, action: str, widget: tk.Misc) -> None:
+        """Expose a stable semantic control for automated desktop checks."""
+        if action not in AUTOMATION_ACTIONS:
+            raise ValueError("Unknown desktop automation action: {0}".format(action))
+        self._automation_widgets[action] = widget
 
     def _bind_accessibility(self) -> None:
         self.root.bind_all("<Control-o>", lambda event: self._browse_files())

@@ -4,7 +4,7 @@ The repository's MIT license covers LibreMark PDF source. It does not replace
 the licenses of Python dependencies, Chromium, PDFium, fonts, icons, themes, or
 other bundled resources.
 
-The native G3 workflows generate SPDX 2.3 JSON inventories from the exact
+The native validation workflows generate SPDX 2.3 JSON inventories from the exact
 hashed Windows or Linux dependency lock and every file in the corresponding
 packaged candidate. Those inventories are candidate evidence, not a claim that
 an official release notice review is complete.
@@ -55,5 +55,5 @@ Before publication, the release owner must still retain for every component:
 
 The release owner must compare the generated inventory with the PyInstaller
 manifest, browser payload, fonts, themes, icons, and assets. Unknown, missing,
-or incompatible licences block publication. This G3 work does not perform the
-Lot 4 publication review.
+or incompatible licences block publication. Automated validation does not
+replace the publication licence review.

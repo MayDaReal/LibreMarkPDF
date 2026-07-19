@@ -2,6 +2,7 @@
 
 import json
 import shutil
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -34,12 +35,14 @@ class TestLinuxPackaging(unittest.TestCase):
         self.assertEqual(len(result["mismatches"]), result["packages"])
 
     def test_portable_spec_accepts_an_external_browser_staging_root(self):
-        spec = (ROOT / "LibreMarkPDF-portable.spec").read_text(encoding="utf-8")
+        spec = (ROOT / "LibreMarkPDF.spec").read_text(encoding="utf-8")
         self.assertIn("LIBREMARK_PDF_BROWSER_SOURCE", spec)
         self.assertIn('(browser_source, "browsers")', spec)
 
     def test_build_is_no_download_no_elevation_and_has_three_entries(self):
-        script = (ROOT / "build_linux_portable.sh").read_text(encoding="utf-8")
+        script = (
+            ROOT / "tools" / "build-linux-artifact.sh"
+        ).read_text(encoding="utf-8")
         for marker in (
             "linux-x86_64-py39.txt",
             "sys.version_info[:2] == (3, 9)",
@@ -65,7 +68,7 @@ class TestLinuxPackaging(unittest.TestCase):
 
     def test_runner_covers_linux_candidate_boundaries(self):
         script = (
-            ROOT / "tools" / "run_g3_linux_candidate.sh"
+            ROOT / "tools" / "validate-linux-artifact.sh"
         ).read_text(encoding="utf-8")
         for marker in (
             "--require-offline",
@@ -78,8 +81,8 @@ class TestLinuxPackaging(unittest.TestCase):
             "default@1",
             "Xvfb",
             "inspect_linux_artifact.py",
-            "g3_windows_artifact_harness.py",
-            "G3_LINUX_EVIDENCE_MANIFEST.sha256",
+            "artifact_visual_regression.py",
+            "LINUX_VALIDATION_MANIFEST.sha256",
             "manual-linux-gui-review.md",
             'PLAYWRIGHT_BROWSERS_PATH="$browser_source"',
             "run env",
@@ -90,6 +93,7 @@ class TestLinuxPackaging(unittest.TestCase):
         self.assertNotIn("sudo ", script)
         self.assertNotIn('python_bin="$(realpath "$python_bin")"', script)
 
+    @unittest.skipUnless(sys.platform.startswith("linux"), "requires native Linux")
     def test_elf_inspector_records_glibc_and_no_missing_library(self):
         true_path = Path(shutil.which("true") or "/bin/true")
         with tempfile.TemporaryDirectory() as temporary:
@@ -100,6 +104,7 @@ class TestLinuxPackaging(unittest.TestCase):
         self.assertEqual(result["unresolved_libraries"], [])
         self.assertTrue(result["glibc_versions"])
 
+    @unittest.skipUnless(sys.platform.startswith("linux"), "requires native Linux")
     def test_elf_inspector_uses_pyinstaller_runtime_library_path(self):
         completed = mock.Mock(returncode=0, stdout="", stderr="")
         with tempfile.TemporaryDirectory() as temporary:
@@ -140,14 +145,12 @@ class TestLinuxPackaging(unittest.TestCase):
         self.assertEqual(document["name"], "LibreMark-PDF-Linux-x86_64-test")
         json.dumps(document)
 
-    def test_linux_guide_does_not_advertise_unverified_support(self):
-        guide = (ROOT / "docs" / "LINUX_BUILD_VALIDATION.md").read_text(
+    def test_platform_guide_does_not_advertise_unverified_support(self):
+        guide = (ROOT / "docs" / "PLATFORM_SUPPORT.md").read_text(
             encoding="utf-8"
         )
-        self.assertIn("not a support promise", guide)
-        self.assertIn("AppImage", guide)
-        self.assertIn("--no-sandbox", guide)
-        self.assertIn("LINUX G3 NOT YET PASSED", guide)
+        self.assertIn("aucune compatibilité Linux générale", guide)
+        self.assertIn("Windows x64", guide)
 
 
 if __name__ == "__main__":

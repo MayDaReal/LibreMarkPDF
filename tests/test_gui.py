@@ -218,6 +218,23 @@ class TestGuiWorkerBoundaries(unittest.TestCase):
         self.assertIn("self._preview_running = True", source)
 
 
+class TestGuiAutomationContract(unittest.TestCase):
+    def test_semantic_actions_cover_primary_desktop_workflow(self):
+        expected = {
+            "files.add", "advanced.toggle", "preview.refresh", "output.choose",
+            "convert.start", "convert.cancel", "language.en", "language.fr",
+        }
+        self.assertTrue(expected.issubset(tk_layout.AUTOMATION_ACTIONS))
+
+    def test_automation_lookup_uses_semantic_actions(self):
+        app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
+        widget = object()
+        app._automation_widgets = {"convert.start": widget}
+        self.assertIs(app.automation_widget("convert.start"), widget)
+        with self.assertRaisesRegex(ValueError, "Unknown desktop automation action"):
+            app.automation_widget("missing")
+
+
 class TestGuiStateAndPlatformAdapters(unittest.TestCase):
     def test_declined_collision_stops_before_render_options_or_worker(self):
         app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
@@ -323,13 +340,16 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
         app._schedule_preview.assert_not_called()
 
     def test_open_path_uses_argument_list_without_shell(self):
-        with mock.patch.object(services.os, "name", "posix"):
+        output = Path("report.pdf")
+        platform_os = mock.Mock()
+        platform_os.name = "posix"
+        with mock.patch.object(services, "os", platform_os):
             with mock.patch.object(services.sys, "platform", "linux"):
                 with mock.patch.object(
                     services.subprocess, "Popen"
                 ) as popen:
-                    desktop_services.open_path(Path("/tmp/report.pdf"))
-        popen.assert_called_once_with(["xdg-open", "/tmp/report.pdf"])
+                    desktop_services.open_path(output)
+        popen.assert_called_once_with(["xdg-open", str(output)])
 
     def test_source_contains_scroll_zoom_keyboard_and_focus_contracts(self):
         source = "\n".join(

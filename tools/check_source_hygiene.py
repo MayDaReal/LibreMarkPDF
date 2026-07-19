@@ -18,6 +18,8 @@ FORBIDDEN_PARTS = {
     ".ruff_cache",
     ".venv",
     "browsers",
+    "browser-linux",
+    "browser-win",
     "build",
     "dist",
     "venv",

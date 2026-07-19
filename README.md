@@ -34,17 +34,46 @@ documents below as needed:
 | Understand review and release decisions | [`GOVERNANCE.md`](GOVERNANCE.md) |
 | See planned work | [`ROADMAP.md`](ROADMAP.md) |
 | Check user-facing documentation parity | [`docs/DOCUMENTATION_SYNC.md`](docs/DOCUMENTATION_SYNC.md) |
-| Inspect reliability decisions and evidence | [`docs/project-reliability/README.md`](docs/project-reliability/README.md) |
+| Build, test, and release candidates | [`docs/VALIDATION.md`](docs/VALIDATION.md) · [`docs/RELEASE.md`](docs/RELEASE.md) |
+| Platform status and limits | [`docs/PLATFORM_SUPPORT.md`](docs/PLATFORM_SUPPORT.md) |
 
-The reliability directory contains audit records, accepted architecture
-decisions, and gate evidence. It is deliberately detailed for maintainers and
-auditors; it is not required reading for an ordinary documentation or code
-contribution.
+The historical reliability programme is preserved by the local Git tag
+`reliability-evidence-2026-07`. It is not required reading for normal work.
 
 ## Run from source
 
-Prerequisites: Python 3.9+, Tk for the GUI, and the Python dependencies listed
-in `requirements.txt`.
+Prerequisites: CPython 3.9, Tk for the GUI, and network access for the initial
+dependency/browser acquisition. Start with the platform bootstrap:
+
+```powershell
+.\bootstrap-windows.ps1
+```
+
+```bash
+./bootstrap-linux.sh
+```
+
+The bootstraps create a locked environment and stage the exact Chromium
+payload in the platform-specific ignored directory `browser-win/` or
+`browser-linux/`. The payloads are native and must not be shared between
+operating systems.
+
+By default, an interactive bootstrap asks before installing a missing Python
+or GNU Make. Explicit options are useful for automation:
+
+```powershell
+.\bootstrap-windows.ps1 -InstallPython -InstallMake
+```
+
+```bash
+./bootstrap-linux.sh --install-python --install-make
+```
+
+Use `-NonInteractive` on Windows or `--non-interactive` on Linux to disable
+questions; without the explicit install options, missing tools then cause an
+error or remain optional. Reopen PowerShell after GNU Make installation if
+`make` is not yet on `PATH`. GNU Make exposes
+`make test`, `make test-ui`, and native validation shortcuts.
 
 ```bash
 python3 -m venv venv
@@ -59,8 +88,9 @@ python -m libremark_pdf
 python -m libremark_pdf convert report.md --json
 ```
 
-On Windows, activate with `venv\Scripts\activate` and use `python` in place of
-`python3`.
+On Windows, the locked environment is `.venv-windows-py39`; activate it with
+`.venv-windows-py39\Scripts\Activate.ps1`. The Linux environment is
+`.venv-linux-py39`.
 
 ## CLI examples
 
@@ -114,11 +144,10 @@ Conversion runs locally with the bundled resources.
 
 ### Windows
 
-1. Prepare the hash-locked Python 3.9 environment and exact Chromium described
-   by the validation guide.
-2. Run `build_portable.bat` from a clean native Windows x64 checkout.
-3. Test the complete `dist\LibreMarkPDF` directory with
-   [`docs/WINDOWS_BUILD_VALIDATION.md`](docs/WINDOWS_BUILD_VALIDATION.md).
+Run `make build-windows` from the locked environment created by
+`bootstrap-windows.ps1`. Without GNU Make, call
+`tools\build-windows-artifact.bat` directly. Validate the complete candidate
+with `make validate-windows`.
 
 The portable candidate provides `LibreMarkPDF.exe` for the no-console GUI,
 `LibreMarkPDF-cli.exe` for authoritative CLI streams, and
@@ -129,13 +158,13 @@ gates.
 ### Linux
 
 Prepare the hash-locked CPython 3.9 x86_64 environment and exact browser
-payload described by the
-[`Linux validation guide`](docs/LINUX_BUILD_VALIDATION.md), then run:
+payload with `bootstrap-linux.sh`, then run `make build-linux`. Without GNU
+Make, call:
 
 ```bash
-export LIBREMARK_PDF_PYTHON="$PWD/.venv-linux-g3/bin/python"
+export LIBREMARK_PDF_PYTHON="$PWD/.venv-linux-py39/bin/python"
 export LIBREMARK_PDF_BROWSER_SOURCE=/absolute/staging/browser
-./build_linux_portable.sh
+./tools/build-linux-artifact.sh
 ```
 
 The candidate is `dist/LibreMarkPDF-linux-x86_64-candidate.tar.gz`. It expands
@@ -143,7 +172,7 @@ to an onedir layout with `LibreMarkPDF` (GUI), `LibreMarkPDF-cli`
 (authoritative streams), and `LibreMarkPDF-debug` (diagnostic GUI). The
 tarball avoids FUSE but still requires compatible glibc and Chromium host
 libraries. Linux is not advertised as supported or portable until its
-independent native matrix gate passes.
+independent native validation passes.
 
 ## Architecture
 
@@ -154,11 +183,10 @@ Skill┘                                           └> PDFium ─> preview PNG
 ```
 
 `libremark_pdf/core.py` is the only reusable conversion engine. Runtime files
-are in `style.css`, `icons/`, `assets/`, `fonts/`, and the generated `browsers/`
-tree.
+are in `style.css`, `icons/`, `assets/`, `fonts/`, and the generated
+platform-specific browser tree.
 See [`AGENTS.md`](AGENTS.md) for contribution rules and
-[`docs/project-reliability/README.md`](docs/project-reliability/README.md) for
-the gated reliability program and its reading paths.
+[`docs/VALIDATION.md`](docs/VALIDATION.md) for the active validation workflow.
 
 ## Current security limitations
 

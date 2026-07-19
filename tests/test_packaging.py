@@ -13,15 +13,8 @@ class TestPackagingConfiguration(unittest.TestCase):
         entry = (ROOT / "libremark_pdf_entry.py").read_text(encoding="utf-8")
         self.assertIn("from libremark_pdf.__main__ import main", entry)
 
-    def test_spec_uses_package_entry_without_manual_hidden_imports(self):
-        spec = (ROOT / "LibreMarkPDF.spec").read_text(encoding="utf-8")
-        self.assertIn('["libremark_pdf_entry.py"]', spec)
-        self.assertIn("hiddenimports=[]", spec)
-        self.assertNotIn("libremark_pdf\\\\__main__.py", spec)
-
     def test_portable_spec_uses_onedir_collection_and_matching_resources(self):
-        onefile = (ROOT / "LibreMarkPDF.spec").read_text(encoding="utf-8")
-        portable = (ROOT / "LibreMarkPDF-portable.spec").read_text(
+        portable = (ROOT / "LibreMarkPDF.spec").read_text(
             encoding="utf-8"
         )
 
@@ -34,11 +27,10 @@ class TestPackagingConfiguration(unittest.TestCase):
             "LICENSE", "THIRD_PARTY_NOTICES.md", "THEME_CONTRIBUTING.md",
             "CLI_JSON_SCHEMA.json",
         ):
-            self.assertIn(resource, onefile)
             self.assertIn(resource, portable)
 
     def test_portable_spec_has_distinct_gui_cli_and_diagnostic_entry_paths(self):
-        spec = (ROOT / "LibreMarkPDF-portable.spec").read_text(encoding="utf-8")
+        spec = (ROOT / "LibreMarkPDF.spec").read_text(encoding="utf-8")
         self.assertIn('name="LibreMarkPDF"', spec)
         self.assertIn('name="LibreMarkPDF-cli"', spec)
         self.assertIn('name="LibreMarkPDF-debug"', spec)
@@ -51,15 +43,12 @@ class TestPackagingConfiguration(unittest.TestCase):
     def test_no_competing_debug_spec_exists(self):
         self.assertFalse((ROOT / "LibreMarkPDF-debug.spec").exists())
 
-    def test_windows_build_uses_the_authoritative_spec(self):
-        script = (ROOT / "build.bat").read_text(encoding="utf-8")
-        self.assertIn("python -m PyInstaller --noconfirm --clean LibreMarkPDF.spec", script)
-        self.assertIn('if /i "%~1"=="--console"', script)
-
     def test_portable_build_uses_locked_environment_and_external_paths(self):
-        script = (ROOT / "build_portable.bat").read_text(encoding="utf-8")
+        script = (
+            ROOT / "tools" / "build-windows-artifact.bat"
+        ).read_text(encoding="utf-8")
 
-        self.assertIn("LibreMarkPDF-portable.spec", script)
+        self.assertIn("LibreMarkPDF.spec", script)
         self.assertIn("LIBREMARK_PDF_DISTPATH", script)
         self.assertIn("LIBREMARK_PDF_WORKPATH", script)
         self.assertIn("LIBREMARK_PDF_PYTHON", script)
@@ -71,13 +60,15 @@ class TestPackagingConfiguration(unittest.TestCase):
         self.assertNotIn("pip install", script)
         self.assertNotIn("playwright install", script)
 
-    def test_native_g3_runner_covers_mandatory_candidate_boundaries(self):
-        script = (ROOT / "tools" / "run_g3_windows_candidate.ps1").read_text(
+    def test_native_runner_covers_mandatory_candidate_boundaries(self):
+        script = (ROOT / "tools" / "validate-windows-artifact.ps1").read_text(
             encoding="utf-8"
         )
         for marker in (
             "RequireOffline",
             "PROCESSOR_ARCHITECTURE",
+            "PROCESSOR_ARCHITEW6432",
+            "NativeArchitecture",
             "git log -1 --show-signature",
             "unittest",
             "LibreMarkPDF-cli.exe",
@@ -86,11 +77,11 @@ class TestPackagingConfiguration(unittest.TestCase):
             "partial-batch",
             "permission",
             "theme-convert",
-            "g3_windows_artifact_harness.py",
+            "artifact_visual_regression.py",
             "generate_windows_sbom.py",
             "Get-AuthenticodeSignature",
             "manual-gui-review.md",
-            "G3_WINDOWS_EVIDENCE_MANIFEST.sha256",
+            "WINDOWS_VALIDATION_MANIFEST.sha256",
         ):
             self.assertIn(marker, script)
 

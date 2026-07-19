@@ -42,7 +42,7 @@ def resource_path(relative: str) -> Path:
 DEFAULT_CSS_PATH = resource_path("style.css")
 ICONS_DIR = resource_path("icons")
 FONTS_DIR = resource_path("fonts")
-BROWSERS_DIR = resource_path("browsers")
+BROWSERS_DIR = _resources.browser_resource_path(__file__)
 DEFAULT_THEME_ROOT = Path.home() / ".libremark-pdf" / "themes"
 
 _resources.configure_resource_locations(DEFAULT_CSS_PATH, ICONS_DIR, FONTS_DIR, BROWSERS_DIR)
