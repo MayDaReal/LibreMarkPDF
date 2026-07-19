@@ -45,6 +45,67 @@ Do not search or edit generated `venv/`, `build/`, `dist/`, caches, PDFs, or
 downloaded browser contents unless the task explicitly targets an artifact.
 Never commit those files.
 
+## Repository hygiene
+
+The main branch contains only material needed to understand, develop, test,
+package, or support the current product. Before adding a file, identify its
+owner, current consumer, maintenance trigger, and deletion condition. If none
+is concrete, do not add the file.
+
+- Prefer updating an existing authoritative file over creating a new document,
+  script, fixture, helper, or configuration layer.
+- Keep one source of truth per fact. Reference it from consumers instead of
+  copying versions, commands, requirements, checklists, or support statements.
+- Do not commit plans, prompts, agent transcripts, execution boards, scratch
+  notes, intermediate reports, local inventories, or reproducible evidence.
+  Use issues, pull requests, release assets, and Git history for that context.
+- Keep generated artifacts, logs, screenshots, reports, downloaded tools,
+  virtual environments, caches, and temporary data outside version control.
+  Add an ignore rule when a new tool creates a repeatable local output.
+- Commit a fixture, golden, binary, or sample only when an active automated
+  test or runtime path consumes it. Keep the smallest representative case and
+  document its update command in `docs/VALIDATION.md`.
+- Organize tests by lasting product behavior, not by incident, milestone,
+  development batch, gate, or agent task. Merge overlapping coverage and avoid
+  rerunning the same test through multiple default targets.
+- Keep tools platform-neutral when their behavior is shared. Use a thin
+  platform wrapper only for genuinely native setup, build, or validation.
+- Remove obsolete compatibility paths, completed-work documents, and replaced
+  scripts in the same change that makes them obsolete. Confirm references with
+  `rg` and rely on Git history instead of retaining an in-tree archive.
+- Temporary migration code must name its removal condition in a concise
+  comment or tracked issue. It must not silently become a second permanent path.
+- Do not track `archive`, `old`, `backup`, `tmp`, `.work`, gate-named, or
+  date-named repository areas. Material required only for a published release
+  belongs with that release, not on the main branch.
+
+At each release boundary, audit tracked files, ignored generated directories,
+dependencies, test overlap, stale documentation, and unreferenced fixtures or
+tools. Deletion is preferred when Git history or reproducible automation already
+preserves the information.
+
+## Backlog branches and local work
+
+Start a substantial backlog on a dedicated branch named
+`backlog/<short-topic>`. Keep product changes in that branch and use the ignored
+`.work/<short-topic>/` directory only when cross-session local context or
+supervisor-requested working output is useful.
+
+- Keep rolling context concise. Prefer `STATE.md`, `DECISIONS.md`, and `NEXT.md`;
+  add `reports/` or `artifacts/` only when the supervisor requests them.
+- At the start of a resumed session, read only the active backlog state files.
+  Open detailed reports only when the current task requires them.
+- `.work/` is local, non-authoritative, excluded from builds and tests, and must
+  contain no secrets, personal data, required source, or sole copy of a decision.
+- Promote durable behavior to code and tests, contributor rules to `AGENTS.md`,
+  validation rules to active documentation, and shared backlog state to the
+  issue or pull request.
+- An ignored work directory is available only to sessions sharing the same
+  checkout. Use the issue or pull request when separate clones need the context.
+- Before merging, run `make repository-check`, promote any durable information,
+  delete `.work/<short-topic>/`, and confirm `git ls-files .work` prints nothing.
+- Delete the local backlog branch after its reviewed changes are integrated.
+
 ## Invariants
 
 - Python 3.9 remains supported. Avoid `X | None`, `match`, and APIs introduced
@@ -90,6 +151,38 @@ Never commit those files.
 
 No formatter, linter, or type checker is currently authoritative. Do not run a
 repository-wide rewrite under a new tool. `unittest` is the mandatory baseline.
+
+## Context and execution efficiency
+
+Use the smallest context that can safely support the change. Token and runtime
+efficiency must not weaken correctness, required evidence, or the complete
+reading of a file selected as necessary.
+
+- Search with `rg` or `rg --files` before opening files. Read only the files
+  required by the task and avoid generated directories and unrelated history.
+- Find definitions and references before reading a large module. Do not reread
+  unchanged content during the same task.
+- Prefer concise diagnostic excerpts over complete logs. Preserve the command,
+  exit code, first actionable error, root cause, and only the context needed to
+  understand them.
+- Do not place complete test output, reports, diffs, or conversation history in
+  agent context when a structured summary is sufficient.
+- Resume work from a compact state summary: objective, decisions, changed
+  files, verification results, remaining risks, and next action.
+- Validate progressively: reproduce with the smallest command, run the focused
+  test, then its functional group, and run the full required gate only when the
+  change scope or delivery stage requires it.
+- Group independent searches and read-only checks when practical. Do not run a
+  test again merely because multiple Make targets include the same coverage.
+- Keep progress updates limited to material assumptions, completed checks,
+  useful partial results, and blockers. Do not repeat commentary in the final
+  handoff.
+- Keep the final handoff factual and compact: outcome, changed files, commands
+  and exit codes, evidence, risks, and unverified platforms.
+
+Never save tokens by partially reading a required file, hiding an error,
+skipping required browser or release validation, replacing a relevant test with
+inspection, or omitting an uncertainty that affects the result.
 
 ## Change workflow
 

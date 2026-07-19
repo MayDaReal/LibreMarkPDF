@@ -37,6 +37,9 @@ docs/project-reliability/BASELINE_AUDIT.md
 .agents/
 .codex/
 
+# Local supervised backlog memory and requested working outputs
+.work/
+
 # Editors and operating systems
 .idea/
 .vscode/

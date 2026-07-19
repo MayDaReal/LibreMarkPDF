@@ -1,19 +1,18 @@
 # Release
 
-Le fichier racine `VERSION` est l'unique source de version pour l'application,
-la CLI et les candidats. Le format suit PEP 440 : `0.1.0.dev1` pour le
-développement, `0.1.0b1` pour une bêta, `0.1.0rc1` pour une release candidate
-et `0.1.0` pour une version stable.
+The root `VERSION` file is the single version source for the application, CLI,
+and candidates. It follows PEP 440: `0.1.0.dev1` for development, `0.1.0b1`
+for beta, `0.1.0rc1` for a release candidate, and `0.1.0` for a stable release.
 
-Chaque candidat est produit nativement et placé sous
-`dist/<version>/<platform>/`. Il doit contenir le candidat, ses checksums, son
-SBOM, son manifeste, les rapports automatisés et la checklist humaine.
+Each candidate is built natively under `dist/<version>/<platform>/`. It
+contains the candidate, checksums, SBOM, manifest, automated reports, and human
+checklist.
 
-Une bêta publique requiert la validation automatisée complète de sa plateforme.
-Une stable requiert aussi la checklist humaine complète, la comparaison du
-corpus canonique et les signatures applicables. Un build réussi seul ne rend
-jamais une release officielle.
+A public beta requires complete automated validation on its platform. A stable
+release also requires a completed human checklist, a valid canonical corpus
+comparison, and applicable signatures. A successful build alone never makes a
+release official.
 
-Les archives lourdes, navigateurs, environnements virtuels et PDF générés ne
-sont pas versionnés. Les rapports synthétiques, manifests et checksums d'une
-release publiée peuvent l'être.
+Large archives, browsers, virtual environments, and generated PDFs are not
+versioned. Concise reports, manifests, and checksums for a published release
+may be versioned.

@@ -1,18 +1,17 @@
 # Platform support
 
-Windows x64 est la première plateforme candidate obligatoire. Un artefact
-Windows doit être construit et validé sur Windows natif, hors du checkout,
-avec son navigateur embarqué et sans Python ni cache Playwright disponibles au
-runtime.
+Windows x64 is the first mandatory candidate platform. A Windows artifact must
+be built and validated on native Windows, outside the checkout, with its
+embedded browser and without Python or a Playwright cache available at runtime.
 
-Linux x86_64 est une lane candidate séparée. Le tarball portable est testé sur
-une matrice explicitement déclarée ; aucune compatibilité Linux générale n'est
-promise tant que cette matrice n'est pas validée. macOS reste hors périmètre.
+Linux x86_64 is a separate candidate lane. The portable tarball is tested
+against an explicitly declared matrix; no general Linux compatibility is
+promised until that matrix has been validated. macOS remains out of scope.
 
-Les payloads Playwright sont eux aussi natifs. Un checkout partagé conserve
-donc les ressources générées Windows dans `browser-win/` et Linux dans
-`browser-linux/`. Ces deux répertoires sont ignorés par Git.
+Playwright payloads are also platform-native. A shared checkout therefore keeps
+generated Windows resources in `browser-win/` and Linux resources in
+`browser-linux/`. Git ignores both directories.
 
-Les artefacts de plateformes différentes ne sont pas interchangeables. La
-comparaison canonique vérifie l'équivalence structurelle et visuelle ; elle ne
-promet pas une identité binaire des PDF.
+Artifacts from different platforms are not interchangeable. Canonical
+comparison verifies structural and visual equivalence; it does not promise
+byte-identical PDFs.

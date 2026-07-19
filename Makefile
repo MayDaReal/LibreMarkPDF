@@ -12,7 +12,7 @@ BROWSER_DIR ?= $(CURDIR)/browser-linux
 endif
 DIST_DIR ?= $(CURDIR)/dist/$(VERSION)/$(PLATFORM)
 
-.PHONY: bootstrap test-pure test test-ui test-visual build-windows build-linux validate-windows validate-linux compare-platforms release-checklist clean-generated
+.PHONY: bootstrap repository-check test-pure test test-ui test-visual build-windows build-linux validate-windows validate-linux compare-platforms release-checklist clean-generated
 
 bootstrap:
 ifeq ($(OS),Windows_NT)
@@ -20,6 +20,9 @@ ifeq ($(OS),Windows_NT)
 else
 	./bootstrap-linux.sh
 endif
+
+repository-check:
+	$(PYTHON) tools/check_source_hygiene.py
 
 test-pure:
 	$(PYTHON) tools/run_tests.py pure --browser-dir "$(BROWSER_DIR)"

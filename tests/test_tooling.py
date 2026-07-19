@@ -3,7 +3,7 @@
 import unittest
 from pathlib import Path
 
-from tools import inventory_repository, run_tests
+from tools import check_source_hygiene, inventory_repository, run_tests
 
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -41,9 +41,31 @@ class TestContributorTooling(unittest.TestCase):
             "test-pure:", "test:", "test-ui:", "test-visual:",
             "build-windows:", "build-linux:", "validate-windows:",
             "validate-linux:", "compare-platforms:", "release-checklist:",
-            "clean-generated:",
+            "repository-check:", "clean-generated:",
         ):
             self.assertIn(target, makefile)
+
+    def test_repository_hygiene_rejects_local_work_and_archive_paths(self):
+        rejected = check_source_hygiene.find_forbidden(
+            (
+                ".work/ui-redesign/STATE.md",
+                "tmp/report.md",
+                "archive/old-plan.md",
+                "old/script.py",
+                "backup/settings.json",
+                "libremark_pdf/core.py",
+            )
+        )
+        self.assertEqual(
+            rejected,
+            [
+                ".work/ui-redesign/STATE.md",
+                "archive/old-plan.md",
+                "backup/settings.json",
+                "old/script.py",
+                "tmp/report.md",
+            ],
+        )
 
     def test_root_build_entries_are_unambiguous(self):
         for obsolete in (
