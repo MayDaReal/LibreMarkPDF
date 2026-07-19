@@ -106,6 +106,11 @@ supervisor-requested working output is useful.
   delete `.work/<short-topic>/`, and confirm `git ls-files .work` prints nothing.
 - Delete the local backlog branch after its reviewed changes are integrated.
 
+For this shared checkout, read `.work/shared-memory-session.md` when resuming
+work that depends on recurring local execution constraints. Keep that file
+short, factual, and limited to observations that can save repeated diagnosis;
+it is local context, not product documentation or a source of truth.
+
 ## Invariants
 
 - Python 3.9 remains supported. Avoid `X | None`, `match`, and APIs introduced
