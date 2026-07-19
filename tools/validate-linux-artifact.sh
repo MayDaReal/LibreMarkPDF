@@ -62,7 +62,9 @@ evidence_root="$(realpath "$evidence_root")"
 repo_root="$(realpath "$repo_root")"
 browser_source="$(realpath "$browser_source")"
 if [[ "$python_bin" != /* ]]; then
-  python_bin="$(realpath "$repo_root/$python_bin")"
+  # Keep the virtualenv symlink intact; resolving it would discard its site
+  # packages and run the underlying pyenv interpreter as a global Python.
+  python_bin="$(realpath -s "$repo_root/$python_bin")"
 fi
 case "$evidence_root/" in
   "$repo_root/dist/"*) ;;
