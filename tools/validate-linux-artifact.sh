@@ -10,6 +10,7 @@ browser_source=""
 require_offline=0
 inspect_only=0
 xvfb_pid=""
+permission_probe_root=""
 
 usage() {
   echo "Usage: $0 --evidence-root DIR --python PYTHON --browser-source DIR [--require-offline] [--inspect-only]"
@@ -90,6 +91,10 @@ cleanup() {
   if [[ -n "$xvfb_pid" ]] && kill -0 "$xvfb_pid" 2>/dev/null; then
     kill "$xvfb_pid" 2>/dev/null || true
     wait "$xvfb_pid" 2>/dev/null || true
+  fi
+  if [[ -n "$permission_probe_root" ]]; then
+    chmod 700 "$permission_probe_root" 2>/dev/null || true
+    rm -rf -- "$permission_probe_root"
   fi
 }
 trap cleanup EXIT
@@ -246,19 +251,29 @@ run_cli_case theme 0 convert "$source_dir/good.md" \
   --output "$output_dir/theme.pdf" --theme default@1 \
   --date 2026-07-14 --json
 
-permission_dir="$runtime/no-write"
+permission_probe_root="$(
+  mktemp -d "${TMPDIR:-/tmp}/libremark-pdf-permission.XXXXXX"
+)"
+permission_dir="$permission_probe_root/no-write"
 mkdir -p "$permission_dir"
 chmod 500 "$permission_dir"
+if ( : > "$permission_dir/write-probe" ) 2>/dev/null; then
+  echo "TMPDIR does not enforce POSIX write permissions: $permission_dir" >&2
+  echo "Set TMPDIR to a native Linux filesystem and retry." >&2
+  exit 1
+fi
 set +e
 run_cli_case permission 1 convert "$source_dir/good.md" \
   --output "$permission_dir/denied.pdf" --json
 permission_exit=$?
 set -e
-chmod 700 "$permission_dir"
 if [[ $permission_exit -ne 0 ]]; then
   echo "Permission-denied candidate case failed to produce the expected contract." >&2
   exit 1
 fi
+chmod 700 "$permission_probe_root"
+rm -rf -- "$permission_probe_root"
+permission_probe_root=""
 
 display_number=$((90 + ($$ % 100)))
 display=":$display_number"

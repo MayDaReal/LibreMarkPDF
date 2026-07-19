@@ -93,6 +93,24 @@ class TestLinuxPackaging(unittest.TestCase):
         self.assertNotIn("sudo ", script)
         self.assertNotIn('python_bin="$(realpath "$python_bin")"', script)
 
+    def test_runner_uses_posix_temporary_storage_for_permission_case(self):
+        script = (
+            ROOT / "tools" / "validate-linux-artifact.sh"
+        ).read_text(encoding="utf-8")
+        self.assertIn(
+            'mktemp -d "${TMPDIR:-/tmp}/libremark-pdf-permission.XXXXXX"',
+            script,
+        )
+        self.assertIn(
+            ': > "$permission_dir/write-probe"',
+            script,
+        )
+        self.assertIn(
+            'rm -rf -- "$permission_probe_root"',
+            script,
+        )
+        self.assertNotIn('permission_dir="$runtime/no-write"', script)
+
     @unittest.skipUnless(sys.platform.startswith("linux"), "requires native Linux")
     def test_elf_inspector_records_glibc_and_no_missing_library(self):
         true_path = Path(shutil.which("true") or "/bin/true")
