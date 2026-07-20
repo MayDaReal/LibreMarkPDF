@@ -16,7 +16,8 @@ agent contract in [`SKILL.md`](SKILL.md).
 - responsive, scrollable, zoomable first-page preview in the desktop app;
 - versioned local themes, the compatible `default@1` style, or a user-supplied
   CSS file;
-- six header/footer positions with page, title, and date tokens;
+- four summarized desktop setting sections for style, destination, six
+  header/footer positions, date, and trusted static HTML;
 - English and French desktop interface;
 - cancellable batch progress and pre-conversion collision choices;
 - deterministic JSON output and meaningful exit status for automation.
@@ -194,10 +195,12 @@ See [`AGENTS.md`](AGENTS.md) for contribution rules and
 
 Default conversion treats raw HTML as literal Markdown text, validates and
 embeds approved local images, blocks active/network-capable HTML and CSS, and
-does not replace existing output without `--overwrite`. The exceptional
-`--trusted-html` CLI mode allows only the documented static HTML subset; it
-still blocks scripts, event handlers, frames, resource loaders, and network or
-`file:` URLs. Custom CSS cannot load resources. These controls do not make
+does not replace existing output without `--overwrite`. Trusted HTML is
+available through **Other advanced options** in the desktop
+interface after a first-use confirmation, and through the CLI
+`--trusted-html` option. Both allow only the documented static HTML subset;
+scripts, event handlers, frames, resource loaders, and network or `file:` URLs
+remain blocked. Custom CSS cannot load resources. These controls do not make
 untrusted documents harmless in every respect; review document content before
 conversion.
 

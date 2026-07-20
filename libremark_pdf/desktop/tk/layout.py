@@ -35,7 +35,9 @@ LOGO_ICON_CACHE: dict[int, tk.PhotoImage] = {}
 
 AUTOMATION_ACTIONS = frozenset((
     "files.add", "files.clear", "language.en", "language.fr",
-    "advanced.toggle", "preview.refresh", "output.choose", "output.reset",
+    "style.toggle", "destination.toggle", "header_footer.toggle",
+    "other.toggle", "advanced.toggle", "preview.refresh",
+    "output.choose", "output.reset",
     "convert.start", "convert.cancel",
 ))
 
@@ -251,10 +253,42 @@ class TkLayoutMixin:
             ):
                 self._register_drop_target(drop_target)
 
-        self.theme_group = ttk.LabelFrame(self.workspace, padding=SECTION_PADDING)
-        self.theme_cards = ttk.Frame(self.theme_group)
-        self.theme_cards.pack(fill="x")
-        css_row = ttk.Frame(self.theme_group)
+        self._accordion_sections = {}
+
+        def build_accordion(name: str) -> tuple:
+            group = ttk.LabelFrame(self.workspace, padding=SECTION_PADDING)
+            toggle = ttk.Button(
+                group,
+                command=lambda section=name: self._toggle_accordion(section),
+            )
+            toggle.pack(fill="x")
+            content = ttk.Frame(group)
+            if self.accordion_open[name].get():
+                content.pack(fill="x", pady=(SPACE_SM, 0))
+            self._accordion_sections[name] = (toggle, content)
+            return group, toggle, content
+
+        self.theme_group, self.style_toggle, style_content = build_accordion(
+            "style"
+        )
+        self._register_automation_widget("style.toggle", self.style_toggle)
+        self.theme_mode_radio = ttk.Radiobutton(
+            style_content,
+            variable=self.style_mode_var,
+            value="theme",
+            command=self._reset_css,
+        )
+        self.theme_mode_radio.pack(anchor="w")
+        self.theme_cards = ttk.Frame(style_content)
+        self.theme_cards.pack(fill="x", pady=(SPACE_XS, 0))
+        self.css_mode_radio = ttk.Radiobutton(
+            style_content,
+            variable=self.style_mode_var,
+            value="css",
+            command=self._activate_css_mode,
+        )
+        self.css_mode_radio.pack(anchor="w", pady=(SPACE_SM, 0))
+        css_row = ttk.Frame(style_content)
         css_row.pack(fill="x", pady=(SPACE_SM, 0))
         self.css_label = ttk.Label(css_row)
         self.css_label.pack(side="left")
@@ -265,16 +299,46 @@ class TkLayoutMixin:
         self.css_reset_button = ttk.Button(css_row, command=self._reset_css)
         self.css_reset_button.pack(side="left", padx=(SPACE_SM, 0))
 
-        self.advanced_group = ttk.LabelFrame(self.workspace, padding=SECTION_PADDING)
-        self.advanced_toggle = ttk.Button(
-            self.advanced_group, command=self._toggle_advanced
+        (
+            self.output_group,
+            self.destination_toggle,
+            destination_content,
+        ) = build_accordion("destination")
+        self._register_automation_widget(
+            "destination.toggle", self.destination_toggle
         )
-        self.advanced_toggle.pack(fill="x")
+        output_row = ttk.Frame(destination_content)
+        output_row.pack(fill="x")
+        self.output_entry = ttk.Entry(output_row, state="readonly")
+        self.output_entry.pack(side="left", fill="x", expand=True)
+        self.output_button = ttk.Button(output_row, command=self._choose_output_dir)
+        self.output_button.pack(side="left", padx=(SPACE_SM, 0))
+        self.output_reset_button = ttk.Button(
+            output_row, command=self._reset_output_dir
+        )
+        self.output_reset_button.pack(side="left", padx=(SPACE_SM, 0))
+        self._register_automation_widget("output.choose", self.output_button)
+        self._register_automation_widget("output.reset", self.output_reset_button)
+
+        (
+            self.advanced_group,
+            self.advanced_toggle,
+            self.advanced_content,
+        ) = build_accordion("header_footer")
+        self.header_footer_toggle = self.advanced_toggle
+        self._register_automation_widget(
+            "header_footer.toggle", self.header_footer_toggle
+        )
         self._register_automation_widget("advanced.toggle", self.advanced_toggle)
-        self.advanced_content = ttk.Frame(self.advanced_group)
         self.tokens_hint_label = ttk.Label(self.advanced_content)
-        self.tokens_hint_label.pack(anchor="w", pady=(SPACE_SM, SPACE_XS))
+        self.tokens_hint_label.pack(anchor="w", pady=(0, SPACE_XS))
         self.header_footer_entry_rows = []
+        self.header_footer_field_rows = []
+        self.hf_position_labels = {
+            "position_left": [],
+            "position_center": [],
+            "position_right": [],
+        }
         for group_name, keys in (
             ("header_group_label", ("header_left", "header_center", "header_right")),
             ("footer_group_label", ("footer_left", "footer_center", "footer_right")),
@@ -285,27 +349,54 @@ class TkLayoutMixin:
             row = ttk.Frame(self.advanced_content)
             row.pack(fill="x")
             entries = []
-            for key in keys:
-                entry = ttk.Entry(row, textvariable=self.hf_vars[key])
-                entry.pack(side="left", fill="x", expand=True, padx=SPACE_XS)
+            fields = []
+            for key, position_key in zip(
+                keys,
+                ("position_left", "position_center", "position_right"),
+            ):
+                field = ttk.Frame(row)
+                position_label = ttk.Label(field)
+                position_label.pack(anchor="w")
+                entry = ttk.Entry(field, textvariable=self.hf_vars[key])
+                entry.pack(fill="x", expand=True)
                 entries.append(entry)
+                fields.append(field)
+                self.hf_position_labels[position_key].append(position_label)
                 self._operation_controls.append(entry)
             self.header_footer_entry_rows.append(entries)
-        options = ttk.Frame(self.advanced_content)
-        options.pack(fill="x", pady=(SPACE_SM, 0))
-        self.render_date_label = ttk.Label(options)
+            self.header_footer_field_rows.append(fields)
+        self.reset_header_footer_button = ttk.Button(
+            self.advanced_content,
+            command=self._reset_header_footer,
+        )
+        self.reset_header_footer_button.pack(anchor="e", pady=(SPACE_SM, 0))
+
+        (
+            self.other_group,
+            self.other_toggle,
+            other_content,
+        ) = build_accordion("other")
+        self._register_automation_widget("other.toggle", self.other_toggle)
+        date_row = ttk.Frame(other_content)
+        date_row.pack(fill="x")
+        self.render_date_label = ttk.Label(date_row)
         self.render_date_label.pack(side="left")
         self.render_date_entry = ttk.Entry(
-            options, textvariable=self.render_date_var, width=12
+            date_row, textvariable=self.render_date_var, width=12
         )
-        self.render_date_entry.pack(
-            side="left",
-            padx=(SPACE_SM, OUTER_PADDING),
-        )
+        self.render_date_entry.pack(side="left", padx=(SPACE_SM, 0))
         self.trusted_html_check = ttk.Checkbutton(
-            options, variable=self.trusted_html_var
+            other_content,
+            variable=self.trusted_html_var,
+            command=self._on_trusted_html_changed,
         )
-        self.trusted_html_check.pack(side="left")
+        self.trusted_html_check.pack(anchor="w", pady=(SPACE_SM, 0))
+        self.trusted_html_help_label = ttk.Label(
+            other_content,
+            wraplength=420,
+            justify="left",
+        )
+        self.trusted_html_help_label.pack(fill="x", pady=(SPACE_XS, 0))
 
         self.preview_group = ttk.LabelFrame(self.workspace, padding=SECTION_PADDING)
         preview_header = ttk.Frame(self.preview_group)
@@ -348,26 +439,15 @@ class TkLayoutMixin:
         preview_horizontal.pack(side="bottom", fill="x")
         self.preview_canvas.pack(side="left", fill="both", expand=True)
 
-        self.output_group = ttk.LabelFrame(self.workspace, padding=SECTION_PADDING)
-        output_row = ttk.Frame(self.output_group)
-        output_row.pack(fill="x")
-        self.output_entry = ttk.Entry(output_row, state="readonly")
-        self.output_entry.pack(side="left", fill="x", expand=True)
-        self.output_button = ttk.Button(output_row, command=self._choose_output_dir)
-        self.output_button.pack(side="left", padx=(SPACE_SM, 0))
-        self.output_reset_button = ttk.Button(
-            output_row, command=self._reset_output_dir
-        )
-        self.output_reset_button.pack(side="left", padx=(SPACE_SM, 0))
-        self._register_automation_widget("output.choose", self.output_button)
-        self._register_automation_widget("output.reset", self.output_reset_button)
-
         self.results_frame = ttk.Frame(self.workspace)
 
         self._operation_controls.extend([
             self.browse_button, self.clear_files_button, self.css_button,
-            self.css_reset_button, self.advanced_toggle, self.render_date_entry,
-            self.trusted_html_check, self.refresh_preview_button,
+            self.css_reset_button, self.theme_mode_radio, self.css_mode_radio,
+            self.style_toggle, self.destination_toggle, self.advanced_toggle,
+            self.other_toggle, self.reset_header_footer_button,
+            self.render_date_entry, self.trusted_html_check,
+            self.refresh_preview_button,
             self.output_button, self.output_reset_button,
         ])
         self.root.bind("<Configure>", self._on_root_configure, add="+")
@@ -377,8 +457,10 @@ class TkLayoutMixin:
         if event.widget is self.root:
             self._apply_responsive_layout(event.width, event.height)
 
-    def _apply_responsive_layout(self, width: int, _height: int) -> None:
+    def _apply_responsive_layout(self, width: int, height: int) -> None:
         """Adapt existing panes without rebuilding widgets or changing focus."""
+        self._viewport_height = height
+        self._enforce_compact_accordions()
         mode = responsive_mode(width)
         if mode != self._layout_mode:
             sections = (
@@ -387,6 +469,7 @@ class TkLayoutMixin:
                 self.theme_group,
                 self.output_group,
                 self.advanced_group,
+                self.other_group,
                 self.results_frame,
             )
             for section in sections:
@@ -417,6 +500,7 @@ class TkLayoutMixin:
                     self.theme_group,
                     self.output_group,
                     self.advanced_group,
+                    self.other_group,
                     self.results_frame,
                 )
                 for row, section in enumerate(left_sections):
@@ -434,13 +518,13 @@ class TkLayoutMixin:
                     rowspan=len(left_sections),
                     sticky="nsew",
                 )
-            for entries in self.header_footer_entry_rows:
-                for entry in entries:
-                    entry.pack_forget()
+            for fields in self.header_footer_field_rows:
+                for field in fields:
+                    field.pack_forget()
                     if mode == "narrow":
-                        entry.pack(fill="x", pady=(0, SPACE_XS))
+                        field.pack(fill="x", pady=(0, SPACE_XS))
                     else:
-                        entry.pack(
+                        field.pack(
                             side="left",
                             fill="x",
                             expand=True,

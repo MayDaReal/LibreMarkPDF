@@ -32,14 +32,20 @@ automatiquement une version pyenv `3.9.x` déjà installée.
    nombres exacts d’ajouts, de doublons et d’éléments non pris en charge.
    Sélectionnez une ligne pour choisir le fichier d’aperçu actif sans modifier
    l’ordre du lot.
-3. Facultatif : choisissez un thème local validé, ou sélectionnez **Changer**
-   pour utiliser un fichier CSS personnel. Ces choix sont incompatibles.
-4. Facultatif : ouvrez **En-tête et pied de page (avancé)** et modifiez les six
-   positions.
+3. Facultatif : ouvrez **Style PDF** et choisissez un thème local validé, ou
+   sélectionnez **CSS personnalisé** puis **Choisir un CSS**. Ces choix sont
+   incompatibles ; **Revenir au thème sélectionné** retire le CSS personnel
+   sans oublier le thème choisi pour cette session.
+4. Facultatif : ouvrez **En-têtes et pieds de page** et modifiez les positions
+   Gauche, Centre et Droite explicitement libellées. **Rétablir les valeurs par
+   défaut** ne modifie que ces six champs et restaure le pied central par défaut.
 5. Sélectionnez **Actualiser l’aperçu** pour afficher la première page du
    fichier actif. Faites défiler l’aperçu ou réglez son zoom de 50 % à 200 %.
-6. Facultatif : choisissez un dossier de sortie. Sinon, chaque PDF est créé à
-   côté de sa source Markdown.
+6. Facultatif : ouvrez **Destination** et choisissez un dossier de sortie.
+   Sinon, chaque PDF est créé à côté de sa source Markdown.
+   **Autres options avancées** contient la date de rendu et le HTML statique de
+   confiance. Son activation demande une confirmation lors de sa première
+   utilisation dans chaque session de l’application.
 7. Sélectionnez **⚙ Générer le PDF**.
 
 L’application présente les collisions de sortie et les PDF existants avant la
@@ -129,10 +135,12 @@ conversion.
   de ressources `@import` ou `url(...)`.
 - Un PDF existant est refusé sauf si l’appel CLI passe `--overwrite` ; le
   remplacement n’est publié qu’après un rendu réussi.
-- Par défaut, le HTML brut est rendu comme texte. L’option de compatibilité CLI
-  `--trusted-html` n’autorise qu’un sous-ensemble statique : jamais de scripts,
-  gestionnaires d’événements, cadres, chargeurs de ressources ou URL réseau/
-  `file:`.
+- Par défaut, le HTML brut est rendu comme texte. **Autres options avancées**
+  dans l’interface et l’option de compatibilité CLI `--trusted-html`
+  autorisent le même sous-ensemble statique : jamais de scripts, gestionnaires
+  d’événements, cadres, chargeurs de ressources ou URL réseau/`file:`.
+  L’interface demande une confirmation à la première activation de chaque
+  session.
 - Les images Markdown doivent être des PNG, JPEG, GIF ou SVG statiques locaux
   approuvés ; elles sont validées et intégrées avant le rendu.
 - Les paquets de thèmes doivent être locaux, hachés, accompagnés de leurs

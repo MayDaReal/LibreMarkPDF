@@ -23,6 +23,9 @@ class TkDialogs:
     def ask_overwrite(self, title: str, message: str):
         return messagebox.askyesnocancel(title, message)
 
+    def ask_trusted_html(self, title: str, message: str) -> bool:
+        return messagebox.askyesno(title, message, default=messagebox.NO)
+
     def show_error(self, title: str, message: str) -> None:
         messagebox.showerror(title, message)
 

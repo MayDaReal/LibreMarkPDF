@@ -29,13 +29,20 @@ install CPython 3.9 with pyenv first; the Linux bootstrap detects an installed
    files and reports exact added, duplicate, and unsupported counts in the
    status area. Select any file row to make it the active preview file without
    changing the batch order.
-3. Optional: select a validated local theme, or select **Change** to use a
-   custom CSS file. These choices are mutually exclusive.
-4. Optional: expand **Header and footer (advanced)** and edit the six positions.
+3. Optional: expand **PDF style** and select a validated local theme, or select
+   **Custom CSS** and **Choose CSS**. These choices are mutually exclusive;
+   **Use the selected theme** removes the custom CSS without forgetting the theme
+   selected for this session.
+4. Optional: expand **Headers and footers** and edit the explicitly labelled
+   Left, Center, and Right positions. **Restore defaults** changes only
+   these six fields and restores the default center footer.
 5. Select **Refresh preview** to render the active file's first page. Scroll it
    or use the zoom controls from 50% through 200%.
-6. Optional: select an output folder. Otherwise, each PDF is written beside its
-   Markdown source.
+6. Optional: expand **Destination** and select an output folder. Otherwise,
+   each PDF is written beside its Markdown source.
+   **Other advanced options** contains the render date and trusted static HTML.
+   Enabling trusted HTML requires confirmation the first time in each
+   application session.
 7. Select **⚙ Generate PDF**.
 
 The application presents output collisions and existing PDFs before conversion.
@@ -124,9 +131,11 @@ conversion.
   `url(...)` resources.
 - Existing output is refused unless the CLI caller passes `--overwrite`; a
   replacement is published only after successful rendering.
-- Default conversion renders raw HTML literally. The CLI-only `--trusted-html`
-  compatibility option permits a narrow static subset, never scripts, event
-  handlers, frames, resource loaders, or network/`file:` URLs.
+- Default conversion renders raw HTML literally. **Other advanced options** in
+  the desktop interface and the CLI `--trusted-html` compatibility option
+  permit the same narrow static subset, never scripts, event handlers, frames,
+  resource loaders, or network/`file:` URLs. The desktop asks for confirmation
+  on first use in each session.
 - Markdown images must be approved local PNG, JPEG, GIF, or static SVG files;
   they are validated and embedded before rendering.
 - Theme packages must be local, hashed, licensed, compatible with

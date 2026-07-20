@@ -67,7 +67,14 @@ class LibreMarkPdfApp(
         self.preview_photo = None
         self.zoom_percent = tk.IntVar(value=100)
         self.active_file_var = tk.StringVar()
-        self.advanced_open = tk.BooleanVar(value=False)
+        self.accordion_open = {
+            "style": tk.BooleanVar(value=True),
+            "destination": tk.BooleanVar(value=False),
+            "header_footer": tk.BooleanVar(value=False),
+            "other": tk.BooleanVar(value=False),
+        }
+        self.style_mode_var = tk.StringVar(value="theme")
+        self._trusted_html_confirmed = False
         self.trusted_html_var = tk.BooleanVar(value=False)
         self.render_date_var = tk.StringVar()
         self.theme_var = tk.StringVar(value=core.DEFAULT_THEME_ID)
@@ -91,7 +98,7 @@ class LibreMarkPdfApp(
         for variable in list(self.hf_vars.values()) + [
             self.render_date_var, self.trusted_html_var
         ]:
-            variable.trace_add("write", self._on_preview_input_changed)
+            variable.trace_add("write", self._on_render_setting_changed)
         self.root.protocol("WM_DELETE_WINDOW", self._request_close)
         self.browse_button.focus_set()
 
@@ -126,31 +133,34 @@ class LibreMarkPdfApp(
         self._redraw_drop_zone()
         self.browse_button.config(text=self._t("add_files"))
         self.clear_files_button.config(text=self._t("clear_files"))
-        self.theme_group.config(text=self._t("themes_label"))
+        self.theme_mode_radio.config(text=self._t("local_theme"))
+        self.css_mode_radio.config(text=self._t("custom_css"))
         self.css_label.config(text=self._t("custom_css_label"))
-        self.css_button.config(text=self._t("change"))
-        self.css_reset_button.config(text=self._t("use_theme"))
-        self.advanced_group.config(text=self._t("advanced_header_footer"))
-        self.advanced_toggle.config(
-            text=("\u25be " if self.advanced_open.get() else "\u25b8 ")
-            + self._t("advanced_toggle")
-        )
-        self.tokens_hint_label.config(text=self._t("tokens_hint"))
+        self.css_button.config(text=self._t("choose_css"))
+        self.css_reset_button.config(text=self._t("return_to_theme"))
+        self.tokens_hint_label.config(text=self._t("tokens_help"))
         self.header_group_label.config(text=self._t("header_label"))
         self.footer_group_label.config(text=self._t("footer_label"))
-        self.render_date_label.config(text=self._t("render_date_label"))
-        self.trusted_html_check.config(text=self._t("trusted_html_label"))
+        for position_key, labels in self.hf_position_labels.items():
+            for label in labels:
+                label.config(text=self._t(position_key))
+        self.reset_header_footer_button.config(
+            text=self._t("reset_header_footer")
+        )
+        self.render_date_label.config(text=self._t("render_date"))
+        self.trusted_html_check.config(text=self._t("trusted_html"))
+        self.trusted_html_help_label.config(text=self._t("trusted_html_help"))
         self.preview_group.config(text=self._t("preview_label"))
         self.refresh_preview_button.config(text=self._t("refresh_preview"))
-        self.output_group.config(text=self._t("output_label"))
-        self.output_button.config(text=self._t("choose_folder"))
-        self.output_reset_button.config(text=self._t("use_source_folder"))
+        self.output_button.config(text=self._t("change_destination"))
+        self.output_reset_button.config(text=self._t("reset_destination"))
         self.cancel_button.config(text=self._t("cancel_button"))
         self._refresh_generate_button()
         self._refresh_css_entry()
         self._refresh_output_entry()
         self._render_theme_cards()
         self._render_file_list()
+        self._refresh_accordion_headers()
         self.zoom_label.config(text="{0}%".format(self.zoom_percent.get()))
         self.status_label.config(
             text=self._t(self._status_key, **self._status_kwargs),

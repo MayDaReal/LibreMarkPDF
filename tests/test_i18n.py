@@ -40,6 +40,13 @@ class TestTranslations(unittest.TestCase):
                 }
                 self.assertEqual(english, french)
 
+    def test_setting_copy_lists_every_supported_header_footer_token(self):
+        expected = ("{titre}", "{title}", "{date}", "{page}", "{total}")
+        for lang in i18n.LANGUAGES:
+            with self.subTest(lang=lang):
+                text = i18n.STRINGS[lang]["tokens_help"]
+                self.assertTrue(all(token in text for token in expected))
+
 
 if __name__ == "__main__":
     unittest.main()

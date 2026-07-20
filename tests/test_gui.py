@@ -226,6 +226,8 @@ class TestGuiAutomationContract(unittest.TestCase):
         expected = {
             "files.add", "advanced.toggle", "preview.refresh", "output.choose",
             "convert.start", "convert.cancel", "language.en", "language.fr",
+            "style.toggle", "destination.toggle", "header_footer.toggle",
+            "other.toggle",
         }
         self.assertTrue(expected.issubset(tk_layout.AUTOMATION_ACTIONS))
 
@@ -284,11 +286,17 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
         app.theme_group = mock.Mock()
         app.output_group = mock.Mock()
         app.advanced_group = mock.Mock()
+        app.other_group = mock.Mock()
         app.results_frame = mock.Mock()
         app.header_footer_entry_rows = [
             [mock.Mock(), mock.Mock(), mock.Mock()],
             [mock.Mock(), mock.Mock(), mock.Mock()],
         ]
+        app.header_footer_field_rows = [
+            [mock.Mock(), mock.Mock(), mock.Mock()],
+            [mock.Mock(), mock.Mock(), mock.Mock()],
+        ]
+        app._enforce_compact_accordions = mock.Mock()
         app.body = mock.Mock()
         app.action_bar = mock.Mock()
         app.preview_canvas = mock.Mock()
@@ -309,9 +317,9 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
             sticky="nsew",
             pady=(0, tk_styles.SECTION_GAP),
         )
-        for entries in app.header_footer_entry_rows:
-            for entry in entries:
-                entry.pack.assert_called_with(
+        for fields in app.header_footer_field_rows:
+            for field in fields:
+                field.pack.assert_called_with(
                     fill="x",
                     pady=(0, tk_styles.SPACE_XS),
                 )
@@ -340,7 +348,7 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
         app.preview_group.grid.assert_called_with(
             row=0,
             column=1,
-            rowspan=5,
+            rowspan=6,
             sticky="nsew",
         )
 
@@ -424,6 +432,153 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
                 "trusted_html": False,
                 "theme": "default@1",
             },
+        )
+
+    def test_css_selection_and_theme_restore_remain_exclusive(self):
+        app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
+        app.dialogs = mock.Mock()
+        app.dialogs.choose_css_file.return_value = "styles/print.css"
+        app._t = lambda key, **kwargs: key
+        app.css_path = None
+        app.style_mode_var = mock.Mock()
+        app._refresh_css_entry = mock.Mock()
+        app._render_theme_cards = mock.Mock()
+        app._schedule_preview = mock.Mock()
+
+        app._choose_css()
+
+        self.assertEqual(app.css_path, "styles/print.css")
+        app.style_mode_var.set.assert_called_with("css")
+
+        app._reset_css()
+
+        self.assertIsNone(app.css_path)
+        app.style_mode_var.set.assert_called_with("theme")
+        self.assertEqual(app._schedule_preview.call_count, 2)
+
+    def test_header_footer_reset_changes_only_the_six_fields(self):
+        app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
+        app.hf_vars = {
+            key: mock.Mock()
+            for key in (
+                "header_left", "header_center", "header_right",
+                "footer_left", "footer_center", "footer_right",
+            )
+        }
+        app.render_date_var = mock.Mock()
+        app.trusted_html_var = mock.Mock()
+        app._refresh_accordion_headers = mock.Mock()
+
+        app._reset_header_footer()
+
+        expected = {
+            "header_left": "",
+            "header_center": "",
+            "header_right": "",
+            "footer_left": "",
+            "footer_center": "Page {page} / {total}",
+            "footer_right": "",
+        }
+        for key, value in expected.items():
+            app.hf_vars[key].set.assert_called_once_with(value)
+        app.render_date_var.set.assert_not_called()
+        app.trusted_html_var.set.assert_not_called()
+
+    def test_destination_choose_and_reset_preserve_global_batch_value(self):
+        app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
+        app.dialogs = mock.Mock()
+        app.dialogs.choose_output_folder.return_value = "exports"
+        app._t = lambda key, **kwargs: key
+        app.output_dir = None
+        app._refresh_output_entry = mock.Mock()
+
+        app._choose_output_dir()
+        self.assertEqual(app.output_dir, "exports")
+        app._reset_output_dir()
+        self.assertIsNone(app.output_dir)
+        self.assertEqual(app._refresh_output_entry.call_count, 2)
+
+    def test_destination_summary_handles_one_many_and_custom_folder(self):
+        app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
+        app._t = lambda key, **kwargs: key
+        app.output_dir = None
+        app.files = [Path("one.md")]
+        self.assertEqual(app._destination_summary(), "source_destination_one")
+        app.files.append(Path("two.md"))
+        self.assertEqual(app._destination_summary(), "source_destination_many")
+        app.output_dir = str(Path("C:/exports/private/project"))
+        self.assertEqual(app._destination_summary(), "project")
+
+    def test_trusted_html_decline_restores_value_and_keyboard_focus(self):
+        app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
+        app._trusted_html_confirmed = False
+        app.trusted_html_var = mock.Mock()
+        app.trusted_html_var.get.return_value = True
+        app.trusted_html_check = mock.Mock()
+        app.dialogs = mock.Mock()
+        app.dialogs.ask_trusted_html.return_value = False
+        app._t = lambda key, **kwargs: key
+        app._refresh_accordion_headers = mock.Mock()
+
+        app._on_trusted_html_changed()
+
+        app.trusted_html_var.set.assert_called_once_with(False)
+        app.trusted_html_check.focus_set.assert_called_once_with()
+        self.assertFalse(app._trusted_html_confirmed)
+
+    def test_trusted_html_confirmation_is_once_per_session(self):
+        app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
+        app._trusted_html_confirmed = False
+        app.trusted_html_var = mock.Mock()
+        app.trusted_html_var.get.return_value = True
+        app.trusted_html_check = mock.Mock()
+        app.dialogs = mock.Mock()
+        app.dialogs.ask_trusted_html.return_value = True
+        app._t = lambda key, **kwargs: key
+        app._refresh_accordion_headers = mock.Mock()
+
+        app._on_trusted_html_changed()
+        app._on_trusted_html_changed()
+
+        app.dialogs.ask_trusted_html.assert_called_once_with(
+            "trusted_html_confirm_title",
+            "trusted_html_confirm",
+        )
+        self.assertTrue(app._trusted_html_confirmed)
+
+    def test_compact_accordion_opening_closes_the_previous_section(self):
+        class State:
+            def __init__(self, value):
+                self.value = value
+
+            def get(self):
+                return self.value
+
+            def set(self, value):
+                self.value = value
+
+        app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
+        app._viewport_height = 520
+        app.accordion_open = {
+            "style": State(True),
+            "destination": State(False),
+            "header_footer": State(False),
+            "other": State(False),
+        }
+        app._accordion_sections = {
+            name: (mock.Mock(), mock.Mock())
+            for name in app.accordion_open
+        }
+        app._refresh_accordion_headers = mock.Mock()
+
+        app._toggle_accordion("destination")
+
+        self.assertFalse(app.accordion_open["style"].get())
+        self.assertTrue(app.accordion_open["destination"].get())
+        app._accordion_sections["style"][1].pack_forget.assert_called_once_with()
+        app._accordion_sections["destination"][1].pack.assert_called_once_with(
+            fill="x",
+            pady=(tk_styles.SPACE_SM, 0),
         )
 
     def test_generation_passes_a_snapshot_of_files_and_options_to_service(self):
@@ -1044,6 +1199,15 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
         with mock.patch.object(tk_dialogs.messagebox, "askyesnocancel", return_value=None) as overwrite:
             self.assertIsNone(dialogs.ask_overwrite("Existing", "Replace?"))
         overwrite.assert_called_once_with("Existing", "Replace?")
+        with mock.patch.object(
+            tk_dialogs.messagebox, "askyesno", return_value=False
+        ) as trusted:
+            self.assertFalse(dialogs.ask_trusted_html("Trusted", "Continue?"))
+        trusted.assert_called_once_with(
+            "Trusted",
+            "Continue?",
+            default=tk_dialogs.messagebox.NO,
+        )
 
     def test_native_dialog_calls_are_confined_to_the_dialog_boundary(self):
         for module in (tk_app, tk_layout, tk_preview):
