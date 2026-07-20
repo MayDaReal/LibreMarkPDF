@@ -6,6 +6,7 @@ import tkinter as tk
 from tkinter import ttk
 
 from ... import core
+from .components import UiIconRegistry
 from .styles import (
     DROP_ZONE_HEIGHT,
     FILE_LIST_HEIGHT,
@@ -65,6 +66,11 @@ def responsive_mode(width: int) -> str:
     return "large"
 
 
+def drop_zone_text_key(has_dnd: bool) -> str:
+    """Return copy that accurately reflects drag-and-drop availability."""
+    return "drop_or_browse" if has_dnd else "browse_without_dnd"
+
+
 def load_logo(size: int) -> tk.PhotoImage:
     if size not in LOGO_ICON_CACHE:
         path = core.resource_path("assets/libremark-pdf-logo-{0}.png".format(size))
@@ -80,6 +86,8 @@ class TkLayoutMixin:
         self.root.geometry("{0}x{1}".format(initial_width, initial_height))
         self.root.minsize(MINIMUM_WINDOW_WIDTH, MINIMUM_WINDOW_HEIGHT)
         self._layout_mode = None
+        self._dnd_files_type = DND_FILES
+        self.ui_icons = UiIconRegistry(self.root)
 
         top = ttk.Frame(
             self.root,
@@ -192,27 +200,29 @@ class TkLayoutMixin:
         self.drop_canvas.bind("<Button-1>", lambda event: self._browse_files())
         self.drop_canvas.bind("<Return>", lambda event: self._browse_files())
         self.drop_canvas.bind("<space>", lambda event: self._browse_files())
-        if HAS_DND:
-            self.drop_canvas.drop_target_register(DND_FILES)
-            self.drop_canvas.dnd_bind("<<Drop>>", self._on_drop)
         source_actions = ttk.Frame(self.source_group)
         source_actions.pack(fill="x", pady=(SPACE_SM, SPACE_XS))
         self.browse_button = ttk.Button(source_actions, command=self._browse_files)
         self.browse_button.pack(side="left")
+        self.file_count_label = ttk.Label(source_actions)
+        self.file_count_label.pack(side="left", padx=SPACE_SM)
         self.clear_files_button = ttk.Button(
             source_actions, command=self._clear_files
         )
-        self.clear_files_button.pack(side="left", padx=SPACE_SM)
+        self.clear_files_button.pack(side="right")
         self._register_automation_widget("files.add", self.browse_button)
         self._register_automation_widget("files.clear", self.clear_files_button)
 
-        file_box = ttk.Frame(self.source_group)
-        file_box.pack(fill="x")
+        self.file_box = ttk.Frame(self.source_group)
+        self.file_box.pack(fill="x")
         self.file_canvas = tk.Canvas(
-            file_box, height=FILE_LIST_HEIGHT, highlightthickness=0, takefocus=True
+            self.file_box,
+            height=FILE_LIST_HEIGHT,
+            highlightthickness=0,
+            takefocus=True,
         )
         file_scroll = ttk.Scrollbar(
-            file_box, orient="vertical", command=self.file_canvas.yview
+            self.file_box, orient="vertical", command=self.file_canvas.yview
         )
         self.file_canvas.configure(yscrollcommand=file_scroll.set)
         file_scroll.pack(side="right", fill="y")
@@ -233,6 +243,13 @@ class TkLayoutMixin:
                 self._file_window, width=event.width
             ),
         )
+        if HAS_DND:
+            for drop_target in (
+                self.drop_canvas,
+                self.browse_button,
+                self.file_canvas,
+            ):
+                self._register_drop_target(drop_target)
 
         self.theme_group = ttk.LabelFrame(self.workspace, padding=SECTION_PADDING)
         self.theme_cards = ttk.Frame(self.theme_group)
@@ -451,6 +468,13 @@ class TkLayoutMixin:
         if action not in AUTOMATION_ACTIONS:
             raise ValueError("Unknown desktop automation action: {0}".format(action))
         self._automation_widgets[action] = widget
+
+    def _register_drop_target(self, widget: tk.Misc) -> None:
+        """Bind a source-area widget to the optional local DnD adapter."""
+        widget.drop_target_register(DND_FILES)
+        widget.dnd_bind("<<DropEnter>>", self._on_drop_enter)
+        widget.dnd_bind("<<DropLeave>>", self._on_drop_leave)
+        widget.dnd_bind("<<Drop>>", self._on_drop)
 
     def _bind_accessibility(self) -> None:
         self.root.bind_all("<Control-o>", lambda event: self._browse_files())

@@ -19,6 +19,21 @@ STRINGS = {
         "source_files_label": "Source files",
         "drop_hint": "Drop one or more .md files here",
         "browse_files": "Browse files",
+        "files_heading": "Files",
+        "file_count_one": "1 file",
+        "file_count_many": "{count} files",
+        "add_files": "Add files",
+        "drop_or_browse": "Drop Markdown files here, or browse",
+        "browse_without_dnd": "Select Markdown files",
+        "drop_active": "Drop to add",
+        "unsupported_drop": "Unsupported file type",
+        "files_added_one": "1 file added.",
+        "files_added_many": "{count} files added.",
+        "files_add_summary": (
+            "Added: {added}. Duplicates: {duplicates}. "
+            "Unsupported: {unsupported}."
+        ),
+        "remove_file_a11y": "Remove {name}",
         "clear_files": "Clear list",
         "remove_file": "Remove",
         "themes_label": "Themes",
@@ -44,7 +59,7 @@ STRINGS = {
         "output_default_value": "Next to each source file",
         "choose_folder": "Choose folder",
         "use_source_folder": "Use source folder",
-        "generate_button": "Generate PDF ({count} file(s))",
+        "generate_button": "⚙ Generate PDF ({count} file(s))",
         "cancel_button": "Cancel",
         "status_ready": "Ready.",
         "status_generating": "Generating…",
@@ -94,6 +109,23 @@ STRINGS = {
         "source_files_label": "Fichiers sources",
         "drop_hint": "Déposez un ou plusieurs fichiers .md ici",
         "browse_files": "Parcourir les fichiers",
+        "files_heading": "Fichiers",
+        "file_count_one": "1 fichier",
+        "file_count_many": "{count} fichiers",
+        "add_files": "Ajouter des fichiers",
+        "drop_or_browse": (
+            "Déposez des fichiers Markdown ici, ou parcourez vos fichiers"
+        ),
+        "browse_without_dnd": "Sélectionner des fichiers Markdown",
+        "drop_active": "Déposer pour ajouter",
+        "unsupported_drop": "Type de fichier non pris en charge",
+        "files_added_one": "1 fichier ajouté.",
+        "files_added_many": "{count} fichiers ajoutés.",
+        "files_add_summary": (
+            "Ajoutés : {added}. Doublons : {duplicates}. "
+            "Non pris en charge : {unsupported}."
+        ),
+        "remove_file_a11y": "Retirer {name}",
         "clear_files": "Vider la liste",
         "remove_file": "Retirer",
         "themes_label": "Thèmes",
@@ -119,7 +151,7 @@ STRINGS = {
         "output_default_value": "À côté de chaque fichier source",
         "choose_folder": "Choisir un dossier",
         "use_source_folder": "Utiliser le dossier source",
-        "generate_button": "Générer le PDF ({count} fichier(s))",
+        "generate_button": "⚙ Générer le PDF ({count} fichier(s))",
         "cancel_button": "Annuler",
         "status_ready": "Prêt.",
         "status_generating": "Génération en cours…",

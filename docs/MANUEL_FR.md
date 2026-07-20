@@ -23,17 +23,24 @@ automatiquement une version pyenv `3.9.x` déjà installée.
 ## Utilisation de l’interface graphique
 
 1. Ouvrez LibreMark PDF.
-2. Déposez des fichiers `.md` ou `.markdown` dans la fenêtre, ou sélectionnez
-   **Parcourir les fichiers**.
+2. Sélectionnez **Ajouter des fichiers**, ou déposez des fichiers `.md` ou
+   `.markdown` lorsque la prise en charge facultative du glisser-déposer est
+   disponible. Sans celle-ci, la zone vide indique **Sélectionner des fichiers
+   Markdown** et ouvre le sélecteur natif par un clic, Entrée ou Espace.
+   Les fichiers valides conservent leur ordre d’ajout. Une sélection mixte
+   ajoute quand même les fichiers valides et indique dans la zone d’état les
+   nombres exacts d’ajouts, de doublons et d’éléments non pris en charge.
+   Sélectionnez une ligne pour choisir le fichier d’aperçu actif sans modifier
+   l’ordre du lot.
 3. Facultatif : choisissez un thème local validé, ou sélectionnez **Changer**
    pour utiliser un fichier CSS personnel. Ces choix sont incompatibles.
 4. Facultatif : ouvrez **En-tête et pied de page (avancé)** et modifiez les six
    positions.
-5. Sélectionnez **Actualiser l’aperçu** pour afficher la première page. Faites
-   défiler l’aperçu ou réglez son zoom de 50 % à 200 %.
+5. Sélectionnez **Actualiser l’aperçu** pour afficher la première page du
+   fichier actif. Faites défiler l’aperçu ou réglez son zoom de 50 % à 200 %.
 6. Facultatif : choisissez un dossier de sortie. Sinon, chaque PDF est créé à
    côté de sa source Markdown.
-7. Sélectionnez **Générer le PDF**.
+7. Sélectionnez **⚙ Générer le PDF**.
 
 L’application présente les collisions de sortie et les PDF existants avant la
 conversion. Pendant un lot, elle affiche la progression et permet une
@@ -136,8 +143,9 @@ conversion.
 
 ## Résolution des problèmes
 
-- **Un fichier déposé est ignoré :** vérifiez son extension `.md` ou
-  `.markdown`.
+- **Un élément sélectionné ou déposé est ignoré :** consultez les comptes non
+  modaux dans la zone d’état. Seuls les fichiers `.md` et `.markdown` sont pris
+  en charge ; un fichier déjà présent dans la liste est traité comme doublon.
 - **L’aperçu échoue :** vérifiez l’installation de Chromium et de `pypdfium2`,
   puis consultez l’erreur complète dans la zone d’état.
 - **Le CSS est introuvable :** choisissez un fichier `.css` existant ou

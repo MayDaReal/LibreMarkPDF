@@ -73,7 +73,11 @@ class TkPreviewMixin:
             self._set_status("status_preview_error", error=str(exc))
             return
         options["render_date"] = profile.render_date
-        source_path = self.files[0] if self.files else None
+        source_path = (
+            self.active_file
+            if getattr(self, "active_file", None) in self.files
+            else (self.files[0] if self.files else None)
+        )
         markdown_text = None
         if source_path is None:
             markdown_text = SAMPLE_MARKDOWN.format(

@@ -21,15 +21,22 @@ install CPython 3.9 with pyenv first; the Linux bootstrap detects an installed
 ## Desktop workflow
 
 1. Open LibreMark PDF.
-2. Drop `.md` or `.markdown` files onto the window, or select **Browse files**.
+2. Select **Add files**, or drop `.md` or `.markdown` files when optional
+   drag-and-drop support is available. Without it, the empty area says
+   **Select Markdown files** and opens the native selector with a click, Enter,
+   or Space.
+   Valid files keep their addition order. A mixed selection still adds valid
+   files and reports exact added, duplicate, and unsupported counts in the
+   status area. Select any file row to make it the active preview file without
+   changing the batch order.
 3. Optional: select a validated local theme, or select **Change** to use a
    custom CSS file. These choices are mutually exclusive.
 4. Optional: expand **Header and footer (advanced)** and edit the six positions.
-5. Select **Refresh preview** to render the first page. Scroll it or use the
-   zoom controls from 50% through 200%.
+5. Select **Refresh preview** to render the active file's first page. Scroll it
+   or use the zoom controls from 50% through 200%.
 6. Optional: select an output folder. Otherwise, each PDF is written beside its
    Markdown source.
-7. Select **Generate PDF**.
+7. Select **⚙ Generate PDF**.
 
 The application presents output collisions and existing PDFs before conversion.
 During a batch it displays progress and allows safe cancellation after the
@@ -129,7 +136,9 @@ conversion.
 
 ## Troubleshooting
 
-- **A dropped file is ignored:** confirm its extension is `.md` or `.markdown`.
+- **A selected or dropped item is ignored:** read the non-modal counts in the
+  status area. Only `.md` and `.markdown` files are supported, and files already
+  present in the list are treated as duplicates.
 - **Preview fails:** verify that Chromium and `pypdfium2` are installed, then
   read the complete error shown in the status area.
 - **CSS is not found:** select an existing `.css` file or restore the bundled

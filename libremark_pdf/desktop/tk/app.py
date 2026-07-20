@@ -13,7 +13,7 @@ from ..services import DEFAULT_DESKTOP_SERVICES, DesktopServices
 from .conversion import TkConversionMixin
 from .dialogs import DEFAULT_TK_DIALOGS, TkDialogs
 from .inputs import TkInputMixin
-from .layout import HAS_DND, TkLayoutMixin, TkinterDnD
+from .layout import HAS_DND, TkLayoutMixin, TkinterDnD, drop_zone_text_key
 from .preview import TkPreviewMixin
 from .styles import install_ui_styles, status_label_style
 
@@ -40,6 +40,9 @@ class LibreMarkPdfApp(
         self.dialogs = dialogs
         self.lang = i18n.load_language()
         self.files = []  # type: list[Path]
+        self.active_file = None  # type: Optional[Path]
+        self._drop_zone_state = "empty"
+        self._file_operation_controls = []  # type: list
         self.css_path = None  # type: Optional[str]
         self.output_dir = None  # type: Optional[str]
         self.operation = "idle"
@@ -63,6 +66,7 @@ class LibreMarkPdfApp(
         self._preview_png = None  # type: Optional[bytes]
         self.preview_photo = None
         self.zoom_percent = tk.IntVar(value=100)
+        self.active_file_var = tk.StringVar()
         self.advanced_open = tk.BooleanVar(value=False)
         self.trusted_html_var = tk.BooleanVar(value=False)
         self.render_date_var = tk.StringVar()
@@ -117,10 +121,10 @@ class LibreMarkPdfApp(
     def _retranslate(self) -> None:
         self.root.title(self._t("app_title"))
         self.title_label.config(text=self._t("app_title"))
-        self.source_group.config(text=self._t("source_files_label"))
-        self._drop_zone_text = self._t("drop_hint")
+        self.source_group.config(text=self._t("files_heading"))
+        self._drop_zone_text = self._t(drop_zone_text_key(HAS_DND))
         self._redraw_drop_zone()
-        self.browse_button.config(text=self._t("browse_files"))
+        self.browse_button.config(text=self._t("add_files"))
         self.clear_files_button.config(text=self._t("clear_files"))
         self.theme_group.config(text=self._t("themes_label"))
         self.css_label.config(text=self._t("custom_css_label"))

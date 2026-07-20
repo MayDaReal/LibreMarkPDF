@@ -13,6 +13,7 @@ from unittest import mock
 from libremark_pdf import desktop_services, gui
 from libremark_pdf.desktop import services
 from libremark_pdf.desktop.tk import app as tk_app
+from libremark_pdf.desktop.tk import components as tk_components
 from libremark_pdf.desktop.tk import conversion as tk_conversion
 from libremark_pdf.desktop.tk import dialogs as tk_dialogs
 from libremark_pdf.desktop.tk import layout as tk_layout
@@ -526,6 +527,35 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
         )
         self.assertEqual(app.files, [Path("first.md"), Path("second.md")])
 
+    def test_preview_request_uses_active_file_without_reordering_batch(self):
+        app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
+        app.operation = "idle"
+        app._preview_generation = 9
+        app._preview_after = "scheduled"
+        app.files = [Path("first.md"), Path("second.md")]
+        app.active_file = Path("second.md")
+        app._render_options = mock.Mock(return_value={"theme": "default@1"})
+        app._refresh_generate_button = mock.Mock()
+        app._set_status = mock.Mock()
+        app._preview_requests = queue.Queue()
+        app._schedule_queue_poll = mock.Mock()
+        profile = mock.Mock(render_date="2026-07-20")
+
+        with mock.patch.object(
+            services.core, "render_profile_for_options", return_value=profile
+        ):
+            app._start_preview(9)
+
+        _generation, source, _markdown, options = (
+            app._preview_requests.get_nowait()
+        )
+        self.assertEqual(source, Path("second.md"))
+        self.assertEqual(
+            options["resource_root"],
+            Path("second.md").resolve().parent,
+        )
+        self.assertEqual(app.files, [Path("first.md"), Path("second.md")])
+
     def test_zoom_follows_supported_levels_and_stops_at_bounds(self):
         app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
         app.zoom_percent = mock.Mock()
@@ -616,6 +646,8 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
             [
                 tk_styles.TITLE_LABEL_STYLE,
                 tk_styles.PRIMARY_BUTTON_STYLE,
+                tk_styles.ACTIVE_FILE_ROW_STYLE,
+                tk_styles.ICON_BUTTON_STYLE,
                 tk_styles.STATUS_LABEL_STYLE,
                 tk_styles.ERROR_STATUS_LABEL_STYLE,
                 tk_styles.SUCCESS_STATUS_LABEL_STYLE,
@@ -625,6 +657,175 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
         self.assertEqual(resources.drop_border, "native-border")
         self.assertEqual(resources.preview_background, "native-background")
         self.assertTrue(tk_styles.PRIMARY_BUTTON_STYLE.endswith(".TButton"))
+
+    def test_drop_zone_copy_matches_optional_dnd_capability(self):
+        self.assertEqual(
+            tk_layout.drop_zone_text_key(True),
+            "drop_or_browse",
+        )
+        self.assertEqual(
+            tk_layout.drop_zone_text_key(False),
+            "browse_without_dnd",
+        )
+        self.assertNotIn(
+            "drop",
+            tk_app.i18n.STRINGS["en"][tk_layout.drop_zone_text_key(False)].lower(),
+        )
+
+    def test_mixed_file_add_reports_exact_counts_and_preserves_order(self):
+        app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
+        app.operation = "idle"
+        app.files = [Path("existing.md")]
+        app.active_file = Path("existing.md")
+        app._render_file_list = mock.Mock()
+        app._refresh_generate_button = mock.Mock()
+        app._schedule_preview = mock.Mock()
+        app._set_status = mock.Mock()
+
+        app._add_files([
+            "new.md",
+            "notes.txt",
+            "existing.md",
+            "second.markdown",
+            "new.md",
+        ])
+
+        self.assertEqual(
+            app.files,
+            [
+                Path("existing.md"),
+                Path("new.md"),
+                Path("second.markdown"),
+            ],
+        )
+        self.assertEqual(app.active_file, Path("existing.md"))
+        app._render_file_list.assert_called_once_with(focus_path=Path("new.md"))
+        app._schedule_preview.assert_called_once_with()
+        app._set_status.assert_called_once_with(
+            "files_add_summary",
+            added=2,
+            duplicates=2,
+            unsupported=1,
+        )
+
+    def test_first_valid_file_becomes_active_and_invalid_add_does_not_preview(self):
+        app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
+        app.operation = "idle"
+        app.files = []
+        app.active_file = None
+        app._render_file_list = mock.Mock()
+        app._refresh_generate_button = mock.Mock()
+        app._schedule_preview = mock.Mock()
+        app._set_status = mock.Mock()
+
+        app._add_files(["unsupported.txt"])
+        self.assertIsNone(app.active_file)
+        app._schedule_preview.assert_not_called()
+        app._set_status.assert_called_once_with(
+            "files_add_summary",
+            added=0,
+            duplicates=0,
+            unsupported=1,
+        )
+
+        app._set_status.reset_mock()
+        app._add_files(["first.md", "second.md"])
+        self.assertEqual(app.active_file, Path("first.md"))
+        app._set_status.assert_called_once_with("files_added_many", count=2)
+
+    def test_selecting_preview_file_does_not_reorder_batch(self):
+        app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
+        app.operation = "idle"
+        app.files = [Path("first.md"), Path("second.md")]
+        app.active_file = Path("first.md")
+        app._render_file_list = mock.Mock()
+        app._schedule_preview = mock.Mock()
+
+        app._select_file(Path("second.md"))
+
+        self.assertEqual(app.active_file, Path("second.md"))
+        self.assertEqual(app.files, [Path("first.md"), Path("second.md")])
+        app._render_file_list.assert_called_once_with(
+            focus_path=Path("second.md")
+        )
+        app._schedule_preview.assert_called_once_with()
+
+    def test_removing_active_file_selects_next_then_previous(self):
+        app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
+        app.operation = "idle"
+        app.files = [Path("one.md"), Path("two.md"), Path("three.md")]
+        app.active_file = Path("two.md")
+        app._render_file_list = mock.Mock()
+        app._refresh_generate_button = mock.Mock()
+        app._schedule_preview = mock.Mock()
+        app._invalidate_preview = mock.Mock()
+
+        app._remove_file(Path("two.md"))
+        self.assertEqual(app.files, [Path("one.md"), Path("three.md")])
+        self.assertEqual(app.active_file, Path("three.md"))
+
+        app._remove_file(Path("three.md"))
+        self.assertEqual(app.files, [Path("one.md")])
+        self.assertEqual(app.active_file, Path("one.md"))
+        self.assertEqual(
+            app._render_file_list.call_args_list,
+            [
+                mock.call(focus_path=Path("three.md")),
+                mock.call(focus_path=Path("one.md")),
+            ],
+        )
+
+    def test_drop_hover_distinguishes_supported_and_unsupported_inputs(self):
+        app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
+        app.operation = "idle"
+        app.root = mock.Mock()
+        app.root.tk.splitlist.side_effect = lambda data: data
+        app._dnd_files_type = "DND_Files"
+        app._redraw_drop_zone = mock.Mock()
+
+        supported = mock.Mock(data="", types=("DND_Files",))
+        self.assertEqual(app._on_drop_enter(supported), "copy")
+        self.assertEqual(app._drop_zone_state, "active")
+
+        unsupported = mock.Mock(data="", types=("DND_Text",))
+        self.assertEqual(app._on_drop_enter(unsupported), "copy")
+        self.assertEqual(app._drop_zone_state, "unsupported")
+        self.assertEqual(app._redraw_drop_zone.call_count, 2)
+
+        app.operation = "generate"
+        self.assertEqual(app._on_drop_enter(supported), "refuse_drop")
+
+    def test_icon_button_retains_localized_name_tooltip_and_focus(self):
+        button = mock.Mock()
+        image = object()
+        tooltip = mock.Mock()
+        with mock.patch.object(
+            tk_components,
+            "Tooltip",
+            return_value=tooltip,
+        ) as tooltip_type:
+            result = tk_components.configure_icon_button(
+                button,
+                image,
+                "Remove report.md",
+            )
+
+        button.configure.assert_called_once_with(
+            text="Remove report.md",
+            image=image,
+            compound="none",
+            takefocus=True,
+            width=2,
+        )
+        self.assertEqual(button.accessible_name, "Remove report.md")
+        tooltip_type.assert_called_once_with(button, "Remove report.md")
+        self.assertIs(result, tooltip)
+
+    def test_primary_generate_action_keeps_gear_and_text_in_both_languages(self):
+        for language, word in (("en", "Generate"), ("fr", "Générer")):
+            text = tk_app.i18n.t("generate_button", language, count=2)
+            self.assertTrue(text.startswith("⚙ "))
+            self.assertIn(word, text)
 
     def test_status_styles_preserve_semantics_across_retranslation(self):
         self.assertEqual(
