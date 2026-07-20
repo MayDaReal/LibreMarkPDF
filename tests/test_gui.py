@@ -238,6 +238,128 @@ class TestGuiAutomationContract(unittest.TestCase):
 
 
 class TestGuiStateAndPlatformAdapters(unittest.TestCase):
+    def test_initial_window_size_targets_1060_by_720_and_respects_limits(self):
+        root = mock.Mock()
+        root.winfo_screenwidth.return_value = 1920
+        root.winfo_screenheight.return_value = 1080
+        self.assertEqual(tk_layout.initial_window_size(root), (1060, 720))
+
+        root.winfo_screenwidth.return_value = 800
+        root.winfo_screenheight.return_value = 600
+        self.assertEqual(tk_layout.initial_window_size(root), (800, 600))
+
+        root.winfo_screenwidth.return_value = 500
+        root.winfo_screenheight.return_value = 400
+        self.assertEqual(tk_layout.initial_window_size(root), (560, 520))
+
+    def test_reference_widths_select_large_medium_and_narrow_modes(self):
+        expected = {
+            1440: "large",
+            1280: "large",
+            1100: "large",
+            1024: "medium",
+            820: "medium",
+            720: "narrow",
+            560: "narrow",
+        }
+        self.assertEqual(
+            {
+                width: tk_layout.responsive_mode(width)
+                for width in expected
+            },
+            expected,
+        )
+        self.assertEqual(tk_layout.responsive_mode(759), "narrow")
+        self.assertEqual(tk_layout.responsive_mode(760), "medium")
+        self.assertEqual(tk_layout.responsive_mode(1099), "medium")
+        self.assertEqual(tk_layout.responsive_mode(1100), "large")
+
+    def test_responsive_transitions_reuse_widgets_without_moving_focus(self):
+        app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
+        app._layout_mode = None
+        app.workspace = mock.Mock()
+        app.source_group = mock.Mock()
+        app.preview_group = mock.Mock()
+        app.theme_group = mock.Mock()
+        app.output_group = mock.Mock()
+        app.advanced_group = mock.Mock()
+        app.results_frame = mock.Mock()
+        app.header_footer_entry_rows = [
+            [mock.Mock(), mock.Mock(), mock.Mock()],
+            [mock.Mock(), mock.Mock(), mock.Mock()],
+        ]
+        app.body = mock.Mock()
+        app.action_bar = mock.Mock()
+        app.preview_canvas = mock.Mock()
+        app.status_label = mock.Mock()
+        app.root = mock.Mock()
+        widgets = (
+            app.source_group,
+            app.preview_group,
+            app.advanced_group,
+            app.preview_canvas,
+            app.status_label,
+        )
+
+        app._apply_responsive_layout(560, 520)
+        app.preview_group.grid.assert_called_with(
+            row=1,
+            column=0,
+            sticky="nsew",
+            pady=(0, tk_styles.SECTION_GAP),
+        )
+        for entries in app.header_footer_entry_rows:
+            for entry in entries:
+                entry.pack.assert_called_with(
+                    fill="x",
+                    pady=(0, tk_styles.SPACE_XS),
+                )
+        app._apply_responsive_layout(1100, 700)
+
+        self.assertEqual(
+            widgets,
+            (
+                app.source_group,
+                app.preview_group,
+                app.advanced_group,
+                app.preview_canvas,
+                app.status_label,
+            ),
+        )
+        app.root.focus_get.assert_not_called()
+        app.root.focus_set.assert_not_called()
+        self.assertEqual(app._layout_mode, "large")
+        app.source_group.grid.assert_called_with(
+            row=0,
+            column=0,
+            sticky="nsew",
+            padx=(0, tk_styles.SECTION_GAP),
+            pady=(0, tk_styles.SECTION_GAP),
+        )
+        app.preview_group.grid.assert_called_with(
+            row=0,
+            column=1,
+            rowspan=5,
+            sticky="nsew",
+        )
+
+    def test_primary_action_and_progress_are_outside_scrolling_content(self):
+        source = inspect.getsource(tk_layout.TkLayoutMixin._build_ui)
+        self.assertIn("self.action_bar = ttk.Frame(\n            self.root", source)
+        self.assertIn(
+            "self.progress = ttk.Progressbar(\n"
+            "            self.action_bar",
+            source,
+        )
+        self.assertLess(
+            source.index("self.action_bar.pack"),
+            source.index("container.pack"),
+        )
+        self.assertIn(
+            "self.root.minsize(MINIMUM_WINDOW_WIDTH, MINIMUM_WINDOW_HEIGHT)",
+            source,
+        )
+
     def test_render_options_preserve_all_desktop_input_values(self):
         app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
         app.css_path = "custom.css"

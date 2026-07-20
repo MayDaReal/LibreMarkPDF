@@ -38,6 +38,32 @@ AUTOMATION_ACTIONS = frozenset((
     "convert.start", "convert.cancel",
 ))
 
+INITIAL_WINDOW_WIDTH = 1060
+INITIAL_WINDOW_HEIGHT = 720
+MINIMUM_WINDOW_WIDTH = 560
+MINIMUM_WINDOW_HEIGHT = 520
+NARROW_MAX_WIDTH = 759
+MEDIUM_MAX_WIDTH = 1099
+
+
+def initial_window_size(root: tk.Misc) -> tuple[int, int]:
+    """Return the target size capped to the available Tk screen."""
+    available_width = int(root.winfo_screenwidth())
+    available_height = int(root.winfo_screenheight())
+    return (
+        max(MINIMUM_WINDOW_WIDTH, min(INITIAL_WINDOW_WIDTH, available_width)),
+        max(MINIMUM_WINDOW_HEIGHT, min(INITIAL_WINDOW_HEIGHT, available_height)),
+    )
+
+
+def responsive_mode(width: int) -> str:
+    """Return the responsive mode for a window width."""
+    if width <= NARROW_MAX_WIDTH:
+        return "narrow"
+    if width <= MEDIUM_MAX_WIDTH:
+        return "medium"
+    return "large"
+
 
 def load_logo(size: int) -> tk.PhotoImage:
     if size not in LOGO_ICON_CACHE:
@@ -50,8 +76,10 @@ class TkLayoutMixin:
     """Build and bind widgets without owning application state transitions."""
 
     def _build_ui(self) -> None:
-        self.root.geometry("820x780")
-        self.root.minsize(560, 520)
+        initial_width, initial_height = initial_window_size(self.root)
+        self.root.geometry("{0}x{1}".format(initial_width, initial_height))
+        self.root.minsize(MINIMUM_WINDOW_WIDTH, MINIMUM_WINDOW_HEIGHT)
+        self._layout_mode = None
 
         top = ttk.Frame(
             self.root,
@@ -80,6 +108,43 @@ class TkLayoutMixin:
         self.btn_fr.pack(side="left")
         self._register_automation_widget("language.en", self.btn_en)
         self._register_automation_widget("language.fr", self.btn_fr)
+
+        self.action_bar = ttk.Frame(
+            self.root,
+            padding=(OUTER_PADDING, SPACE_SM),
+        )
+        self.action_bar.pack(side="bottom", fill="x")
+        self.action_bar.columnconfigure(0, weight=1)
+        action_row = ttk.Frame(self.action_bar)
+        action_row.grid(row=0, column=1, sticky="e")
+        self.generate_button = ttk.Button(
+            action_row,
+            command=self._on_generate_clicked,
+            style=PRIMARY_BUTTON_STYLE,
+        )
+        self.generate_button.pack(side="left")
+        self.cancel_button = ttk.Button(
+            action_row, command=self._cancel_conversion, state="disabled"
+        )
+        self.cancel_button.pack(side="left", padx=(SPACE_SM, 0))
+        self._register_automation_widget("convert.start", self.generate_button)
+        self._register_automation_widget("convert.cancel", self.cancel_button)
+        self.status_label = ttk.Label(
+            self.action_bar,
+            wraplength=STATUS_WRAP_LENGTH,
+            style=STATUS_LABEL_STYLE,
+        )
+        self.status_label.grid(row=0, column=0, sticky="ew", padx=(0, SPACE_SM))
+        self.progress = ttk.Progressbar(
+            self.action_bar, variable=self.progress_var, maximum=1
+        )
+        self.progress.grid(
+            row=1,
+            column=0,
+            columnspan=2,
+            sticky="ew",
+            pady=(SPACE_SM, 0),
+        )
 
         container = ttk.Frame(self.root)
         container.pack(fill="both", expand=True)
@@ -110,8 +175,10 @@ class TkLayoutMixin:
             ),
         )
 
-        self.source_group = ttk.LabelFrame(self.body, padding=SECTION_PADDING)
-        self.source_group.pack(fill="x", pady=(0, SECTION_GAP))
+        self.workspace = ttk.Frame(self.body)
+        self.workspace.pack(fill="both", expand=True)
+
+        self.source_group = ttk.LabelFrame(self.workspace, padding=SECTION_PADDING)
         self.drop_canvas = tk.Canvas(
             self.source_group,
             height=DROP_ZONE_HEIGHT,
@@ -167,8 +234,7 @@ class TkLayoutMixin:
             ),
         )
 
-        self.theme_group = ttk.LabelFrame(self.body, padding=SECTION_PADDING)
-        self.theme_group.pack(fill="x", pady=(0, SECTION_GAP))
+        self.theme_group = ttk.LabelFrame(self.workspace, padding=SECTION_PADDING)
         self.theme_cards = ttk.Frame(self.theme_group)
         self.theme_cards.pack(fill="x")
         css_row = ttk.Frame(self.theme_group)
@@ -182,8 +248,7 @@ class TkLayoutMixin:
         self.css_reset_button = ttk.Button(css_row, command=self._reset_css)
         self.css_reset_button.pack(side="left", padx=(SPACE_SM, 0))
 
-        self.advanced_group = ttk.LabelFrame(self.body, padding=SECTION_PADDING)
-        self.advanced_group.pack(fill="x", pady=(0, SECTION_GAP))
+        self.advanced_group = ttk.LabelFrame(self.workspace, padding=SECTION_PADDING)
         self.advanced_toggle = ttk.Button(
             self.advanced_group, command=self._toggle_advanced
         )
@@ -192,6 +257,7 @@ class TkLayoutMixin:
         self.advanced_content = ttk.Frame(self.advanced_group)
         self.tokens_hint_label = ttk.Label(self.advanced_content)
         self.tokens_hint_label.pack(anchor="w", pady=(SPACE_SM, SPACE_XS))
+        self.header_footer_entry_rows = []
         for group_name, keys in (
             ("header_group_label", ("header_left", "header_center", "header_right")),
             ("footer_group_label", ("footer_left", "footer_center", "footer_right")),
@@ -201,10 +267,13 @@ class TkLayoutMixin:
             label.pack(anchor="w", pady=(SPACE_XS, 0))
             row = ttk.Frame(self.advanced_content)
             row.pack(fill="x")
+            entries = []
             for key in keys:
                 entry = ttk.Entry(row, textvariable=self.hf_vars[key])
                 entry.pack(side="left", fill="x", expand=True, padx=SPACE_XS)
+                entries.append(entry)
                 self._operation_controls.append(entry)
+            self.header_footer_entry_rows.append(entries)
         options = ttk.Frame(self.advanced_content)
         options.pack(fill="x", pady=(SPACE_SM, 0))
         self.render_date_label = ttk.Label(options)
@@ -221,8 +290,7 @@ class TkLayoutMixin:
         )
         self.trusted_html_check.pack(side="left")
 
-        self.preview_group = ttk.LabelFrame(self.body, padding=SECTION_PADDING)
-        self.preview_group.pack(fill="both", expand=True, pady=(0, SECTION_GAP))
+        self.preview_group = ttk.LabelFrame(self.workspace, padding=SECTION_PADDING)
         preview_header = ttk.Frame(self.preview_group)
         preview_header.pack(fill="x")
         self.refresh_preview_button = ttk.Button(
@@ -263,8 +331,7 @@ class TkLayoutMixin:
         preview_horizontal.pack(side="bottom", fill="x")
         self.preview_canvas.pack(side="left", fill="both", expand=True)
 
-        self.output_group = ttk.LabelFrame(self.body, padding=SECTION_PADDING)
-        self.output_group.pack(fill="x", pady=(0, SECTION_GAP))
+        self.output_group = ttk.LabelFrame(self.workspace, padding=SECTION_PADDING)
         output_row = ttk.Frame(self.output_group)
         output_row.pack(fill="x")
         self.output_entry = ttk.Entry(output_row, state="readonly")
@@ -278,32 +345,7 @@ class TkLayoutMixin:
         self._register_automation_widget("output.choose", self.output_button)
         self._register_automation_widget("output.reset", self.output_reset_button)
 
-        action_row = ttk.Frame(self.body)
-        action_row.pack(fill="x")
-        self.generate_button = ttk.Button(
-            action_row,
-            command=self._on_generate_clicked,
-            style=PRIMARY_BUTTON_STYLE,
-        )
-        self.generate_button.pack(side="left", fill="x", expand=True)
-        self.cancel_button = ttk.Button(
-            action_row, command=self._cancel_conversion, state="disabled"
-        )
-        self.cancel_button.pack(side="left", padx=(SPACE_SM, 0))
-        self._register_automation_widget("convert.start", self.generate_button)
-        self._register_automation_widget("convert.cancel", self.cancel_button)
-        self.progress = ttk.Progressbar(
-            self.body, variable=self.progress_var, maximum=1
-        )
-        self.progress.pack(fill="x", pady=(SPACE_SM, SPACE_XS))
-        self.status_label = ttk.Label(
-            self.body,
-            wraplength=STATUS_WRAP_LENGTH,
-            style=STATUS_LABEL_STYLE,
-        )
-        self.status_label.pack(anchor="w")
-        self.results_frame = ttk.Frame(self.body)
-        self.results_frame.pack(fill="x", pady=(SPACE_SM, 0))
+        self.results_frame = ttk.Frame(self.workspace)
 
         self._operation_controls.extend([
             self.browse_button, self.clear_files_button, self.css_button,
@@ -311,6 +353,98 @@ class TkLayoutMixin:
             self.trusted_html_check, self.refresh_preview_button,
             self.output_button, self.output_reset_button,
         ])
+        self.root.bind("<Configure>", self._on_root_configure, add="+")
+        self._apply_responsive_layout(initial_width, initial_height)
+
+    def _on_root_configure(self, event) -> None:
+        if event.widget is self.root:
+            self._apply_responsive_layout(event.width, event.height)
+
+    def _apply_responsive_layout(self, width: int, _height: int) -> None:
+        """Adapt existing panes without rebuilding widgets or changing focus."""
+        mode = responsive_mode(width)
+        if mode != self._layout_mode:
+            sections = (
+                self.source_group,
+                self.preview_group,
+                self.theme_group,
+                self.output_group,
+                self.advanced_group,
+                self.results_frame,
+            )
+            for section in sections:
+                section.grid_forget()
+            for row in range(len(sections)):
+                self.workspace.rowconfigure(row, weight=0)
+            if mode == "narrow":
+                self.workspace.columnconfigure(0, weight=1, minsize=0)
+                self.workspace.columnconfigure(1, weight=0, minsize=0)
+                for row, section in enumerate(sections):
+                    section.grid(
+                        row=row,
+                        column=0,
+                        sticky="nsew",
+                        pady=(0, SECTION_GAP),
+                    )
+            else:
+                left_minimum = 360 if mode == "large" else 300
+                right_minimum = 480 if mode == "large" else 320
+                self.workspace.columnconfigure(
+                    0, weight=38, minsize=left_minimum
+                )
+                self.workspace.columnconfigure(
+                    1, weight=62, minsize=right_minimum
+                )
+                left_sections = (
+                    self.source_group,
+                    self.theme_group,
+                    self.output_group,
+                    self.advanced_group,
+                    self.results_frame,
+                )
+                for row, section in enumerate(left_sections):
+                    section.grid(
+                        row=row,
+                        column=0,
+                        sticky="nsew",
+                        padx=(0, SECTION_GAP),
+                        pady=(0, SECTION_GAP),
+                    )
+                self.workspace.rowconfigure(len(left_sections) - 1, weight=1)
+                self.preview_group.grid(
+                    row=0,
+                    column=1,
+                    rowspan=len(left_sections),
+                    sticky="nsew",
+                )
+            for entries in self.header_footer_entry_rows:
+                for entry in entries:
+                    entry.pack_forget()
+                    if mode == "narrow":
+                        entry.pack(fill="x", pady=(0, SPACE_XS))
+                    else:
+                        entry.pack(
+                            side="left",
+                            fill="x",
+                            expand=True,
+                            padx=SPACE_XS,
+                        )
+            self._layout_mode = mode
+
+        outer_padding = SECTION_GAP if mode == "narrow" else OUTER_PADDING
+        preview_height = {
+            "narrow": 240,
+            "medium": 280,
+            "large": 320,
+        }[mode]
+        self.body.configure(
+            padding=(outer_padding, SPACE_XS, outer_padding, OUTER_PADDING)
+        )
+        self.action_bar.configure(padding=(outer_padding, SPACE_SM))
+        self.preview_canvas.configure(height=preview_height)
+        self.status_label.configure(
+            wraplength=max(160, width // 2),
+        )
 
     def _register_automation_widget(self, action: str, widget: tk.Misc) -> None:
         """Expose a stable semantic control for automated desktop checks."""

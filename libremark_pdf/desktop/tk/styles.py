@@ -74,7 +74,7 @@ def install_ui_styles(root: tk.Misc) -> UiStyleResources:
     style.configure(TITLE_LABEL_STYLE, font=title_font)
     style.configure(
         PRIMARY_BUTTON_STYLE,
-        padding=(SPACE_MD, SPACE_SM),
+        padding=(SPACE_MD, SPACE_MD),
     )
     style.configure(
         STATUS_LABEL_STYLE,
