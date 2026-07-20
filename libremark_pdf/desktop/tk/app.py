@@ -15,6 +15,7 @@ from .dialogs import DEFAULT_TK_DIALOGS, TkDialogs
 from .inputs import TkInputMixin
 from .layout import HAS_DND, TkLayoutMixin, TkinterDnD
 from .preview import TkPreviewMixin
+from .styles import install_ui_styles, status_label_style
 
 
 _HAS_DND = HAS_DND
@@ -79,6 +80,7 @@ class LibreMarkPdfApp(
         self._theme_buttons = []  # type: list
         self._automation_widgets = {}  # type: dict[str, tk.Misc]
 
+        self.ui_styles = install_ui_styles(self.root)
         self._build_ui()
         self._bind_accessibility()
         self._retranslate()
@@ -107,7 +109,10 @@ class LibreMarkPdfApp(
     def _set_status(self, key: str, **kwargs) -> None:
         self._status_key = key
         self._status_kwargs = kwargs
-        self.status_label.config(text=self._t(key, **kwargs))
+        self.status_label.config(
+            text=self._t(key, **kwargs),
+            style=status_label_style(key),
+        )
 
     def _retranslate(self) -> None:
         self.root.title(self._t("app_title"))
@@ -144,7 +149,8 @@ class LibreMarkPdfApp(
         self._render_file_list()
         self.zoom_label.config(text="{0}%".format(self.zoom_percent.get()))
         self.status_label.config(
-            text=self._t(self._status_key, **self._status_kwargs)
+            text=self._t(self._status_key, **self._status_kwargs),
+            style=status_label_style(self._status_key),
         )
 
     def _schedule_queue_poll(self) -> None:

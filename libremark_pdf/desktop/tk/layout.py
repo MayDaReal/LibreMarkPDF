@@ -6,6 +6,20 @@ import tkinter as tk
 from tkinter import ttk
 
 from ... import core
+from .styles import (
+    DROP_ZONE_HEIGHT,
+    FILE_LIST_HEIGHT,
+    OUTER_PADDING,
+    PREVIEW_HEIGHT,
+    PRIMARY_BUTTON_STYLE,
+    SECTION_GAP,
+    SECTION_PADDING,
+    SPACE_SM,
+    SPACE_XS,
+    STATUS_LABEL_STYLE,
+    STATUS_WRAP_LENGTH,
+    TITLE_LABEL_STYLE,
+)
 
 try:
     from tkinterdnd2 import DND_FILES, TkinterDnD
@@ -39,7 +53,10 @@ class TkLayoutMixin:
         self.root.geometry("820x780")
         self.root.minsize(560, 520)
 
-        top = ttk.Frame(self.root, padding=(14, 10))
+        top = ttk.Frame(
+            self.root,
+            padding=(OUTER_PADDING, SECTION_GAP),
+        )
         top.pack(fill="x")
         logo = load_logo(32)
         self.logo_label = ttk.Label(top, image=logo)
@@ -49,8 +66,8 @@ class TkLayoutMixin:
             self.root.iconphoto(True, load_logo(64))
         except Exception:
             pass
-        self.title_label = ttk.Label(top, font=("TkDefaultFont", 12, "bold"))
-        self.title_label.pack(side="left", padx=10)
+        self.title_label = ttk.Label(top, style=TITLE_LABEL_STYLE)
+        self.title_label.pack(side="left", padx=SECTION_GAP)
         language = ttk.Frame(top)
         language.pack(side="right")
         self.btn_en = ttk.Button(
@@ -73,7 +90,10 @@ class TkLayoutMixin:
         self.body_canvas.configure(yscrollcommand=body_scroll.set)
         body_scroll.pack(side="right", fill="y")
         self.body_canvas.pack(side="left", fill="both", expand=True)
-        self.body = ttk.Frame(self.body_canvas, padding=(14, 6, 14, 14))
+        self.body = ttk.Frame(
+            self.body_canvas,
+            padding=(OUTER_PADDING, SPACE_XS, OUTER_PADDING, OUTER_PADDING),
+        )
         self._body_window = self.body_canvas.create_window(
             (0, 0), window=self.body, anchor="nw"
         )
@@ -90,13 +110,13 @@ class TkLayoutMixin:
             ),
         )
 
-        self.source_group = ttk.LabelFrame(self.body, padding=8)
-        self.source_group.pack(fill="x", pady=(0, 10))
+        self.source_group = ttk.LabelFrame(self.body, padding=SECTION_PADDING)
+        self.source_group.pack(fill="x", pady=(0, SECTION_GAP))
         self.drop_canvas = tk.Canvas(
             self.source_group,
-            height=76,
-            bg="#f6f8fa",
-            highlightbackground="#8c959f",
+            height=DROP_ZONE_HEIGHT,
+            bg=self.ui_styles.drop_background,
+            highlightbackground=self.ui_styles.drop_border,
             highlightthickness=1,
             takefocus=True,
         )
@@ -109,20 +129,20 @@ class TkLayoutMixin:
             self.drop_canvas.drop_target_register(DND_FILES)
             self.drop_canvas.dnd_bind("<<Drop>>", self._on_drop)
         source_actions = ttk.Frame(self.source_group)
-        source_actions.pack(fill="x", pady=(6, 4))
+        source_actions.pack(fill="x", pady=(SPACE_SM, SPACE_XS))
         self.browse_button = ttk.Button(source_actions, command=self._browse_files)
         self.browse_button.pack(side="left")
         self.clear_files_button = ttk.Button(
             source_actions, command=self._clear_files
         )
-        self.clear_files_button.pack(side="left", padx=6)
+        self.clear_files_button.pack(side="left", padx=SPACE_SM)
         self._register_automation_widget("files.add", self.browse_button)
         self._register_automation_widget("files.clear", self.clear_files_button)
 
         file_box = ttk.Frame(self.source_group)
         file_box.pack(fill="x")
         self.file_canvas = tk.Canvas(
-            file_box, height=96, highlightthickness=0, takefocus=True
+            file_box, height=FILE_LIST_HEIGHT, highlightthickness=0, takefocus=True
         )
         file_scroll = ttk.Scrollbar(
             file_box, orient="vertical", command=self.file_canvas.yview
@@ -147,23 +167,23 @@ class TkLayoutMixin:
             ),
         )
 
-        self.theme_group = ttk.LabelFrame(self.body, padding=8)
-        self.theme_group.pack(fill="x", pady=(0, 10))
+        self.theme_group = ttk.LabelFrame(self.body, padding=SECTION_PADDING)
+        self.theme_group.pack(fill="x", pady=(0, SECTION_GAP))
         self.theme_cards = ttk.Frame(self.theme_group)
         self.theme_cards.pack(fill="x")
         css_row = ttk.Frame(self.theme_group)
-        css_row.pack(fill="x", pady=(8, 0))
+        css_row.pack(fill="x", pady=(SPACE_SM, 0))
         self.css_label = ttk.Label(css_row)
         self.css_label.pack(side="left")
         self.css_entry = ttk.Entry(css_row, state="readonly")
-        self.css_entry.pack(side="left", fill="x", expand=True, padx=6)
+        self.css_entry.pack(side="left", fill="x", expand=True, padx=SPACE_SM)
         self.css_button = ttk.Button(css_row, command=self._choose_css)
         self.css_button.pack(side="left")
         self.css_reset_button = ttk.Button(css_row, command=self._reset_css)
-        self.css_reset_button.pack(side="left", padx=(6, 0))
+        self.css_reset_button.pack(side="left", padx=(SPACE_SM, 0))
 
-        self.advanced_group = ttk.LabelFrame(self.body, padding=8)
-        self.advanced_group.pack(fill="x", pady=(0, 10))
+        self.advanced_group = ttk.LabelFrame(self.body, padding=SECTION_PADDING)
+        self.advanced_group.pack(fill="x", pady=(0, SECTION_GAP))
         self.advanced_toggle = ttk.Button(
             self.advanced_group, command=self._toggle_advanced
         )
@@ -171,35 +191,38 @@ class TkLayoutMixin:
         self._register_automation_widget("advanced.toggle", self.advanced_toggle)
         self.advanced_content = ttk.Frame(self.advanced_group)
         self.tokens_hint_label = ttk.Label(self.advanced_content)
-        self.tokens_hint_label.pack(anchor="w", pady=(6, 4))
+        self.tokens_hint_label.pack(anchor="w", pady=(SPACE_SM, SPACE_XS))
         for group_name, keys in (
             ("header_group_label", ("header_left", "header_center", "header_right")),
             ("footer_group_label", ("footer_left", "footer_center", "footer_right")),
         ):
             label = ttk.Label(self.advanced_content)
             setattr(self, group_name, label)
-            label.pack(anchor="w", pady=(4, 0))
+            label.pack(anchor="w", pady=(SPACE_XS, 0))
             row = ttk.Frame(self.advanced_content)
             row.pack(fill="x")
             for key in keys:
                 entry = ttk.Entry(row, textvariable=self.hf_vars[key])
-                entry.pack(side="left", fill="x", expand=True, padx=2)
+                entry.pack(side="left", fill="x", expand=True, padx=SPACE_XS)
                 self._operation_controls.append(entry)
         options = ttk.Frame(self.advanced_content)
-        options.pack(fill="x", pady=(8, 0))
+        options.pack(fill="x", pady=(SPACE_SM, 0))
         self.render_date_label = ttk.Label(options)
         self.render_date_label.pack(side="left")
         self.render_date_entry = ttk.Entry(
             options, textvariable=self.render_date_var, width=12
         )
-        self.render_date_entry.pack(side="left", padx=(6, 14))
+        self.render_date_entry.pack(
+            side="left",
+            padx=(SPACE_SM, OUTER_PADDING),
+        )
         self.trusted_html_check = ttk.Checkbutton(
             options, variable=self.trusted_html_var
         )
         self.trusted_html_check.pack(side="left")
 
-        self.preview_group = ttk.LabelFrame(self.body, padding=8)
-        self.preview_group.pack(fill="both", expand=True, pady=(0, 10))
+        self.preview_group = ttk.LabelFrame(self.body, padding=SECTION_PADDING)
+        self.preview_group.pack(fill="both", expand=True, pady=(0, SECTION_GAP))
         preview_header = ttk.Frame(self.preview_group)
         preview_header.pack(fill="x")
         self.refresh_preview_button = ttk.Button(
@@ -214,15 +237,15 @@ class TkLayoutMixin:
         self.zoom_in_button = ttk.Button(
             preview_header, width=3, text="+", command=lambda: self._change_zoom(1)
         )
-        self.zoom_in_button.pack(side="right", padx=4)
+        self.zoom_in_button.pack(side="right", padx=SPACE_XS)
         self.zoom_label = ttk.Label(preview_header)
         self.zoom_label.pack(side="right")
         preview_box = ttk.Frame(self.preview_group)
-        preview_box.pack(fill="both", expand=True, pady=(8, 0))
+        preview_box.pack(fill="both", expand=True, pady=(SPACE_SM, 0))
         self.preview_canvas = tk.Canvas(
             preview_box,
-            height=330,
-            bg="#78828c",
+            height=PREVIEW_HEIGHT,
+            bg=self.ui_styles.preview_background,
             highlightthickness=0,
             takefocus=True,
         )
@@ -240,41 +263,47 @@ class TkLayoutMixin:
         preview_horizontal.pack(side="bottom", fill="x")
         self.preview_canvas.pack(side="left", fill="both", expand=True)
 
-        self.output_group = ttk.LabelFrame(self.body, padding=8)
-        self.output_group.pack(fill="x", pady=(0, 10))
+        self.output_group = ttk.LabelFrame(self.body, padding=SECTION_PADDING)
+        self.output_group.pack(fill="x", pady=(0, SECTION_GAP))
         output_row = ttk.Frame(self.output_group)
         output_row.pack(fill="x")
         self.output_entry = ttk.Entry(output_row, state="readonly")
         self.output_entry.pack(side="left", fill="x", expand=True)
         self.output_button = ttk.Button(output_row, command=self._choose_output_dir)
-        self.output_button.pack(side="left", padx=(6, 0))
+        self.output_button.pack(side="left", padx=(SPACE_SM, 0))
         self.output_reset_button = ttk.Button(
             output_row, command=self._reset_output_dir
         )
-        self.output_reset_button.pack(side="left", padx=(6, 0))
+        self.output_reset_button.pack(side="left", padx=(SPACE_SM, 0))
         self._register_automation_widget("output.choose", self.output_button)
         self._register_automation_widget("output.reset", self.output_reset_button)
 
         action_row = ttk.Frame(self.body)
         action_row.pack(fill="x")
         self.generate_button = ttk.Button(
-            action_row, command=self._on_generate_clicked
+            action_row,
+            command=self._on_generate_clicked,
+            style=PRIMARY_BUTTON_STYLE,
         )
         self.generate_button.pack(side="left", fill="x", expand=True)
         self.cancel_button = ttk.Button(
             action_row, command=self._cancel_conversion, state="disabled"
         )
-        self.cancel_button.pack(side="left", padx=(6, 0))
+        self.cancel_button.pack(side="left", padx=(SPACE_SM, 0))
         self._register_automation_widget("convert.start", self.generate_button)
         self._register_automation_widget("convert.cancel", self.cancel_button)
         self.progress = ttk.Progressbar(
             self.body, variable=self.progress_var, maximum=1
         )
-        self.progress.pack(fill="x", pady=(8, 2))
-        self.status_label = ttk.Label(self.body, wraplength=720)
+        self.progress.pack(fill="x", pady=(SPACE_SM, SPACE_XS))
+        self.status_label = ttk.Label(
+            self.body,
+            wraplength=STATUS_WRAP_LENGTH,
+            style=STATUS_LABEL_STYLE,
+        )
         self.status_label.pack(anchor="w")
         self.results_frame = ttk.Frame(self.body)
-        self.results_frame.pack(fill="x", pady=(8, 0))
+        self.results_frame.pack(fill="x", pady=(SPACE_SM, 0))
 
         self._operation_controls.extend([
             self.browse_button, self.clear_files_button, self.css_button,

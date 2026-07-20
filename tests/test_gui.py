@@ -17,6 +17,7 @@ from libremark_pdf.desktop.tk import conversion as tk_conversion
 from libremark_pdf.desktop.tk import dialogs as tk_dialogs
 from libremark_pdf.desktop.tk import layout as tk_layout
 from libremark_pdf.desktop.tk import preview as tk_preview
+from libremark_pdf.desktop.tk import styles as tk_styles
 
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -439,18 +440,96 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
                         gui.LibreMarkPdfApp, "_build_ui", autospec=True,
                         side_effect=build_ui,
                     ):
-                        with mock.patch.object(
-                            gui.LibreMarkPdfApp, "_bind_accessibility"
-                        ):
-                            with mock.patch.object(gui.LibreMarkPdfApp, "_retranslate"):
-                                gui.LibreMarkPdfApp(
-                                    root,
-                                    services=services_boundary,
-                                    dialogs=dialogs,
-                                )
+                        with mock.patch.object(tk_app, "install_ui_styles"):
+                            with mock.patch.object(
+                                gui.LibreMarkPdfApp, "_bind_accessibility"
+                            ):
+                                with mock.patch.object(
+                                    gui.LibreMarkPdfApp, "_retranslate"
+                                ):
+                                    gui.LibreMarkPdfApp(
+                                        root,
+                                        services=services_boundary,
+                                        dialogs=dialogs,
+                                    )
 
         browse_button.focus_set.assert_called_once_with()
         root.protocol.assert_called_once_with("WM_DELETE_WINDOW", mock.ANY)
+
+    def test_ui_styles_use_native_theme_colors_and_named_variants(self):
+        root = mock.Mock()
+        style = mock.Mock()
+        native_colors = {
+            ("TFrame", "background"): "native-background",
+            ("TEntry", "fieldbackground"): "native-field",
+            ("TEntry", "bordercolor"): "native-border",
+        }
+        style.lookup.side_effect = (
+            lambda style_name, option: native_colors.get((style_name, option))
+        )
+        default_font = mock.Mock()
+        default_font.cget.return_value = 10
+        title_font = mock.Mock()
+        emphasis_font = mock.Mock()
+        default_font.copy.side_effect = [title_font, emphasis_font]
+
+        with mock.patch.object(tk_styles.ttk, "Style", return_value=style):
+            with mock.patch.object(
+                tk_styles.tkfont,
+                "Font",
+                return_value=default_font,
+            ) as font:
+                resources = tk_styles.install_ui_styles(root)
+
+        font.assert_called_once_with(
+            root=root,
+            name="TkDefaultFont",
+            exists=True,
+        )
+        title_font.configure.assert_called_once_with(size=12, weight="bold")
+        emphasis_font.configure.assert_called_once_with(weight="bold")
+        configured_names = [call.args[0] for call in style.configure.call_args_list]
+        self.assertEqual(
+            configured_names,
+            [
+                tk_styles.TITLE_LABEL_STYLE,
+                tk_styles.PRIMARY_BUTTON_STYLE,
+                tk_styles.STATUS_LABEL_STYLE,
+                tk_styles.ERROR_STATUS_LABEL_STYLE,
+                tk_styles.SUCCESS_STATUS_LABEL_STYLE,
+            ],
+        )
+        self.assertEqual(resources.drop_background, "native-field")
+        self.assertEqual(resources.drop_border, "native-border")
+        self.assertEqual(resources.preview_background, "native-background")
+        self.assertTrue(tk_styles.PRIMARY_BUTTON_STYLE.endswith(".TButton"))
+
+    def test_status_styles_preserve_semantics_across_retranslation(self):
+        self.assertEqual(
+            tk_styles.status_label_style("status_generation_error"),
+            tk_styles.ERROR_STATUS_LABEL_STYLE,
+        )
+        self.assertEqual(
+            tk_styles.status_label_style("status_done_summary"),
+            tk_styles.SUCCESS_STATUS_LABEL_STYLE,
+        )
+        self.assertEqual(
+            tk_styles.status_label_style("status_generating_progress"),
+            tk_styles.STATUS_LABEL_STYLE,
+        )
+
+        app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
+        app.status_label = mock.Mock()
+        app._t = lambda key, **kwargs: key
+        app._set_status("status_preview_error", error="failure")
+        app.status_label.config.assert_called_once_with(
+            text="status_preview_error",
+            style=tk_styles.ERROR_STATUS_LABEL_STYLE,
+        )
+
+    def test_layout_has_no_scattered_literal_color_palette(self):
+        source = Path(tk_layout.__file__).read_text(encoding="utf-8")
+        self.assertNotRegex(source, r"#[0-9a-fA-F]{3,8}")
 
     def test_declined_collision_stops_before_render_options_or_worker(self):
         app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
