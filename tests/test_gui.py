@@ -13,6 +13,7 @@ from unittest import mock
 from libremark_pdf import desktop_services, gui
 from libremark_pdf.desktop import services
 from libremark_pdf.desktop.tk import app as tk_app
+from libremark_pdf.desktop.tk import conversion as tk_conversion
 from libremark_pdf.desktop.tk import dialogs as tk_dialogs
 from libremark_pdf.desktop.tk import layout as tk_layout
 from libremark_pdf.desktop.tk import preview as tk_preview
@@ -236,6 +237,221 @@ class TestGuiAutomationContract(unittest.TestCase):
 
 
 class TestGuiStateAndPlatformAdapters(unittest.TestCase):
+    def test_render_options_preserve_all_desktop_input_values(self):
+        app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
+        app.css_path = "custom.css"
+        app.theme_var = mock.Mock()
+        app.theme_var.get.return_value = "ignored@1"
+        app.render_date_var = mock.Mock()
+        app.render_date_var.get.return_value = " 2026-07-20 "
+        app.trusted_html_var = mock.Mock()
+        app.trusted_html_var.get.return_value = True
+        values = {
+            "header_left": "{title}",
+            "header_center": "{date}",
+            "header_right": "right",
+            "footer_left": "left",
+            "footer_center": "Page {page} / {total}",
+            "footer_right": "{titre}",
+        }
+        app.hf_vars = {}
+        for key, value in values.items():
+            variable = mock.Mock()
+            variable.get.return_value = value
+            app.hf_vars[key] = variable
+
+        options = app._render_options()
+
+        self.assertEqual(options["css_path"], "custom.css")
+        self.assertIsNone(options["theme"])
+        self.assertEqual(options["render_date"], "2026-07-20")
+        self.assertIs(options["trusted_html"], True)
+        self.assertEqual(
+            options["header_footer"],
+            services.core.HeaderFooterConfig(
+                top_left="{title}",
+                top_center="{date}",
+                top_right="right",
+                bottom_left="left",
+                bottom_center="Page {page} / {total}",
+                bottom_right="{titre}",
+            ),
+        )
+
+    def test_render_options_use_selected_theme_without_custom_css(self):
+        app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
+        app.css_path = None
+        app.theme_var = mock.Mock()
+        app.theme_var.get.return_value = "default@1"
+        app.render_date_var = mock.Mock()
+        app.render_date_var.get.return_value = " "
+        app.trusted_html_var = mock.Mock()
+        app.trusted_html_var.get.return_value = False
+        app._current_header_footer = mock.Mock(
+            return_value=services.core.HeaderFooterConfig.none()
+        )
+
+        self.assertEqual(
+            app._render_options(),
+            {
+                "css_path": None,
+                "header_footer": services.core.HeaderFooterConfig.none(),
+                "render_date": None,
+                "trusted_html": False,
+                "theme": "default@1",
+            },
+        )
+
+    def test_generation_passes_a_snapshot_of_files_and_options_to_service(self):
+        app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
+        app.operation = "idle"
+        app._preview_running = False
+        app.files = [Path("one.md"), Path("two.md")]
+        app.output_dir = "exports"
+        app._overwrite_choice = mock.Mock(return_value=True)
+        app._invalidate_preview = mock.Mock()
+        app._render_options = mock.Mock(
+            return_value={"theme": "default@1", "render_date": None}
+        )
+        app.progress = mock.Mock()
+        app.progress_var = mock.Mock()
+        app._clear_results = mock.Mock()
+        app._begin_operation = mock.Mock()
+        app._set_status = mock.Mock()
+        app.services = mock.Mock()
+        app._result_queue = queue.Queue()
+        app._schedule_queue_poll = mock.Mock()
+        profile = mock.Mock(render_date="2026-07-20")
+        worker = mock.Mock()
+
+        with mock.patch.object(
+            services.core, "render_profile_for_options", return_value=profile
+        ) as render_profile:
+            with mock.patch.object(
+                tk_conversion.threading, "Thread", return_value=worker
+            ) as thread:
+                app._on_generate_clicked()
+
+        render_profile.assert_called_once_with(
+            theme="default@1", render_date=None
+        )
+        thread.assert_called_once()
+        call = thread.call_args
+        self.assertIs(call.kwargs["target"], app.services.run_conversion_job)
+        self.assertTrue(call.kwargs["daemon"])
+        result_queue, files, options, cancel_event = call.kwargs["args"]
+        self.assertIs(result_queue, app._result_queue)
+        self.assertEqual(files, [Path("one.md"), Path("two.md")])
+        self.assertIsNot(files, app.files)
+        self.assertEqual(
+            options,
+            {
+                "theme": "default@1",
+                "render_date": "2026-07-20",
+                "output_dir": "exports",
+                "overwrite": True,
+            },
+        )
+        self.assertIs(cancel_event, app._cancel_event)
+        self.assertFalse(cancel_event.is_set())
+        worker.start.assert_called_once_with()
+
+    def test_cancel_requests_stop_once_after_the_active_file(self):
+        app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
+        app.operation = "generate"
+        app._cancel_event = threading.Event()
+        app.cancel_button = mock.Mock()
+        app._set_status = mock.Mock()
+
+        app._cancel_conversion()
+        app._cancel_conversion()
+
+        self.assertTrue(app._cancel_event.is_set())
+        app.cancel_button.config.assert_called_once_with(state="disabled")
+        app._set_status.assert_called_once_with("status_cancelling")
+
+    def test_preview_request_uses_the_first_file_without_reordering_batch(self):
+        app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
+        app.operation = "idle"
+        app._preview_generation = 8
+        app._preview_after = "scheduled"
+        app.files = [Path("first.md"), Path("second.md")]
+        app._render_options = mock.Mock(return_value={"theme": "default@1"})
+        app._refresh_generate_button = mock.Mock()
+        app._set_status = mock.Mock()
+        app._preview_requests = queue.Queue()
+        app._schedule_queue_poll = mock.Mock()
+        profile = mock.Mock(render_date="2026-07-20")
+
+        with mock.patch.object(
+            services.core, "render_profile_for_options", return_value=profile
+        ):
+            app._start_preview(8)
+
+        generation, source, markdown, options = app._preview_requests.get_nowait()
+        self.assertEqual(generation, 8)
+        self.assertEqual(source, Path("first.md"))
+        self.assertIsNone(markdown)
+        self.assertEqual(
+            options,
+            {
+                "theme": "default@1",
+                "render_date": "2026-07-20",
+                "resource_root": Path("first.md").resolve().parent,
+                "dpi": tk_preview.PREVIEW_DPI,
+            },
+        )
+        self.assertEqual(app.files, [Path("first.md"), Path("second.md")])
+
+    def test_zoom_follows_supported_levels_and_stops_at_bounds(self):
+        app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
+        app.zoom_percent = mock.Mock()
+        current = [100]
+        app.zoom_percent.get.side_effect = lambda: current[0]
+        app.zoom_percent.set.side_effect = lambda value: current.__setitem__(0, value)
+        app._redraw_preview = mock.Mock()
+
+        expected = (125, 150, 200, 200, 150, 125, 100, 75, 50, 50)
+        directions = (1, 1, 1, 1, -1, -1, -1, -1, -1, -1)
+        observed = []
+        for direction in directions:
+            app._change_zoom(direction)
+            observed.append(current[0])
+
+        self.assertEqual(tuple(observed), expected)
+        self.assertEqual(app._redraw_preview.call_count, len(directions))
+
+    def test_initial_focus_is_given_to_browse_files(self):
+        root = mock.Mock()
+        services_boundary = mock.Mock()
+        dialogs = mock.Mock()
+        browse_button = mock.Mock()
+
+        def build_ui(instance):
+            instance.browse_button = browse_button
+
+        variable = mock.Mock()
+        variable.trace_add = mock.Mock()
+        with mock.patch.object(tk_app.tk, "IntVar", return_value=variable):
+            with mock.patch.object(tk_app.tk, "BooleanVar", return_value=variable):
+                with mock.patch.object(tk_app.tk, "StringVar", return_value=variable):
+                    with mock.patch.object(
+                        gui.LibreMarkPdfApp, "_build_ui", autospec=True,
+                        side_effect=build_ui,
+                    ):
+                        with mock.patch.object(
+                            gui.LibreMarkPdfApp, "_bind_accessibility"
+                        ):
+                            with mock.patch.object(gui.LibreMarkPdfApp, "_retranslate"):
+                                gui.LibreMarkPdfApp(
+                                    root,
+                                    services=services_boundary,
+                                    dialogs=dialogs,
+                                )
+
+        browse_button.focus_set.assert_called_once_with()
+        root.protocol.assert_called_once_with("WM_DELETE_WINDOW", mock.ANY)
+
     def test_declined_collision_stops_before_render_options_or_worker(self):
         app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
         app.operation = "idle"
@@ -287,10 +503,19 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
                 "input": "bad.md", "output": None, "status": "error",
                 "error": "failed", "error_code": "RENDER_FAILED",
             },
+            {
+                "input": "later.md", "output": None, "status": "cancelled",
+                "error": "cancelled", "error_code": "CANCELLED",
+            },
         ]
         app._handle_generate_done(results)
         app._render_results.assert_called_once_with([results[0]])
-        app.dialogs.show_error.assert_called_once_with("error_title", mock.ANY)
+        app._set_status.assert_called_once_with(
+            "status_done_summary", ok=1, failed=1, cancelled=1
+        )
+        app.dialogs.show_error.assert_called_once_with(
+            "error_title", "bad.md: [RENDER_FAILED] failed"
+        )
 
     def test_close_during_generation_requests_cancel_before_destroy(self):
         app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)

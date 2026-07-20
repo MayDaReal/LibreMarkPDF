@@ -64,6 +64,8 @@ class TestDesktopServiceBoundary(unittest.TestCase):
         conversion = {"input": "one.md", "status": "ok"}
 
         def convert(files, progress_callback, **kwargs):
+            self.assertEqual(files, [Path("one.md")])
+            self.assertIs(kwargs["cancel_event"], cancel_event)
             progress_callback(1, 1, conversion)
             return [conversion]
 
