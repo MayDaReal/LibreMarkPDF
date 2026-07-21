@@ -146,6 +146,14 @@ settings.
 
 Press `F1` to display the available keyboard shortcuts.
 
+The compact version beside the LibreMark PDF name opens **About LibreMark
+PDF**. The same dialog is available from **Help → About LibreMark PDF**. It
+shows the application, render profile, Playwright, Chromium, Python, system,
+and architecture identities. **Copy technical information** copies only these
+values: it does not include selected files, document contents, private paths,
+environment variables, or logs, and it does not send anything over the
+network.
+
 ## Files and safety
 
 - Use UTF-8 Markdown.

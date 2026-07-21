@@ -10,7 +10,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from libremark_pdf import desktop_services, gui
+from libremark_pdf import __version__, core, desktop_services, gui
 from libremark_pdf.desktop import services
 from libremark_pdf.desktop.tk import app as tk_app
 from libremark_pdf.desktop.tk import components as tk_components
@@ -270,6 +270,7 @@ class TestGuiAutomationContract(unittest.TestCase):
             "convert.start", "convert.cancel", "language.en", "language.fr",
             "style.toggle", "destination.toggle", "header_footer.toggle",
             "other.toggle",
+            "about.open",
         }
         self.assertTrue(expected.issubset(tk_layout.AUTOMATION_ACTIONS))
 
@@ -1086,6 +1087,51 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
             "keyboard_shortcuts_body",
         )
 
+    def test_about_information_uses_package_and_pinned_identities_without_paths(self):
+        app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
+        app.lang = "en"
+        with mock.patch.object(tk_app.platform, "system", return_value="Windows"), \
+                mock.patch.object(tk_app.platform, "release", return_value="10"), \
+                mock.patch.object(tk_app.platform, "machine", return_value="AMD64"), \
+                mock.patch.object(
+                    tk_app.platform, "python_version", return_value="3.9.13"
+                ):
+            information = app._technical_information()
+
+        for expected in (
+            "LibreMark PDF: {0}".format(__version__),
+            "Render profile: {0}".format(core.DEFAULT_PROFILE_VERSION),
+            "Playwright: {0}".format(core.PLAYWRIGHT_VERSION),
+            "Chromium: {0}".format(core.CHROMIUM_VERSION),
+            "Chromium revision: {0}".format(core.CHROMIUM_REVISION),
+            "Python: 3.9.13",
+            "System: Windows 10",
+            "Architecture: AMD64",
+        ):
+            self.assertIn(expected, information)
+        for excluded in (str(Path.home()), "PLAYWRIGHT_BROWSERS_PATH", ".md"):
+            self.assertNotIn(excluded, information)
+
+    def test_about_action_passes_localized_copyable_information_to_dialog(self):
+        app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
+        app.root = mock.Mock()
+        app.dialogs = mock.Mock()
+        app.lang = "fr"
+        app._technical_information = mock.Mock(return_value="Système : Windows")
+
+        app._show_about()
+
+        app.dialogs.show_about.assert_called_once_with(
+            app.root,
+            "À propos de LibreMark PDF",
+            "LibreMark PDF {0}".format(__version__),
+            "Informations techniques",
+            "Système : Windows",
+            "Copier les informations techniques",
+            "Informations techniques copiées.",
+            "Fermer",
+        )
+
     def test_preview_error_details_copy_only_the_worker_message(self):
         app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
         app._preview_error = "preview failed"
@@ -1170,6 +1216,7 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
                 tk_styles.PRIMARY_BUTTON_STYLE,
                 tk_styles.ACTIVE_FILE_ROW_STYLE,
                 tk_styles.ICON_BUTTON_STYLE,
+                tk_styles.LINK_BUTTON_STYLE,
                 tk_styles.STATUS_LABEL_STYLE,
                 tk_styles.ERROR_STATUS_LABEL_STYLE,
                 tk_styles.SUCCESS_STATUS_LABEL_STYLE,
@@ -1848,6 +1895,57 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
         with mock.patch.object(tk_dialogs.messagebox, "showinfo") as info:
             dialogs.show_info("Shortcuts", "Ctrl+O")
         info.assert_called_once_with("Shortcuts", "Ctrl+O")
+
+    def test_about_dialog_copies_exact_text_and_supports_keyboard_dismissal(self):
+        dialogs = tk_dialogs.TkDialogs()
+        root = mock.Mock()
+        dialog = mock.Mock()
+        content = mock.Mock()
+        actions = mock.Mock()
+        details = mock.Mock()
+        status = mock.Mock()
+        copy_button = mock.Mock()
+        close_button = mock.Mock()
+        labels = [mock.Mock(), mock.Mock(), status]
+        with mock.patch.object(tk_dialogs.tk, "Toplevel", return_value=dialog), \
+                mock.patch.object(
+                    tk_dialogs.ttk, "Frame", side_effect=[content, actions]
+                ), mock.patch.object(
+                    tk_dialogs.ttk, "Label", side_effect=labels
+                ), mock.patch.object(
+                    tk_dialogs.tk, "Text", return_value=details
+                ), mock.patch.object(
+                    tk_dialogs.ttk,
+                    "Button",
+                    side_effect=[copy_button, close_button],
+                ) as button_type:
+            dialogs.show_about(
+                root,
+                "About",
+                "LibreMark PDF 1.0.0",
+                "Technical information",
+                "LibreMark PDF: 1.0.0\nSystem: Windows 10",
+                "Copy technical information",
+                "Technical information copied.",
+                "Close",
+            )
+
+        copy_command = button_type.call_args_list[0].kwargs["command"]
+        copy_command()
+        root.clipboard_clear.assert_called_once_with()
+        root.clipboard_append.assert_called_once_with(
+            "LibreMark PDF: 1.0.0\nSystem: Windows 10"
+        )
+        status.configure.assert_called_once_with(
+            text="Technical information copied."
+        )
+        copy_button.focus_set.assert_called_once_with()
+        dialog.grab_set.assert_called_once_with()
+        escape = {
+            call.args[0]: call.args[1] for call in dialog.bind.call_args_list
+        }["<Escape>"]
+        self.assertEqual(escape(mock.Mock()), "break")
+        dialog.destroy.assert_called_once_with()
 
     def test_native_dialog_calls_are_confined_to_the_dialog_boundary(self):
         for module in (tk_app, tk_layout, tk_preview):

@@ -69,6 +69,22 @@ class TestTranslations(unittest.TestCase):
                 text = i18n.STRINGS[lang]["tokens_help"]
                 self.assertTrue(all(token in text for token in expected))
 
+    def test_about_copy_matches_the_approved_english_and_french_text(self):
+        expected = {
+            "en": ("v1.2.3", "Copy technical information"),
+            "fr": ("v1.2.3", "Copier les informations techniques"),
+        }
+        for lang, values in expected.items():
+            with self.subTest(lang=lang):
+                self.assertEqual(
+                    i18n.t("app_version_compact", lang, version="1.2.3"),
+                    values[0],
+                )
+                self.assertEqual(
+                    i18n.t("copy_technical_information", lang),
+                    values[1],
+                )
+
 
 if __name__ == "__main__":
     unittest.main()

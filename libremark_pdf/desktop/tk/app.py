@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 import queue
+import platform
+import sys
 import threading
 import tkinter as tk
 from pathlib import Path
 from typing import Optional
 
-from ... import core, i18n
+from ... import __version__, core, i18n
 from ..services import DEFAULT_DESKTOP_SERVICES, DesktopServices
 from .conversion import TkConversionMixin
 from .dialogs import DEFAULT_TK_DIALOGS, TkDialogs
@@ -178,9 +180,48 @@ class LibreMarkPdfApp(
             button.accessible_name = accessible_name
             button.tooltip.text = accessible_name
 
+    def _technical_information(self) -> str:
+        system = " ".join(
+            part for part in (platform.system(), platform.release()) if part
+        )
+        values = (
+            ("technical_app_version", __version__),
+            ("technical_render_profile", core.DEFAULT_PROFILE_VERSION),
+            ("technical_playwright", core.PLAYWRIGHT_VERSION),
+            ("technical_chromium", core.CHROMIUM_VERSION),
+            ("technical_chromium_revision", core.CHROMIUM_REVISION),
+            ("technical_python", platform.python_version()),
+            ("technical_system", system or sys.platform),
+            ("technical_architecture", platform.machine() or "unknown"),
+        )
+        return "\n".join(
+            "{0}: {1}".format(self._t(label_key), value)
+            for label_key, value in values
+        )
+
+    def _show_about(self) -> None:
+        self.dialogs.show_about(
+            self.root,
+            self._t("about_action"),
+            self._t("about_version", version=__version__),
+            self._t("technical_information"),
+            self._technical_information(),
+            self._t("copy_technical_information"),
+            self._t("technical_information_copied"),
+            self._t("close_action"),
+        )
+
     def _retranslate(self) -> None:
         self.root.title(self._t("app_title"))
         self.title_label.config(text=self._t("app_title"))
+        self.version_button.config(
+            text=self._t("app_version_compact", version=__version__)
+        )
+        self.help_button.config(text=self._t("help_menu"))
+        self.help_menu_widget.entryconfigure(
+            0, label=self._t("keyboard_shortcuts_action")
+        )
+        self.help_menu_widget.entryconfigure(2, label=self._t("about_action"))
         self._update_language_accessibility()
         self.source_group.config(text=self._t("files_heading"))
         self._drop_zone_text = self._t(drop_zone_text_key(HAS_DND))

@@ -148,5 +148,70 @@ class TkDialogs:
     def show_info(self, title: str, message: str) -> None:
         messagebox.showinfo(title, message)
 
+    def show_about(
+        self,
+        root: tk.Misc,
+        title: str,
+        version_text: str,
+        technical_heading: str,
+        technical_text: str,
+        copy_label: str,
+        copied_text: str,
+        close_label: str,
+    ) -> None:
+        """Show selectable local identities and an explicit clipboard action."""
+        dialog = tk.Toplevel(root)
+        dialog.title(title)
+        dialog.transient(root)
+        dialog.resizable(True, True)
+
+        content = ttk.Frame(dialog, padding=16)
+        content.pack(fill="both", expand=True)
+        ttk.Label(content, text=version_text).pack(anchor="w")
+        ttk.Label(content, text=technical_heading).pack(
+            anchor="w", pady=(16, 4)
+        )
+        details = tk.Text(
+            content,
+            width=62,
+            height=8,
+            wrap="none",
+            takefocus=True,
+        )
+        details.insert("1.0", technical_text)
+        details.configure(state="disabled")
+        details.pack(fill="both", expand=True)
+        status = ttk.Label(content, takefocus=True)
+        status.pack(fill="x", pady=(4, 0))
+        actions = ttk.Frame(content)
+        actions.pack(fill="x", pady=(12, 0))
+
+        def copy_information() -> None:
+            root.clipboard_clear()
+            root.clipboard_append(technical_text)
+            status.configure(text=copied_text)
+
+        def close(event=None) -> str:
+            dialog.destroy()
+            return "break"
+
+        def select_all(event=None) -> str:
+            details.tag_add("sel", "1.0", "end-1c")
+            return "break"
+
+        copy_button = ttk.Button(
+            actions,
+            text=copy_label,
+            command=copy_information,
+        )
+        copy_button.pack(side="left")
+        ttk.Button(actions, text=close_label, command=close).pack(side="right")
+        details.bind("<Control-a>", select_all)
+        dialog.protocol("WM_DELETE_WINDOW", close)
+        dialog.bind("<Escape>", close)
+        dialog.grab_set()
+        copy_button.focus_set()
+        dialog.wait_window()
+
 
 DEFAULT_TK_DIALOGS = TkDialogs()

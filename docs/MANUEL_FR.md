@@ -153,6 +153,15 @@ fichier d’aperçu actif ni les réglages PDF.
 
 Appuyez sur `F1` pour afficher les raccourcis clavier disponibles.
 
+La version compacte à côté du nom LibreMark PDF ouvre **À propos de LibreMark
+PDF**. Le même dialogue est disponible par **Aide → À propos de LibreMark
+PDF**. Il affiche les identités de l’application, du profil de rendu, de
+Playwright, de Chromium, de Python, du système et de l’architecture. **Copier
+les informations techniques** copie uniquement ces valeurs : ni fichiers
+sélectionnés, ni contenu des documents, ni chemins privés, variables
+d’environnement ou journaux ne sont inclus, et rien n’est envoyé sur le
+réseau.
+
 ## Fichiers et sécurité
 
 - Utilisez des fichiers Markdown encodés en UTF-8.

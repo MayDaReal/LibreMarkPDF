@@ -26,6 +26,7 @@ TITLE_LABEL_STYLE = "App.Title.TLabel"
 PRIMARY_BUTTON_STYLE = "App.Primary.TButton"
 ACTIVE_FILE_ROW_STYLE = "App.ActiveFile.TRadiobutton"
 ICON_BUTTON_STYLE = "App.Icon.TButton"
+LINK_BUTTON_STYLE = "App.Link.TButton"
 STATUS_LABEL_STYLE = "App.Status.TLabel"
 ERROR_STATUS_LABEL_STYLE = "App.Error.Status.TLabel"
 SUCCESS_STATUS_LABEL_STYLE = "App.Success.Status.TLabel"
@@ -87,6 +88,10 @@ def install_ui_styles(root: tk.Misc) -> UiStyleResources:
     style.configure(
         ICON_BUTTON_STYLE,
         padding=(SPACE_SM, SPACE_SM),
+    )
+    style.configure(
+        LINK_BUTTON_STYLE,
+        padding=(SPACE_XS, SPACE_XS),
     )
     style.configure(
         STATUS_LABEL_STYLE,

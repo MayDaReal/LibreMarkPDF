@@ -11,6 +11,7 @@ from .styles import (
     DROP_ZONE_HEIGHT,
     FILE_LIST_HEIGHT,
     ICON_BUTTON_STYLE,
+    LINK_BUTTON_STYLE,
     OUTER_PADDING,
     PREVIEW_HEIGHT,
     PRIMARY_BUTTON_STYLE,
@@ -43,6 +44,7 @@ AUTOMATION_ACTIONS = frozenset((
     "preview.previous_page", "preview.next_page",
     "output.choose", "output.reset",
     "convert.start", "convert.cancel",
+    "about.open",
 ))
 
 INITIAL_WINDOW_WIDTH = 1060
@@ -110,6 +112,14 @@ class TkLayoutMixin:
             pass
         self.title_label = ttk.Label(top, style=TITLE_LABEL_STYLE)
         self.title_label.pack(side="left", padx=SECTION_GAP)
+        self.version_button = ttk.Button(
+            top,
+            command=self._show_about,
+            style=LINK_BUTTON_STYLE,
+            takefocus=True,
+        )
+        self.version_button.pack(side="left")
+        self._register_automation_widget("about.open", self.version_button)
         language = ttk.Frame(top)
         language.pack(side="right")
         self.btn_en = ttk.Button(
@@ -132,6 +142,16 @@ class TkLayoutMixin:
         self.btn_fr.pack(side="left")
         self._register_automation_widget("language.en", self.btn_en)
         self._register_automation_widget("language.fr", self.btn_fr)
+        self.help_menu_widget = tk.Menu(top, tearoff=False)
+        self.help_menu_widget.add_command(command=self._show_keyboard_shortcuts)
+        self.help_menu_widget.add_separator()
+        self.help_menu_widget.add_command(command=self._show_about)
+        self.help_button = ttk.Menubutton(
+            top,
+            menu=self.help_menu_widget,
+            takefocus=True,
+        )
+        self.help_button.pack(side="right", padx=(0, SPACE_SM))
 
         self.action_bar = ttk.Frame(
             self.root,
