@@ -54,7 +54,8 @@ install CPython 3.9 with pyenv first; the Linux bootstrap detects an installed
    **Other advanced options** contains the render date and trusted static HTML.
    Enabling trusted HTML requires confirmation the first time in each
    application session.
-7. Select **⚙ Generate PDF**.
+7. Select **⚙ Generate PDF** for one file, or **⚙ Generate n PDFs** for a
+   batch. The label follows the file count without abbreviated plural forms.
 
 The application presents output collisions and existing PDFs before conversion.
 The choices use explicit labels: a collision can be skipped while independent
@@ -139,7 +140,9 @@ is retained as a legacy alias of `--date`.
 
 Select **EN** or **FR** in the desktop window. The choice is stored locally in
 `~/.libremark-pdf/config.json`. Failure to save this preference does not block
-conversion.
+conversion. Changing language immediately retranslates visible labels and
+accessible names without clearing the selected files, active preview, or PDF
+settings.
 
 Press `F1` to display the available keyboard shortcuts.
 

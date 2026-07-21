@@ -989,7 +989,7 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
         app._refresh_generate_button()
 
         app.generate_button.config.assert_called_once_with(
-            text="generate_button",
+            text="generate_one",
             state="normal",
         )
         app._overwrite_choice = mock.Mock(return_value=None)
@@ -1255,6 +1255,26 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
         self.assertEqual(app.active_file, Path("first.md"))
         app._set_status.assert_called_once_with("files_added_many", count=2)
 
+    def test_mixed_file_feedback_uses_natural_count_forms(self):
+        app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
+        expected = {
+            "en": (
+                "2 files added. 1 item ignored: already in the list "
+                "2 items ignored: only .md and .markdown files are supported"
+            ),
+            "fr": (
+                "2 fichiers ajoutés. 1 élément ignoré : déjà présent dans la liste "
+                "2 éléments ignorés : seuls les fichiers .md et .markdown sont acceptés"
+            ),
+        }
+        for language, message in expected.items():
+            with self.subTest(language=language):
+                app.lang = language
+                self.assertEqual(
+                    app._format_files_add_summary(2, 1, 2),
+                    message,
+                )
+
     def test_selecting_preview_file_does_not_reorder_batch(self):
         app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
         app.operation = "idle"
@@ -1366,9 +1386,60 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
 
     def test_primary_generate_action_keeps_gear_and_text_in_both_languages(self):
         for language, word in (("en", "Generate"), ("fr", "Générer")):
-            text = tk_app.i18n.t("generate_button", language, count=2)
+            text = tk_app.i18n.t("generate_many", language, count=2)
             self.assertTrue(text.startswith("⚙ "))
             self.assertIn(word, text)
+
+    def test_result_summary_uses_natural_singular_and_plural_forms(self):
+        app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
+        expected = {
+            "en": "1 succeeded · 2 failed · 0 cancelled",
+            "fr": "1 réussi · 2 échecs · 0 annulés",
+        }
+        for language, summary in expected.items():
+            with self.subTest(language=language):
+                app.lang = language
+                self.assertEqual(app._format_result_summary(1, 2, 0), summary)
+
+    def test_language_change_preserves_files_and_render_settings(self):
+        app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
+        app.lang = "en"
+        app.files = [Path("one.md"), Path("two.md")]
+        app.active_file = app.files[1]
+        app.css_path = "print.css"
+        app.output_dir = "exports"
+        app._retranslate = mock.Mock()
+        with mock.patch.object(tk_app.i18n, "save_language") as save:
+            app._set_lang("fr")
+        self.assertEqual(app.files, [Path("one.md"), Path("two.md")])
+        self.assertEqual(app.active_file, Path("two.md"))
+        self.assertEqual(app.css_path, "print.css")
+        self.assertEqual(app.output_dir, "exports")
+        save.assert_called_once_with("fr")
+        app._retranslate.assert_called_once_with()
+
+    def test_language_accessible_names_follow_hot_retranslation(self):
+        app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
+        app.btn_en = mock.Mock()
+        app.btn_en.tooltip = mock.Mock()
+        app.btn_fr = mock.Mock()
+        app.btn_fr.tooltip = mock.Mock()
+        app.lang = "fr"
+
+        app._update_language_accessibility()
+
+        self.assertEqual(
+            app.btn_en.accessible_name,
+            "Passer l’interface en anglais",
+        )
+        self.assertEqual(
+            app.btn_fr.accessible_name,
+            "Passer l’interface en français",
+        )
+        self.assertEqual(
+            app.btn_en.tooltip.text,
+            app.btn_en.accessible_name,
+        )
 
     def test_status_styles_preserve_semantics_across_retranslation(self):
         self.assertEqual(

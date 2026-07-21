@@ -126,6 +126,27 @@ class TkInputMixin:
         elif added:
             self._set_status("files_added_many", count=len(added))
 
+    def _format_files_add_summary(
+        self, added: int, duplicates: int, unsupported: int
+    ) -> str:
+        messages = []
+        if added:
+            messages.append(
+                self._tp("files_added_one", "files_added_many", added)
+            )
+        for count, reason_key in (
+            (duplicates, "duplicate_reason"),
+            (unsupported, "unsupported_reason"),
+        ):
+            if count:
+                messages.append(self._tp(
+                    "files_ignored_one",
+                    "files_ignored_many",
+                    count,
+                    reason=self._t(reason_key),
+                ))
+        return " ".join(messages)
+
     def _select_file(self, path: Path) -> None:
         if self.operation != "idle" or path not in self.files:
             return
@@ -171,10 +192,7 @@ class TkInputMixin:
             child.destroy()
         count = len(self.files)
         self.file_count_label.config(
-            text=self._t(
-                "file_count_one" if count == 1 else "file_count_many",
-                count=count,
-            )
+            text=self._tp("file_count_one", "file_count_many", count)
         )
         if count:
             self.drop_canvas.pack_forget()

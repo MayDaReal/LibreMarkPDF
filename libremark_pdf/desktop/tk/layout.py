@@ -118,6 +118,16 @@ class TkLayoutMixin:
         self.btn_fr = ttk.Button(
             language, text="FR", width=4, command=lambda: self._set_lang("fr")
         )
+        configure_symbol_button(
+            self.btn_en,
+            "EN",
+            self._t("language_english_a11y"),
+        )
+        configure_symbol_button(
+            self.btn_fr,
+            "FR",
+            self._t("language_french_a11y"),
+        )
         self.btn_en.pack(side="left")
         self.btn_fr.pack(side="left")
         self._register_automation_widget("language.en", self.btn_en)

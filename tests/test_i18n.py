@@ -18,9 +18,31 @@ class TestTranslations(unittest.TestCase):
 
     def test_format_arguments_are_applied(self):
         self.assertEqual(
-            i18n.t("status_done", "en", count=2),
-            "Done: 2 PDF(s) created.",
+            i18n.t("generate_many", "en", count=2),
+            "⚙ Generate 2 PDFs",
         )
+
+    def test_count_forms_use_singular_only_for_one(self):
+        self.assertEqual(i18n.plural_key("one", "many", 0), "many")
+        self.assertEqual(i18n.plural_key("one", "many", 1), "one")
+        self.assertEqual(i18n.plural_key("one", "many", 2), "many")
+
+    def test_target_count_copy_is_natural_in_english_and_french(self):
+        expected = {
+            ("en", 1): "⚙ Generate PDF",
+            ("en", 3): "⚙ Generate 3 PDFs",
+            ("fr", 1): "⚙ Générer le PDF",
+            ("fr", 3): "⚙ Générer 3 PDF",
+        }
+        for (lang, count), text in expected.items():
+            with self.subTest(lang=lang, count=count):
+                key = i18n.plural_key("generate_one", "generate_many", count)
+                self.assertEqual(i18n.t(key, lang, count=count), text)
+
+    def test_translation_tables_contain_no_pseudo_plurals(self):
+        for lang, table in i18n.STRINGS.items():
+            with self.subTest(lang=lang):
+                self.assertNotIn("(s)", "\n".join(table.values()))
 
     def test_unknown_key_falls_back_to_key_name(self):
         self.assertEqual(i18n.t("missing_key", "fr"), "missing_key")

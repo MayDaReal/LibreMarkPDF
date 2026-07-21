@@ -15,8 +15,9 @@ class TkConversionMixin:
     """Manage conversion preflight, progress, cancellation, and results."""
 
     def _refresh_generate_button(self) -> None:
+        count = len(self.files)
         self.generate_button.config(
-            text=self._t("generate_button", count=len(self.files)),
+            text=self._tp("generate_one", "generate_many", count),
             state=(
                 "normal"
                 if self.files
@@ -50,7 +51,11 @@ class TkConversionMixin:
         return self.dialogs.ask_overwrite(
             self.root,
             self._t("overwrite_title"),
-            self._t("overwrite_question", count=len(existing)),
+            self._tp(
+                "overwrite_question_one",
+                "overwrite_question_many",
+                len(existing),
+            ),
             self._t("replace_after_success"),
             self._t("keep_and_report"),
             self._t("cancel_button_short"),
@@ -190,12 +195,9 @@ class TkConversionMixin:
         failed = sum(item["status"] == "error" for item in results)
         cancelled = sum(item["status"] == "cancelled" for item in results)
         if results:
-            self.results_summary_label.config(text=self._t(
-                "results_count_summary",
-                ok=ok,
-                failed=failed,
-                cancelled=cancelled,
-            ))
+            self.results_summary_label.config(
+                text=self._format_result_summary(ok, failed, cancelled)
+            )
         else:
             self.results_summary_label.config(text="")
         if global_error:
@@ -207,6 +209,19 @@ class TkConversionMixin:
             self.results_error_label.pack_forget()
         for result in results:
             self._render_result_row(result)
+
+    def _format_result_summary(
+        self, ok: int, failed: int, cancelled: int
+    ) -> str:
+        return " · ".join((
+            self._tp(
+                "summary_succeeded_one", "summary_succeeded_many", ok
+            ),
+            self._tp("summary_failed_one", "summary_failed_many", failed),
+            self._tp(
+                "summary_cancelled_one", "summary_cancelled_many", cancelled
+            ),
+        ))
 
     def _render_result_row(self, result: dict) -> None:
         source = Path(result["input"])

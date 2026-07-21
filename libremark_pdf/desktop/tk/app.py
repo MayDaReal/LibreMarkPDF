@@ -121,6 +121,20 @@ class LibreMarkPdfApp(
     def _t(self, key: str, **kwargs) -> str:
         return i18n.t(key, self.lang, **kwargs)
 
+    def _tp(
+        self,
+        one_key: str,
+        many_key: str,
+        count: int,
+        **kwargs
+    ) -> str:
+        values = dict(kwargs)
+        values["count"] = count
+        return self._t(
+            i18n.plural_key(one_key, many_key, count),
+            **values
+        )
+
     def automation_widget(self, action: str) -> tk.Misc:
         """Return the semantic control used by stable UI automation."""
         try:
@@ -132,13 +146,42 @@ class LibreMarkPdfApp(
         self._status_key = key
         self._status_kwargs = kwargs
         self.status_label.config(
-            text=self._t(key, **kwargs),
+            text=self._translated_status(key, kwargs),
             style=status_label_style(key),
         )
+
+    def _translated_status(self, key: str, kwargs: dict) -> str:
+        if key == "status_done_summary":
+            return self._t(
+                key,
+                summary=self._format_result_summary(
+                    kwargs["ok"], kwargs["failed"], kwargs["cancelled"]
+                ),
+            )
+        if key == "files_add_summary":
+            return self._t(
+                key,
+                summary=self._format_files_add_summary(
+                    kwargs["added"],
+                    kwargs["duplicates"],
+                    kwargs["unsupported"],
+                ),
+            )
+        return self._t(key, **kwargs)
+
+    def _update_language_accessibility(self) -> None:
+        for button, key in (
+            (self.btn_en, "language_english_a11y"),
+            (self.btn_fr, "language_french_a11y"),
+        ):
+            accessible_name = self._t(key)
+            button.accessible_name = accessible_name
+            button.tooltip.text = accessible_name
 
     def _retranslate(self) -> None:
         self.root.title(self._t("app_title"))
         self.title_label.config(text=self._t("app_title"))
+        self._update_language_accessibility()
         self.source_group.config(text=self._t("files_heading"))
         self._drop_zone_text = self._t(drop_zone_text_key(HAS_DND))
         self._redraw_drop_zone()
@@ -175,7 +218,7 @@ class LibreMarkPdfApp(
         self._refresh_accordion_headers()
         self._refresh_preview_ui()
         self.status_label.config(
-            text=self._t(self._status_key, **self._status_kwargs),
+            text=self._translated_status(self._status_key, self._status_kwargs),
             style=status_label_style(self._status_key),
         )
         if self._conversion_results or self._global_conversion_error:

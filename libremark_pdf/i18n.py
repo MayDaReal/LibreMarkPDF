@@ -29,10 +29,11 @@ STRINGS = {
         "unsupported_drop": "Unsupported file type",
         "files_added_one": "1 file added.",
         "files_added_many": "{count} files added.",
-        "files_add_summary": (
-            "Added: {added}. Duplicates: {duplicates}. "
-            "Unsupported: {unsupported}."
-        ),
+        "files_add_summary": "{summary}",
+        "files_ignored_one": "1 item ignored: {reason}",
+        "files_ignored_many": "{count} items ignored: {reason}",
+        "duplicate_reason": "already in the list",
+        "unsupported_reason": "only .md and .markdown files are supported",
         "remove_file_a11y": "Remove {name}",
         "clear_files": "Clear list",
         "remove_file": "Remove",
@@ -98,6 +99,8 @@ STRINGS = {
         "zoom_in_a11y": "Zoom in",
         "zoom_value": "{percent}%",
         "keyboard_shortcuts_action": "Keyboard shortcuts",
+        "language_english_a11y": "Change language to English",
+        "language_french_a11y": "Change language to French",
         "keyboard_shortcuts_body": (
             "Add files: Ctrl+O\nRefresh preview: Ctrl+R\n"
             "Generate: Ctrl+G\nZoom in/out: Ctrl++ / Ctrl+-\n"
@@ -111,24 +114,24 @@ STRINGS = {
         "source_destination_many": "Next to each source file",
         "change_destination": "Change",
         "reset_destination": "Use source folders",
-        "generate_button": "⚙ Generate PDF ({count} file(s))",
+        "generate_one": "⚙ Generate PDF",
+        "generate_many": "⚙ Generate {count} PDFs",
         "cancel_button": "Cancel after this file",
         "cancel_button_short": "Cancel",
         "status_ready": "Ready.",
         "status_generating": "Generating…",
-        "status_generating_progress": "Generating… {current} / {total}",
-        "status_generating_file": "Generating… {current} / {total} · {name}",
+        "status_generating_progress": "{current} of {total}",
+        "status_generating_file": "{current} of {total} · {name}",
         "status_cancelling": "Cancelling after the current file…",
         "status_cancelled": "Conversion cancelled before it started.",
         "status_closing": "Finishing the active operation before closing…",
-        "status_done": "Done: {count} PDF(s) created.",
-        "status_done_summary": (
-            "Done: {ok} succeeded, {failed} failed, {cancelled} cancelled."
-        ),
-        "results_count_summary": (
-            "{ok} succeeded · {failed} failed · {cancelled} cancelled"
-        ),
-        "status_done_with_errors": "{ok} succeeded, {failed} failed. See details below.",
+        "status_done_summary": "{summary}",
+        "summary_succeeded_one": "{count} succeeded",
+        "summary_succeeded_many": "{count} succeeded",
+        "summary_failed_one": "{count} failed",
+        "summary_failed_many": "{count} failed",
+        "summary_cancelled_one": "{count} cancelled",
+        "summary_cancelled_many": "{count} cancelled",
         "status_rendering_preview": "Rendering preview…",
         "status_preview_error": "Could not render preview: {error}",
         "status_generation_error": "Could not complete conversion: {error}",
@@ -142,20 +145,23 @@ STRINGS = {
         "choose_output_folder_title": "Choose an output folder",
         "choose_css_title": "Choose a CSS file",
         "choose_markdown_title": "Choose one or more Markdown files",
-        "collision_title": "Output collision",
+        "collision_title": "Output conflicts",
         "collision_continue": (
             "These inputs cannot be written to their planned outputs and will "
             "be reported as failures:\n\n{details}\n\nContinue with independent files?"
         ),
-        "continue_with_others": "Continue with the others",
-        "overwrite_title": "Existing output files",
-        "overwrite_question": (
-            "{count} output file(s) already exist. Choose whether to replace "
-            "each one only after its new PDF renders successfully, or keep it "
-            "and report that item as a failure."
+        "continue_with_others": "Continue with other files",
+        "overwrite_title": "Existing PDFs",
+        "overwrite_question_one": (
+            "1 output PDF already exists. Choose whether to replace it only "
+            "after successful rendering, or keep it and report a failure."
         ),
-        "replace_after_success": "Replace after successful render",
-        "keep_and_report": "Keep and report failures",
+        "overwrite_question_many": (
+            "{count} output PDFs already exist. Choose whether to replace each "
+            "one only after successful rendering, or keep them and report failures."
+        ),
+        "replace_after_success": "Replace after successful rendering",
+        "keep_and_report": "Keep existing PDFs and report failures",
         "close_conversion_title": "Conversion in progress",
         "close_conversion_question": (
             "A conversion is still running. Continuing is the safe choice. "
@@ -193,10 +199,11 @@ STRINGS = {
         "unsupported_drop": "Type de fichier non pris en charge",
         "files_added_one": "1 fichier ajouté.",
         "files_added_many": "{count} fichiers ajoutés.",
-        "files_add_summary": (
-            "Ajoutés : {added}. Doublons : {duplicates}. "
-            "Non pris en charge : {unsupported}."
-        ),
+        "files_add_summary": "{summary}",
+        "files_ignored_one": "1 élément ignoré : {reason}",
+        "files_ignored_many": "{count} éléments ignorés : {reason}",
+        "duplicate_reason": "déjà présent dans la liste",
+        "unsupported_reason": "seuls les fichiers .md et .markdown sont acceptés",
         "remove_file_a11y": "Retirer {name}",
         "clear_files": "Vider la liste",
         "remove_file": "Retirer",
@@ -264,6 +271,8 @@ STRINGS = {
         "zoom_in_a11y": "Augmenter le zoom",
         "zoom_value": "{percent} %",
         "keyboard_shortcuts_action": "Raccourcis clavier",
+        "language_english_a11y": "Passer l’interface en anglais",
+        "language_french_a11y": "Passer l’interface en français",
         "keyboard_shortcuts_body": (
             "Ajouter des fichiers : Ctrl+O\nActualiser l’aperçu : Ctrl+R\n"
             "Générer : Ctrl+G\nZoom avant/arrière : Ctrl++ / Ctrl+-\n"
@@ -278,29 +287,24 @@ STRINGS = {
         "source_destination_many": "À côté de chaque fichier source",
         "change_destination": "Changer",
         "reset_destination": "Utiliser les dossiers sources",
-        "generate_button": "⚙ Générer le PDF ({count} fichier(s))",
+        "generate_one": "⚙ Générer le PDF",
+        "generate_many": "⚙ Générer {count} PDF",
         "cancel_button": "Annuler après ce fichier",
         "cancel_button_short": "Annuler",
         "status_ready": "Prêt.",
         "status_generating": "Génération en cours…",
-        "status_generating_progress": "Génération en cours… {current} / {total}",
-        "status_generating_file": (
-            "Génération en cours… {current} / {total} · {name}"
-        ),
+        "status_generating_progress": "{current} sur {total}",
+        "status_generating_file": "{current} sur {total} · {name}",
         "status_cancelling": "Annulation après le fichier en cours…",
         "status_cancelled": "Conversion annulée avant son démarrage.",
         "status_closing": "Fin de l’opération en cours avant la fermeture…",
-        "status_done": "Terminé : {count} PDF généré(s).",
-        "status_done_summary": (
-            "Terminé : {ok} réussi(s), {failed} échoué(s), "
-            "{cancelled} annulé(s)."
-        ),
-        "results_count_summary": (
-            "{ok} réussi(s) · {failed} échoué(s) · {cancelled} annulé(s)"
-        ),
-        "status_done_with_errors": (
-            "{ok} réussi(s), {failed} échoué(s). Voir le détail ci-dessous."
-        ),
+        "status_done_summary": "{summary}",
+        "summary_succeeded_one": "{count} réussi",
+        "summary_succeeded_many": "{count} réussis",
+        "summary_failed_one": "{count} échec",
+        "summary_failed_many": "{count} échecs",
+        "summary_cancelled_one": "{count} annulé",
+        "summary_cancelled_many": "{count} annulés",
         "status_rendering_preview": "Génération de l'aperçu…",
         "status_preview_error": "Impossible de générer l'aperçu : {error}",
         "status_generation_error": "Impossible de terminer la conversion : {error}",
@@ -314,21 +318,25 @@ STRINGS = {
         "choose_output_folder_title": "Choisir un dossier de sortie",
         "choose_css_title": "Choisir un fichier CSS",
         "choose_markdown_title": "Choisir un ou plusieurs fichiers Markdown",
-        "collision_title": "Collision de sortie",
+        "collision_title": "Conflits de sortie",
         "collision_continue": (
             "Ces entrées ne peuvent pas être écrites vers les sorties prévues "
             "et seront signalées comme des échecs :\n\n{details}\n\nPoursuivre "
             "avec les fichiers indépendants ?"
         ),
-        "continue_with_others": "Continuer avec les autres",
-        "overwrite_title": "Fichiers de sortie existants",
-        "overwrite_question": (
-            "{count} fichier(s) de sortie existent déjà. Choisissez de remplacer "
-            "chacun uniquement après le rendu réussi du nouveau PDF, ou de le "
-            "conserver et de signaler cet élément comme un échec."
+        "continue_with_others": "Continuer avec les autres fichiers",
+        "overwrite_title": "PDF existants",
+        "overwrite_question_one": (
+            "1 PDF de sortie existe déjà. Choisissez de le remplacer uniquement "
+            "après un rendu réussi, ou de le conserver et de signaler un échec."
+        ),
+        "overwrite_question_many": (
+            "{count} PDF de sortie existent déjà. Choisissez de les remplacer "
+            "uniquement après un rendu réussi, ou de les conserver et de "
+            "signaler des échecs."
         ),
         "replace_after_success": "Remplacer après un rendu réussi",
-        "keep_and_report": "Conserver et signaler les échecs",
+        "keep_and_report": "Conserver les PDF et signaler les échecs",
         "close_conversion_title": "Conversion en cours",
         "close_conversion_question": (
             "Une conversion est toujours en cours. La poursuivre est le choix "
@@ -403,3 +411,8 @@ def t(key: str, lang: str, **kwargs) -> str:
         except (KeyError, IndexError):
             return text
     return text
+
+
+def plural_key(one_key: str, many_key: str, count: int) -> str:
+    """Return the one or many key for the supported two-form rule."""
+    return one_key if count == 1 else many_key

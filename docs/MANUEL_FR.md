@@ -58,7 +58,9 @@ automatiquement une version pyenv `3.9.x` déjà installée.
    **Autres options avancées** contient la date de rendu et le HTML statique de
    confiance. Son activation demande une confirmation lors de sa première
    utilisation dans chaque session de l’application.
-7. Sélectionnez **⚙ Générer le PDF**.
+7. Sélectionnez **⚙ Générer le PDF** pour un fichier, ou **⚙ Générer n PDF**
+   pour un lot. Le libellé suit le nombre de fichiers sans abréviation de
+   pluriel.
 
 L’application présente les collisions de sortie et les PDF existants avant la
 conversion. Les choix sont explicites : une collision peut être ignorée pendant
@@ -145,7 +147,9 @@ Gérez les thèmes locaux avec `theme list`, `theme show`, `theme install` et
 
 Sélectionnez **EN** ou **FR** dans la fenêtre. Le choix est enregistré localement
 dans `~/.libremark-pdf/config.json`. Un échec d’enregistrement n’empêche pas la
-conversion.
+conversion. Le changement de langue retraduit immédiatement les libellés
+visibles et leurs noms accessibles sans vider les fichiers sélectionnés, le
+fichier d’aperçu actif ni les réglages PDF.
 
 Appuyez sur `F1` pour afficher les raccourcis clavier disponibles.
 
