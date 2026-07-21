@@ -91,6 +91,9 @@ STRINGS = {
         "preview_retry": "Try again",
         "preview_conversion_possible": "You can still try to generate the PDF.",
         "copy_details": "Copy details",
+        "preview_page": "Page {current} of {total}",
+        "previous_page_a11y": "Previous page",
+        "next_page_a11y": "Next page",
         "zoom_out_a11y": "Zoom out",
         "zoom_in_a11y": "Zoom in",
         "zoom_value": "{percent}%",
@@ -98,7 +101,8 @@ STRINGS = {
         "keyboard_shortcuts_body": (
             "Add files: Ctrl+O\nRefresh preview: Ctrl+R\n"
             "Generate: Ctrl+G\nZoom in/out: Ctrl++ / Ctrl+-\n"
-            "Reset zoom: Ctrl+0\nCancel active batch: Esc"
+            "Reset zoom: Ctrl+0\nPreview page (focused): Left / Right\n"
+            "Cancel active batch: Esc"
         ),
         "output_label": "Output",
         "destination_heading": "Destination",
@@ -228,6 +232,9 @@ STRINGS = {
             "Vous pouvez tout de même essayer de générer le PDF."
         ),
         "copy_details": "Copier les détails",
+        "preview_page": "Page {current} sur {total}",
+        "previous_page_a11y": "Page précédente",
+        "next_page_a11y": "Page suivante",
         "zoom_out_a11y": "Réduire le zoom",
         "zoom_in_a11y": "Augmenter le zoom",
         "zoom_value": "{percent} %",
@@ -235,7 +242,9 @@ STRINGS = {
         "keyboard_shortcuts_body": (
             "Ajouter des fichiers : Ctrl+O\nActualiser l’aperçu : Ctrl+R\n"
             "Générer : Ctrl+G\nZoom avant/arrière : Ctrl++ / Ctrl+-\n"
-            "Réinitialiser le zoom : Ctrl+0\nAnnuler le lot actif : Échap"
+            "Réinitialiser le zoom : Ctrl+0\n"
+            "Page d’aperçu (avec focus) : Gauche / Droite\n"
+            "Annuler le lot actif : Échap"
         ),
         "output_label": "Sortie",
         "destination_heading": "Destination",

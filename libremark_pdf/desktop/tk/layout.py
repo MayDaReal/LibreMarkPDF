@@ -40,6 +40,7 @@ AUTOMATION_ACTIONS = frozenset((
     "other.toggle", "advanced.toggle", "preview.refresh",
     "preview.zoom_out", "preview.zoom_in", "preview.retry",
     "preview.copy_details",
+    "preview.previous_page", "preview.next_page",
     "output.choose", "output.reset",
     "convert.start", "convert.cancel",
 ))
@@ -419,6 +420,28 @@ class TkLayoutMixin:
         )
         self.refresh_preview_button.pack(side="left")
         self._register_automation_widget("preview.refresh", self.refresh_preview_button)
+        self.previous_page_button = ttk.Button(
+            preview_controls,
+            command=lambda: self._change_preview_page(-1),
+            style=ICON_BUTTON_STYLE,
+        )
+        self.previous_page_button.pack(side="left", padx=(SPACE_SM, 0))
+        self._register_automation_widget(
+            "preview.previous_page", self.previous_page_button
+        )
+        self.preview_page_label = ttk.Label(
+            preview_controls, anchor="center", width=16
+        )
+        self.preview_page_label.pack(side="left", padx=SPACE_XS)
+        self.next_page_button = ttk.Button(
+            preview_controls,
+            command=lambda: self._change_preview_page(1),
+            style=ICON_BUTTON_STYLE,
+        )
+        self.next_page_button.pack(side="left")
+        self._register_automation_widget(
+            "preview.next_page", self.next_page_button
+        )
         self.zoom_out_button = ttk.Button(
             preview_controls,
             command=lambda: self._change_zoom(-1),
@@ -441,6 +464,16 @@ class TkLayoutMixin:
             self._t("refresh_preview_a11y"),
         )
         configure_symbol_button(
+            self.previous_page_button,
+            "‹",
+            self._t("previous_page_a11y"),
+        )
+        configure_symbol_button(
+            self.next_page_button,
+            "›",
+            self._t("next_page_a11y"),
+        )
+        configure_symbol_button(
             self.zoom_out_button,
             "−",
             self._t("zoom_out_a11y"),
@@ -460,7 +493,7 @@ class TkLayoutMixin:
         self.preview_message_label.pack(side="left", fill="x", expand=True)
         self.preview_retry_button = ttk.Button(
             self.preview_message_frame,
-            command=self._refresh_preview,
+            command=self._retry_preview,
         )
         self.preview_retry_button.pack(side="right", padx=(SPACE_SM, 0))
         self._register_automation_widget("preview.retry", self.preview_retry_button)
@@ -504,6 +537,12 @@ class TkLayoutMixin:
         self.preview_canvas.bind("<Button-5>", self._on_preview_mousewheel)
         self.preview_canvas.bind("<Button-2>", self._start_preview_pan)
         self.preview_canvas.bind("<B2-Motion>", self._drag_preview_pan)
+        self.preview_canvas.bind(
+            "<Left>", lambda event: self._change_preview_page(-1)
+        )
+        self.preview_canvas.bind(
+            "<Right>", lambda event: self._change_preview_page(1)
+        )
 
         self.results_frame = ttk.Frame(self.workspace)
 
@@ -516,6 +555,7 @@ class TkLayoutMixin:
             self.refresh_preview_button, self.zoom_out_button,
             self.zoom_in_button, self.preview_retry_button,
             self.preview_copy_button,
+            self.previous_page_button, self.next_page_button,
             self.output_button, self.output_reset_button,
         ])
         self.root.bind("<Configure>", self._on_root_configure, add="+")

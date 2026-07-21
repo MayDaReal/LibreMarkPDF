@@ -13,8 +13,8 @@ agent contract in [`SKILL.md`](SKILL.md).
 - batch conversion from `.md` and `.markdown` files;
 - adaptive file selection with optional drag-and-drop, explicit ignored-item
   feedback, and an independently selectable preview file;
-- responsive first-page preview with explicit empty, updating, ready, and
-  error states, an active-file label, 50–200% zoom, scrolling, and panning;
+- responsive multipage preview with explicit empty, updating, ready, and error
+  states, an active-file label, 50–200% zoom, scrolling, and panning;
 - versioned local themes, the compatible `default@1` style, or a user-supplied
   CSS file;
 - four summarized desktop setting sections for style, destination, six

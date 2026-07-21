@@ -231,6 +231,28 @@ class TestGuiWorkerBoundaries(unittest.TestCase):
         app._set_preview_error.assert_not_called()
         app._refresh_generate_button.assert_called_once_with()
 
+    def test_stale_page_response_does_not_replace_current_document(self):
+        app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
+        app._poll_after = None
+        app._result_queue = queue.Queue()
+        app._result_queue.put(("preview_page_ok", 2, 2, 4, b"stale-page"))
+        app._preview_generation = 3
+        app._preview_active_request = ("page", 3, 2)
+        app._preview_page_pending = 2
+        app._preview_running = True
+        app.operation = "idle"
+        app._apply_preview_page = mock.Mock()
+        app._set_preview_page_error = mock.Mock()
+        app._refresh_generate_button = mock.Mock()
+        app._schedule_queue_poll = mock.Mock()
+
+        app._poll_queue()
+
+        self.assertTrue(app._preview_running)
+        app._apply_preview_page.assert_not_called()
+        app._set_preview_page_error.assert_not_called()
+        app._schedule_queue_poll.assert_called_once_with()
+
     def test_queue_completion_suppresses_dialogs_after_close_request(self):
         source = inspect.getsource(gui.LibreMarkPdfApp._poll_queue)
         self.assertGreaterEqual(source.count("if not self._close_requested"), 2)
@@ -748,6 +770,135 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
 
         self.assertEqual(tuple(observed), expected)
         self.assertEqual(app._redraw_preview.call_count, len(directions))
+
+    def test_new_preview_document_resets_page_and_cache_to_first_page(self):
+        app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
+        app._preview_page = 3
+        app._preview_total_pages = 5
+        app._preview_pages = {3: b"old"}
+        app._preview_page_pending = 4
+        app._preview_failed_page = 4
+        app._apply_preview_image = mock.Mock()
+
+        app._apply_preview_document(1, 4, b"new-first")
+
+        self.assertEqual(app._preview_page, 1)
+        self.assertEqual(app._preview_total_pages, 4)
+        self.assertEqual(app._preview_pages, {1: b"new-first"})
+        self.assertIsNone(app._preview_page_pending)
+        self.assertIsNone(app._preview_failed_page)
+        app._apply_preview_image.assert_called_once_with(b"new-first")
+
+    def test_cached_page_navigation_does_not_enqueue_worker_request(self):
+        app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
+        app.operation = "idle"
+        app._preview_page = 1
+        app._preview_total_pages = 3
+        app._preview_pages = {1: b"one", 2: b"two"}
+        app._preview_page_pending = None
+        app._preview_failed_page = None
+        app._preview_requests = queue.Queue()
+        app._apply_preview_image = mock.Mock()
+
+        self.assertEqual(app._change_preview_page(1), "break")
+
+        self.assertEqual(app._preview_page, 2)
+        self.assertTrue(app._preview_requests.empty())
+        app._apply_preview_image.assert_called_once_with(b"two")
+
+    def test_uncached_page_navigation_uses_active_document_generation(self):
+        app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
+        app.operation = "idle"
+        app._preview_page = 1
+        app._preview_total_pages = 3
+        app._preview_pages = {1: b"one"}
+        app._preview_generation = 9
+        app._preview_requests = queue.Queue()
+        app._set_preview_state = mock.Mock()
+        app._set_status = mock.Mock()
+        app._schedule_queue_poll = mock.Mock()
+
+        app._change_preview_page(1)
+
+        request = app._preview_requests.get_nowait()
+        self.assertIsInstance(request, tk_preview.PreviewPageRequest)
+        self.assertEqual(request, (9, 2, tk_preview.PREVIEW_DPI))
+        self.assertEqual(app._preview_page_pending, 2)
+        self.assertEqual(app._preview_active_request, ("page", 9, 2))
+        app._set_preview_state.assert_called_once_with("loading")
+        app._schedule_queue_poll.assert_called_once_with()
+
+    def test_page_controls_follow_bounds_and_loading_state(self):
+        app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
+        app.operation = "idle"
+        app._preview_state = "ready"
+        app._preview_page_pending = None
+        app._preview_page = 1
+        app._preview_total_pages = 3
+        app.preview_page_label = mock.Mock()
+        app.previous_page_button = mock.Mock()
+        app.next_page_button = mock.Mock()
+        app._t = lambda key, **kwargs: "{0}/{1}".format(
+            kwargs["current"], kwargs["total"]
+        )
+
+        app._update_page_controls()
+        app.preview_page_label.config.assert_called_with(text="1/3")
+        app.previous_page_button.config.assert_called_with(state="disabled")
+        app.next_page_button.config.assert_called_with(state="normal")
+
+        app._preview_page = 3
+        app._update_page_controls()
+        app.previous_page_button.config.assert_called_with(state="normal")
+        app.next_page_button.config.assert_called_with(state="disabled")
+
+        app._preview_state = "loading"
+        app._update_page_controls()
+        app.previous_page_button.config.assert_called_with(state="disabled")
+        app.next_page_button.config.assert_called_with(state="disabled")
+
+    def test_page_error_preserves_cache_and_retries_only_failed_page(self):
+        app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
+        app._preview_page = 2
+        app._preview_total_pages = 4
+        app._preview_pages = {1: b"one", 2: b"two"}
+        app._set_preview_state = mock.Mock()
+
+        app._set_preview_page_error(3, "raster failed")
+
+        self.assertEqual(app._preview_page, 2)
+        self.assertEqual(app._preview_pages, {1: b"one", 2: b"two"})
+        self.assertEqual(app._preview_failed_page, 3)
+        app._set_preview_state.assert_called_once_with(
+            "page_error", "raster failed"
+        )
+
+        app._request_preview_page = mock.Mock()
+        app._retry_preview()
+        app._request_preview_page.assert_called_once_with(3)
+
+    def test_zoom_keeps_current_preview_page(self):
+        app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
+        app._preview_page = 3
+        app._preview_png = None
+        app.zoom_percent = mock.Mock()
+        app.zoom_percent.get.return_value = 100
+        app._redraw_preview = mock.Mock()
+        app._update_zoom_controls = mock.Mock()
+
+        app._set_zoom(125)
+
+        self.assertEqual(app._preview_page, 3)
+
+    def test_page_arrow_bindings_are_scoped_to_preview_canvas(self):
+        source = inspect.getsource(tk_layout.TkLayoutMixin._build_ui)
+        self.assertIn('self.preview_canvas.bind(\n            "<Left>"', source)
+        self.assertIn('self.preview_canvas.bind(\n            "<Right>"', source)
+        accessibility = inspect.getsource(
+            tk_layout.TkLayoutMixin._bind_accessibility
+        )
+        self.assertNotIn("<Left>", accessibility)
+        self.assertNotIn("<Right>", accessibility)
 
     def test_preview_schedule_uses_450_ms_and_replaces_pending_request(self):
         app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)

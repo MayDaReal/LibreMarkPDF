@@ -32,7 +32,7 @@ class TestCoreFacadeCharacterization(unittest.TestCase):
         "build_footer_template", "build_full_html", "resolve_render_date",
         "prepare_render_document", "render_profile_for_options",
         "convert_markdown_text_to_pdf", "convert_markdown_to_pdf",
-        "plan_batch_outputs", "convert_batch", "PreviewSession",
+        "plan_batch_outputs", "convert_batch", "PreviewSession", "PreviewPage",
         "render_preview_png", "ThemeInfo", "validate_theme_package",
         "list_themes", "show_theme", "install_theme", "remove_theme",
         "resolve_theme_css",
@@ -773,7 +773,8 @@ class TestEndToEndConversion(unittest.TestCase):
                 preview.document, "prepare_render_document", return_value=document
             ) as prepare:
                 with mock.patch.object(
-                    preview, "first_page_png", return_value=b"png"
+                    preview, "rasterize_pdf_page",
+                    return_value=preview.PreviewPage(1, 1, b"png"),
                 ):
                     with core.PreviewSession() as session:
                         session.render_png("# Same", header_footer=first)
@@ -805,7 +806,8 @@ class TestEndToEndConversion(unittest.TestCase):
                 preview.document, "prepare_render_document", side_effect=documents
             ):
                 with mock.patch.object(
-                    preview, "first_page_png", return_value=b"png"
+                    preview, "rasterize_pdf_page",
+                    return_value=preview.PreviewPage(1, 1, b"png"),
                 ):
                     with core.PreviewSession() as session:
                         session.render_png("# One")
@@ -817,6 +819,32 @@ class TestEndToEndConversion(unittest.TestCase):
         self.assertIsInstance(png_bytes, bytes)
         self.assertTrue(png_bytes.startswith(b"\x89PNG\r\n\x1a\n"))
         self.assertGreater(len(png_bytes), 100)
+
+    def test_preview_session_rasterizes_first_middle_and_last_from_one_pdf(self):
+        markdown = "# Multipage\n\n" + "\n\n".join(
+            "## Section {0}\n\n{1}".format(
+                index,
+                "Local preview content. " * 12,
+            )
+            for index in range(1, 121)
+        )
+        with core.PreviewSession() as session:
+            first = session.render_document(markdown, dpi=45)
+            self.assertGreaterEqual(first.total, 3)
+            middle_number = (first.total + 1) // 2
+            middle = session.render_page(middle_number, dpi=45)
+            last = session.render_page(first.total, dpi=45)
+            pdf_path = session._preview_pdf_path
+            self.assertTrue(pdf_path.exists())
+        self.assertFalse(pdf_path.exists())
+        for rendered, expected_page in (
+            (first, 1),
+            (middle, middle_number),
+            (last, first.total),
+        ):
+            self.assertEqual(rendered.page, expected_page)
+            self.assertEqual(rendered.total, first.total)
+            self.assertTrue(rendered.png.startswith(b"\x89PNG\r\n\x1a\n"))
 
 
 if __name__ == "__main__":

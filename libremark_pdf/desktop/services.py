@@ -14,7 +14,12 @@ from .. import core
 from .contracts import (
     ConversionProgressEvent,
     ConversionTerminalEvent,
+    PreviewDocumentEvent,
+    PreviewDocumentRequest,
     PreviewEvent,
+    PreviewPageErrorEvent,
+    PreviewPageEvent,
+    PreviewPageRequest,
     PreviewRequest,
 )
 
@@ -51,7 +56,32 @@ def run_preview_worker(
                 if newer is None:
                     return
                 item = newer
-            request = PreviewRequest.from_queue_item(item)
+            if isinstance(item, PreviewPageRequest):
+                try:
+                    if session is None:
+                        raise core.ConversionError(
+                            "PREVIEW_UNAVAILABLE: no preview document is active"
+                        )
+                    page = session.render_page(item.page, dpi=item.dpi)
+                    result_queue.put(PreviewPageEvent(
+                        "preview_page_ok",
+                        item.generation,
+                        page.page,
+                        page.total,
+                        page.png,
+                    ))
+                except Exception as exc:
+                    result_queue.put(PreviewPageErrorEvent(
+                        "preview_page_error",
+                        item.generation,
+                        item.page,
+                        str(exc),
+                    ))
+                continue
+            multipage = isinstance(item, PreviewDocumentRequest)
+            request = (
+                item if multipage else PreviewRequest.from_queue_item(item)
+            )
             try:
                 markdown_text = request.markdown_text
                 if request.source_path is not None:
@@ -60,8 +90,20 @@ def run_preview_worker(
                     candidate = core.PreviewSession()
                     candidate.__enter__()
                     session = candidate
-                png = session.render_png(markdown_text or "", **request.options)
-                result_queue.put(PreviewEvent("preview_ok", request.generation, png))
+                if multipage:
+                    page = session.render_document(
+                        markdown_text or "", **request.options
+                    )
+                    result_queue.put(PreviewDocumentEvent(
+                        "preview_document_ok",
+                        request.generation,
+                        page.page,
+                        page.total,
+                        page.png,
+                    ))
+                else:
+                    png = session.render_png(markdown_text or "", **request.options)
+                    result_queue.put(PreviewEvent("preview_ok", request.generation, png))
             except Exception as exc:
                 result_queue.put(
                     PreviewEvent("preview_error", request.generation, str(exc))

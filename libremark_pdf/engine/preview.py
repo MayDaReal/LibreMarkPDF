@@ -6,7 +6,7 @@ import hashlib
 import io
 import tempfile
 from pathlib import Path
-from typing import Optional, Union
+from typing import Dict, NamedTuple, Optional, Tuple, Union
 
 from . import chromium, document
 from .contracts import ConversionError, HeaderFooterConfig, RENDER_TIMEOUT_MS
@@ -14,8 +14,16 @@ from .contracts import ConversionError, HeaderFooterConfig, RENDER_TIMEOUT_MS
 _PathInput = Union[str, Path]
 
 
-def first_page_png(pdf_path: Path, dpi: int) -> bytes:
-    """Rasterize the first page of a core-rendered PDF."""
+class PreviewPage(NamedTuple):
+    """A rasterized page from the current Chromium-rendered preview PDF."""
+
+    page: int
+    total: int
+    png: bytes
+
+
+def rasterize_pdf_page(pdf_path: Path, page_number: int, dpi: int) -> PreviewPage:
+    """Rasterize one 1-based page from a core-rendered preview PDF."""
     try:
         import pypdfium2 as pdfium
     except ImportError as exc:
@@ -23,15 +31,33 @@ def first_page_png(pdf_path: Path, dpi: int) -> bytes:
             "The 'pypdfium2' package is not installed. Run: pip install pypdfium2"
         ) from exc
     pdf = pdfium.PdfDocument(str(pdf_path))
+    page = None
+    bitmap = None
     try:
-        page = pdf[0]
+        total = len(pdf)
+        if page_number < 1 or page_number > total:
+            raise ConversionError(
+                "PREVIEW_PAGE_OUT_OF_RANGE: page {0} of {1}".format(
+                    page_number, total
+                )
+            )
+        page = pdf[page_number - 1]
         bitmap = page.render(scale=dpi / 72)
         pil_image = bitmap.to_pil()
         buffer = io.BytesIO()
         pil_image.save(buffer, format="PNG")
-        return buffer.getvalue()
+        return PreviewPage(page_number, total, buffer.getvalue())
     finally:
+        if bitmap is not None and hasattr(bitmap, "close"):
+            bitmap.close()
+        if page is not None and hasattr(page, "close"):
+            page.close()
         pdf.close()
+
+
+def first_page_png(pdf_path: Path, dpi: int) -> bytes:
+    """Rasterize the first page of a core-rendered PDF."""
+    return rasterize_pdf_page(pdf_path, 1, dpi).png
 
 
 class PreviewSession:
@@ -42,6 +68,10 @@ class PreviewSession:
         self._context = None
         self._page = None
         self._loaded_html_hash = None  # type: Optional[bytes]
+        self._preview_directory = None  # type: Optional[tempfile.TemporaryDirectory]
+        self._preview_pdf_path = None  # type: Optional[Path]
+        self._page_count = 0
+        self._page_cache = {}  # type: Dict[Tuple[int, int], bytes]
 
     def __enter__(self) -> "PreviewSession":
         renderer = chromium.BrowserRenderer()
@@ -50,17 +80,29 @@ class PreviewSession:
 
     def __exit__(self, exc_type, exc_value, traceback) -> None:
         try:
-            if self._context is not None:
-                self._context.close()
+            self._clear_preview_document()
         finally:
-            if self._renderer is not None:
-                self._renderer.__exit__(exc_type, exc_value, traceback)
-            self._context = None
-            self._page = None
-            self._renderer = None
-            self._loaded_html_hash = None
+            try:
+                if self._context is not None:
+                    self._context.close()
+            finally:
+                if self._renderer is not None:
+                    self._renderer.__exit__(exc_type, exc_value, traceback)
+                self._context = None
+                self._page = None
+                self._renderer = None
+                self._loaded_html_hash = None
 
-    def render_png(
+    def _clear_preview_document(self) -> None:
+        directory = self._preview_directory
+        self._preview_directory = None
+        self._preview_pdf_path = None
+        self._page_count = 0
+        self._page_cache = {}
+        if directory is not None:
+            directory.cleanup()
+
+    def render_document(
         self,
         markdown_text: str,
         css_path: Optional[_PathInput] = None,
@@ -71,8 +113,8 @@ class PreviewSession:
         resource_root: Optional[_PathInput] = None,
         theme: Optional[str] = None,
         theme_root: Optional[_PathInput] = None,
-    ) -> bytes:
-        """Render a preview, reloading its page only when visual content changes."""
+    ) -> PreviewPage:
+        """Render one preview PDF and return its first rasterized page."""
         if self._renderer is None:
             raise ConversionError("BROWSER_UNAVAILABLE: preview session is not active")
         hf = header_footer if header_footer is not None else HeaderFooterConfig()
@@ -102,8 +144,10 @@ class PreviewSession:
         ))
         if "{title}" in template_text or "{titre}" in template_text:
             template_text += " " + rendered_document.title
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            pdf_path = Path(tmp_dir) / "preview.pdf"
+
+        candidate_directory = tempfile.TemporaryDirectory(prefix="libremark-preview-")
+        pdf_path = Path(candidate_directory.name) / "preview.pdf"
+        try:
             try:
                 self._renderer._render_loaded_page(
                     self._page, pdf_path, hf, rendered_document.render_date,
@@ -112,7 +156,62 @@ class PreviewSession:
             except ConversionError:
                 self._loaded_html_hash = None
                 raise
-            return first_page_png(pdf_path, dpi)
+            first_page = rasterize_pdf_page(pdf_path, 1, dpi)
+        except Exception:
+            candidate_directory.cleanup()
+            raise
+
+        self._clear_preview_document()
+        self._preview_directory = candidate_directory
+        self._preview_pdf_path = pdf_path
+        self._page_count = first_page.total
+        self._page_cache[(1, dpi)] = first_page.png
+        return first_page
+
+    def render_page(self, page_number: int, dpi: int = 110) -> PreviewPage:
+        """Rasterize a page from the current preview PDF without Chromium."""
+        if self._preview_pdf_path is None or self._page_count < 1:
+            raise ConversionError("PREVIEW_UNAVAILABLE: no preview document is active")
+        if page_number < 1 or page_number > self._page_count:
+            raise ConversionError(
+                "PREVIEW_PAGE_OUT_OF_RANGE: page {0} of {1}".format(
+                    page_number, self._page_count
+                )
+            )
+        cache_key = (page_number, dpi)
+        png = self._page_cache.get(cache_key)
+        if png is None:
+            rendered = rasterize_pdf_page(
+                self._preview_pdf_path, page_number, dpi
+            )
+            png = rendered.png
+            self._page_cache[cache_key] = png
+        return PreviewPage(page_number, self._page_count, png)
+
+    def render_png(
+        self,
+        markdown_text: str,
+        css_path: Optional[_PathInput] = None,
+        header_footer: Optional[HeaderFooterConfig] = None,
+        dpi: int = 110,
+        render_date: Optional[str] = None,
+        trusted_html: bool = False,
+        resource_root: Optional[_PathInput] = None,
+        theme: Optional[str] = None,
+        theme_root: Optional[_PathInput] = None,
+    ) -> bytes:
+        """Render the first page while retaining the preview PDF for navigation."""
+        return self.render_document(
+            markdown_text,
+            css_path=css_path,
+            header_footer=header_footer,
+            dpi=dpi,
+            render_date=render_date,
+            trusted_html=trusted_html,
+            resource_root=resource_root,
+            theme=theme,
+            theme_root=theme_root,
+        ).png
 
 
 def render_preview_png(

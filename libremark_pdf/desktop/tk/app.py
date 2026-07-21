@@ -55,6 +55,12 @@ class LibreMarkPdfApp(
         self._preview_last_submitted = None  # type: Optional[int]
         self._preview_state = "empty"
         self._preview_error = None  # type: Optional[str]
+        self._preview_page = 1
+        self._preview_total_pages = 0
+        self._preview_pages = {}  # type: dict[int, bytes]
+        self._preview_page_pending = None
+        self._preview_failed_page = None  # type: Optional[int]
+        self._preview_active_request = None
         self._poll_after = None
         self._cancel_event = threading.Event()
         self._result_queue = queue.Queue()  # type: queue.Queue
@@ -181,9 +187,45 @@ class LibreMarkPdfApp(
             except queue.Empty:
                 break
             kind = message[0]
-            if kind in ("preview_ok", "preview_error"):
+            if kind == "preview_document_ok":
                 generation = message[1]
-                is_latest_request = generation == self._preview_last_submitted
+                is_latest_request = self._preview_active_request == (
+                    "document", generation, 1
+                )
+                if is_latest_request:
+                    self._preview_running = False
+                if generation == self._preview_generation:
+                    self._apply_preview_document(
+                        message[2], message[3], message[4]
+                    )
+                    self._set_status("status_ready")
+                if is_latest_request:
+                    self._refresh_generate_button()
+            elif kind in ("preview_page_ok", "preview_page_error"):
+                generation = message[1]
+                page = message[2]
+                request = ("page", generation, page)
+                is_latest_request = self._preview_active_request == request
+                if is_latest_request:
+                    self._preview_running = False
+                    self._preview_page_pending = None
+                if generation == self._preview_generation and is_latest_request:
+                    if kind == "preview_page_ok":
+                        self._apply_preview_page(page, message[3], message[4])
+                        self._set_status("status_ready")
+                    else:
+                        self._set_preview_page_error(page, message[3])
+                        self._set_status("status_preview_error", error=message[3])
+                if is_latest_request:
+                    self._refresh_generate_button()
+            elif kind in ("preview_ok", "preview_error"):
+                generation = message[1]
+                active_request = getattr(self, "_preview_active_request", None)
+                is_latest_request = (
+                    active_request == ("document", generation, 1)
+                    if active_request is not None
+                    else generation == self._preview_last_submitted
+                )
                 if is_latest_request:
                     self._preview_running = False
                 if generation == self._preview_generation:

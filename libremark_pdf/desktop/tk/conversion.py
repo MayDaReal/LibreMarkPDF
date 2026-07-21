@@ -121,6 +121,7 @@ class TkConversionMixin:
         self.cancel_button.config(state="disabled")
         self._render_theme_cards()
         self._update_zoom_controls()
+        self._update_page_controls()
         self._refresh_generate_button()
 
     def _handle_generate_done(self, results: list) -> None:

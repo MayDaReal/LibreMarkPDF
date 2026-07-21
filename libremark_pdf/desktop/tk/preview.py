@@ -8,6 +8,7 @@ from typing import Optional
 from PIL import Image, ImageTk
 
 from ... import core
+from ..contracts import PreviewDocumentRequest, PreviewPageRequest
 
 
 PREVIEW_DPI = 90
@@ -31,6 +32,11 @@ class TkPreviewMixin:
         if clear_image:
             self._preview_png = None
             self.preview_photo = None
+            self._preview_page = 1
+            self._preview_total_pages = 0
+            self._preview_pages = {}
+            self._preview_page_pending = None
+            self._preview_failed_page = None
             self._set_preview_state("empty")
             self._set_status("status_ready")
         elif getattr(self, "_preview_state", None) == "loading":
@@ -48,6 +54,8 @@ class TkPreviewMixin:
         generation = self._preview_generation
         if self._preview_after is not None:
             self.root.after_cancel(self._preview_after)
+        self._preview_page_pending = None
+        self._preview_failed_page = None
         self._set_preview_state("loading")
         self._preview_after = self.root.after(
             PREVIEW_DEBOUNCE_MS, lambda: self._start_preview(generation)
@@ -63,6 +71,8 @@ class TkPreviewMixin:
         if not self.files:
             self._set_preview_state("empty")
             return
+        self._preview_page_pending = None
+        self._preview_failed_page = None
         self._set_preview_state("loading")
         self._start_preview(self._preview_generation)
 
@@ -90,11 +100,34 @@ class TkPreviewMixin:
         options["dpi"] = PREVIEW_DPI
         self._preview_running = True
         self._preview_last_submitted = generation
+        self._preview_active_request = ("document", generation, 1)
         self._refresh_generate_button()
         self._set_preview_state("loading")
         self._set_status("status_rendering_preview")
-        self._preview_requests.put((generation, source_path, None, options))
+        self._preview_requests.put(
+            PreviewDocumentRequest(generation, source_path, None, options)
+        )
         self._schedule_queue_poll()
+
+    def _apply_preview_document(
+        self, page: int, total: int, png_bytes: bytes
+    ) -> None:
+        self._preview_page = page
+        self._preview_total_pages = total
+        self._preview_pages = {page: png_bytes}
+        self._preview_page_pending = None
+        self._preview_failed_page = None
+        self._apply_preview_image(png_bytes)
+
+    def _apply_preview_page(
+        self, page: int, total: int, png_bytes: bytes
+    ) -> None:
+        self._preview_pages[page] = png_bytes
+        self._preview_page = page
+        self._preview_total_pages = total
+        self._preview_page_pending = None
+        self._preview_failed_page = None
+        self._apply_preview_image(png_bytes)
 
     def _apply_preview_image(self, png_bytes: bytes) -> None:
         self._preview_png = png_bytes
@@ -144,7 +177,12 @@ class TkPreviewMixin:
             self._draw_preview_state()
 
     def _set_preview_error(self, error: str) -> None:
+        self._preview_failed_page = None
         self._set_preview_state("error", error)
+
+    def _set_preview_page_error(self, page: int, error: str) -> None:
+        self._preview_failed_page = page
+        self._set_preview_state("page_error", error)
 
     def _refresh_preview_ui(self) -> None:
         if not hasattr(self, "active_preview_label"):
@@ -162,7 +200,7 @@ class TkPreviewMixin:
             message = self._t("preview_empty")
         elif state == "loading":
             message = self._t("preview_loading")
-        elif state == "error":
+        elif state in ("error", "page_error"):
             message = "{0}: {1} {2}".format(
                 self._t("preview_unavailable"),
                 self._preview_error or "",
@@ -184,19 +222,22 @@ class TkPreviewMixin:
                 pady=(8, 0),
                 before=self.preview_canvas.master,
             )
-        if state in ("error", "unavailable"):
+        if state in ("error", "page_error", "unavailable"):
             self.preview_retry_button.pack(side="right", padx=(8, 0))
         else:
             self.preview_retry_button.pack_forget()
-        if state == "error":
+        if state in ("error", "page_error"):
             self.preview_copy_button.pack(side="right", padx=(8, 0))
         else:
             self.preview_copy_button.pack_forget()
         self._update_zoom_controls()
+        self._update_page_controls()
 
     def _update_preview_translations(self) -> None:
         controls = (
             (self.refresh_preview_button, "refresh_preview_a11y"),
+            (self.previous_page_button, "previous_page_a11y"),
+            (self.next_page_button, "next_page_a11y"),
             (self.zoom_out_button, "zoom_out_a11y"),
             (self.zoom_in_button, "zoom_in_a11y"),
         )
@@ -206,6 +247,7 @@ class TkPreviewMixin:
             button.tooltip.text = accessible_name
         self.preview_retry_button.config(text=self._t("preview_retry"))
         self.preview_copy_button.config(text=self._t("copy_details"))
+        self._update_page_controls()
 
     def _draw_preview_state(self) -> None:
         if not hasattr(self, "preview_canvas") or self._preview_png is not None:
@@ -238,6 +280,7 @@ class TkPreviewMixin:
             "empty": "preview_empty",
             "loading": "preview_loading",
             "error": "preview_unavailable",
+            "page_error": "preview_unavailable",
             "unavailable": "preview_unavailable",
         }.get(self._preview_state, "preview_empty")
         canvas.create_text(
@@ -304,6 +347,65 @@ class TkPreviewMixin:
         self.zoom_in_button.config(
             state="normal" if interactive and percent < ZOOM_LEVELS[-1] else "disabled"
         )
+
+    def _update_page_controls(self) -> None:
+        if not hasattr(self, "preview_page_label"):
+            return
+        current = getattr(self, "_preview_page", 1)
+        total = getattr(self, "_preview_total_pages", 0)
+        self.preview_page_label.config(
+            text=(
+                self._t("preview_page", current=current, total=total)
+                if total > 0
+                else ""
+            )
+        )
+        interactive = (
+            self.operation == "idle"
+            and getattr(self, "_preview_state", "empty") in ("ready", "page_error")
+            and getattr(self, "_preview_page_pending", None) is None
+        )
+        self.previous_page_button.config(
+            state="normal" if interactive and current > 1 else "disabled"
+        )
+        self.next_page_button.config(
+            state="normal" if interactive and current < total else "disabled"
+        )
+
+    def _change_preview_page(self, direction: int) -> str:
+        if getattr(self, "operation", "idle") != "idle":
+            return "break"
+        current = getattr(self, "_preview_page", 1)
+        total = getattr(self, "_preview_total_pages", 0)
+        target = current + direction
+        if target < 1 or target > total:
+            return "break"
+        self._request_preview_page(target)
+        return "break"
+
+    def _request_preview_page(self, page: int) -> None:
+        cached = getattr(self, "_preview_pages", {}).get(page)
+        if cached is not None:
+            self._apply_preview_page(page, self._preview_total_pages, cached)
+            return
+        generation = self._preview_generation
+        self._preview_page_pending = page
+        self._preview_failed_page = None
+        self._preview_running = True
+        self._preview_active_request = ("page", generation, page)
+        self._set_preview_state("loading")
+        self._set_status("status_rendering_preview")
+        self._preview_requests.put(
+            PreviewPageRequest(generation, page, PREVIEW_DPI)
+        )
+        self._schedule_queue_poll()
+
+    def _retry_preview(self) -> None:
+        failed_page = getattr(self, "_preview_failed_page", None)
+        if failed_page is not None:
+            self._request_preview_page(failed_page)
+        else:
+            self._refresh_preview()
 
     def _focus_preview(self, _event=None) -> None:
         self.preview_canvas.focus_set()

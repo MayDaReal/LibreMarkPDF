@@ -24,12 +24,58 @@ class PreviewRequest(NamedTuple):
         return cls(*item)
 
 
+class PreviewDocumentRequest(NamedTuple):
+    """A multipage preview-document request from the Tk adapter."""
+
+    generation: int
+    source_path: Optional[Path]
+    markdown_text: Optional[str]
+    options: Dict[str, Any]
+
+
+class PreviewPageRequest(NamedTuple):
+    """A raster request for the active preview PDF."""
+
+    generation: int
+    page: int
+    dpi: int
+
+
 class PreviewEvent(NamedTuple):
     """A completed or failed preview event."""
 
     kind: str
     generation: int
     payload: Union[bytes, str]
+
+
+class PreviewDocumentEvent(NamedTuple):
+    """The first page and page count of a newly rendered preview PDF."""
+
+    kind: str
+    generation: int
+    page: int
+    total: int
+    png: bytes
+
+
+class PreviewPageEvent(NamedTuple):
+    """One page rasterized from the active preview PDF."""
+
+    kind: str
+    generation: int
+    page: int
+    total: int
+    png: bytes
+
+
+class PreviewPageErrorEvent(NamedTuple):
+    """A failed page rasterization that leaves the preview PDF active."""
+
+    kind: str
+    generation: int
+    page: int
+    error: str
 
 
 class ConversionProgressEvent(NamedTuple):

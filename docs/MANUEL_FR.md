@@ -39,10 +39,14 @@ automatiquement une version pyenv `3.9.x` déjà installée.
 4. Facultatif : ouvrez **En-têtes et pieds de page** et modifiez les positions
    Gauche, Centre et Droite explicitement libellées. **Rétablir les valeurs par
    défaut** ne modifie que ces six champs et restaure le pied central par défaut.
-5. La première page du fichier actif est actualisée après un court délai
+5. L’aperçu du fichier actif est actualisé après un court délai
    lorsqu’un réglage compatible change. L’ancienne image reste visible pendant
    la mise à jour et les états vide, mise à jour et indisponible sont indiqués
    explicitement. Sélectionnez le bouton ↻ pour actualiser immédiatement.
+   Utilisez **‹ Page n sur total ›** pour rasteriser chaque page depuis le même
+   PDF temporaire d’aperçu, sans modifier le PDF final. Une nouvelle version du
+   document revient à la page 1 ; le zoom conserve la page courante. Lorsque
+   l’aperçu a le focus, les flèches Gauche et Droite changent de page.
    Utilisez **− 100 % +**, `Ctrl+-`, `Ctrl++` ou `Ctrl+0` pour régler le zoom de
    50 % à 200 %. Lorsque l’aperçu a le focus, la molette le fait défiler,
    `Ctrl+molette` zoome autour du pointeur et le glisser avec le bouton central

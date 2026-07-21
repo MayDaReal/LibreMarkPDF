@@ -38,6 +38,17 @@ class TestDesktopServiceBoundary(unittest.TestCase):
         )
         event = contracts.PreviewEvent("preview_ok", 3, b"png")
         self.assertEqual(event, ("preview_ok", 3, b"png"))
+        document_request = contracts.PreviewDocumentRequest(
+            4, Path("one.md"), None, {"dpi": 90}
+        )
+        self.assertEqual(
+            document_request,
+            (4, Path("one.md"), None, {"dpi": 90}),
+        )
+        self.assertEqual(
+            contracts.PreviewPageRequest(4, 2, 90),
+            (4, 2, 90),
+        )
 
     def test_preview_worker_coalesces_typed_requests_and_isolates_errors(self):
         requests = queue.Queue()
@@ -57,6 +68,71 @@ class TestDesktopServiceBoundary(unittest.TestCase):
         self.assertFalse(worker.is_alive())
         self.assertEqual(event, ("preview_error", 2, "preview failed"))
         session.render_png.assert_called_once_with("new")
+
+    def test_multipage_worker_renders_document_then_pages_in_one_session(self):
+        requests = queue.Queue()
+        results = queue.Queue()
+        session = mock.MagicMock()
+        session.render_document.return_value = services.core.PreviewPage(
+            1, 3, b"page-1"
+        )
+        session.render_page.return_value = services.core.PreviewPage(
+            2, 3, b"page-2"
+        )
+        requests.put(contracts.PreviewDocumentRequest(7, None, "# Pages", {"dpi": 90}))
+        with mock.patch.object(services.core, "PreviewSession", return_value=session):
+            worker = threading.Thread(
+                target=services.run_preview_worker, args=(requests, results)
+            )
+            worker.start()
+            document_event = results.get(timeout=2)
+            requests.put(contracts.PreviewPageRequest(7, 2, 90))
+            page_event = results.get(timeout=2)
+            requests.put(None)
+            worker.join(2)
+
+        self.assertFalse(worker.is_alive())
+        self.assertEqual(
+            document_event,
+            ("preview_document_ok", 7, 1, 3, b"page-1"),
+        )
+        self.assertEqual(
+            page_event,
+            ("preview_page_ok", 7, 2, 3, b"page-2"),
+        )
+        session.render_document.assert_called_once_with("# Pages", dpi=90)
+        session.render_page.assert_called_once_with(2, dpi=90)
+        session.__enter__.assert_called_once_with()
+        session.__exit__.assert_called_once_with(None, None, None)
+
+    def test_page_error_retains_worker_session_for_another_request(self):
+        requests = queue.Queue()
+        results = queue.Queue()
+        session = mock.MagicMock()
+        session.render_document.return_value = services.core.PreviewPage(
+            1, 2, b"page-1"
+        )
+        session.render_page.side_effect = [
+            RuntimeError("page failed"),
+            services.core.PreviewPage(2, 2, b"page-2"),
+        ]
+        requests.put(contracts.PreviewDocumentRequest(8, None, "# Pages", {}))
+        with mock.patch.object(services.core, "PreviewSession", return_value=session):
+            worker = threading.Thread(
+                target=services.run_preview_worker, args=(requests, results)
+            )
+            worker.start()
+            results.get(timeout=2)
+            requests.put(contracts.PreviewPageRequest(8, 2, 90))
+            failed = results.get(timeout=2)
+            requests.put(contracts.PreviewPageRequest(8, 2, 90))
+            recovered = results.get(timeout=2)
+            requests.put(None)
+            worker.join(2)
+
+        self.assertEqual(failed, ("preview_page_error", 8, 2, "page failed"))
+        self.assertEqual(recovered, ("preview_page_ok", 8, 2, 2, b"page-2"))
+        session.__exit__.assert_called_once_with(None, None, None)
 
     def test_conversion_worker_emits_typed_progress_and_terminal_events(self):
         results = queue.Queue()

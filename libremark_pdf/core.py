@@ -106,4 +106,5 @@ convert_batch = _jobs.convert_batch
 
 
 PreviewSession = _preview.PreviewSession
+PreviewPage = _preview.PreviewPage
 render_preview_png = _preview.render_preview_png
