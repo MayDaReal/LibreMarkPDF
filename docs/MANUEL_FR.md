@@ -39,8 +39,16 @@ automatiquement une version pyenv `3.9.x` déjà installée.
 4. Facultatif : ouvrez **En-têtes et pieds de page** et modifiez les positions
    Gauche, Centre et Droite explicitement libellées. **Rétablir les valeurs par
    défaut** ne modifie que ces six champs et restaure le pied central par défaut.
-5. Sélectionnez **Actualiser l’aperçu** pour afficher la première page du
-   fichier actif. Faites défiler l’aperçu ou réglez son zoom de 50 % à 200 %.
+5. La première page du fichier actif est actualisée après un court délai
+   lorsqu’un réglage compatible change. L’ancienne image reste visible pendant
+   la mise à jour et les états vide, mise à jour et indisponible sont indiqués
+   explicitement. Sélectionnez le bouton ↻ pour actualiser immédiatement.
+   Utilisez **− 100 % +**, `Ctrl+-`, `Ctrl++` ou `Ctrl+0` pour régler le zoom de
+   50 % à 200 %. Lorsque l’aperçu a le focus, la molette le fait défiler,
+   `Ctrl+molette` zoome autour du pointeur et le glisser avec le bouton central
+   déplace la page. Les barres de défilement n’apparaissent que si nécessaire.
+   Une erreur d’aperçu peut être relancée ou copiée et n’empêche pas de tenter
+   une génération PDF valide.
 6. Facultatif : ouvrez **Destination** et choisissez un dossier de sortie.
    Sinon, chaque PDF est créé à côté de sa source Markdown.
    **Autres options avancées** contient la date de rendu et le HTML statique de
@@ -127,6 +135,8 @@ Gérez les thèmes locaux avec `theme list`, `theme show`, `theme install` et
 Sélectionnez **EN** ou **FR** dans la fenêtre. Le choix est enregistré localement
 dans `~/.libremark-pdf/config.json`. Un échec d’enregistrement n’empêche pas la
 conversion.
+
+Appuyez sur `F1` pour afficher les raccourcis clavier disponibles.
 
 ## Fichiers et sécurité
 

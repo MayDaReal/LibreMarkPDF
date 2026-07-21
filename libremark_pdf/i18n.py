@@ -82,8 +82,24 @@ STRINGS = {
         "left_placeholder": "Left",
         "center_placeholder": "Center",
         "right_placeholder": "Right",
-        "preview_label": "Preview",
         "refresh_preview": "Refresh preview",
+        "preview_heading": "Preview",
+        "refresh_preview_a11y": "Refresh preview",
+        "preview_empty": "Add or select a file to preview it.",
+        "preview_loading": "Updating preview…",
+        "preview_unavailable": "Preview unavailable",
+        "preview_retry": "Try again",
+        "preview_conversion_possible": "You can still try to generate the PDF.",
+        "copy_details": "Copy details",
+        "zoom_out_a11y": "Zoom out",
+        "zoom_in_a11y": "Zoom in",
+        "zoom_value": "{percent}%",
+        "keyboard_shortcuts_action": "Keyboard shortcuts",
+        "keyboard_shortcuts_body": (
+            "Add files: Ctrl+O\nRefresh preview: Ctrl+R\n"
+            "Generate: Ctrl+G\nZoom in/out: Ctrl++ / Ctrl+-\n"
+            "Reset zoom: Ctrl+0\nCancel active batch: Esc"
+        ),
         "output_label": "Output",
         "destination_heading": "Destination",
         "output_default_value": "Next to each source file",
@@ -130,11 +146,6 @@ STRINGS = {
         "open_pdf": "Open PDF",
         "open_folder": "Open folder",
         "open_error": "Could not open the selected path: {error}",
-        "sample_preview_title": "Document title",
-        "sample_preview_body": (
-            "This is a live preview of your current style, header and "
-            "footer. Load a file to preview its actual content."
-        ),
     },
     "fr": {
         "app_title": "LibreMark PDF",
@@ -206,8 +217,26 @@ STRINGS = {
         "left_placeholder": "Gauche",
         "center_placeholder": "Centre",
         "right_placeholder": "Droite",
-        "preview_label": "Aperçu",
         "refresh_preview": "Actualiser l'aperçu",
+        "preview_heading": "Aperçu",
+        "refresh_preview_a11y": "Actualiser l’aperçu",
+        "preview_empty": "Ajoutez ou sélectionnez un fichier pour le prévisualiser.",
+        "preview_loading": "Mise à jour de l’aperçu…",
+        "preview_unavailable": "Aperçu indisponible",
+        "preview_retry": "Réessayer",
+        "preview_conversion_possible": (
+            "Vous pouvez tout de même essayer de générer le PDF."
+        ),
+        "copy_details": "Copier les détails",
+        "zoom_out_a11y": "Réduire le zoom",
+        "zoom_in_a11y": "Augmenter le zoom",
+        "zoom_value": "{percent} %",
+        "keyboard_shortcuts_action": "Raccourcis clavier",
+        "keyboard_shortcuts_body": (
+            "Ajouter des fichiers : Ctrl+O\nActualiser l’aperçu : Ctrl+R\n"
+            "Générer : Ctrl+G\nZoom avant/arrière : Ctrl++ / Ctrl+-\n"
+            "Réinitialiser le zoom : Ctrl+0\nAnnuler le lot actif : Échap"
+        ),
         "output_label": "Sortie",
         "destination_heading": "Destination",
         "output_default_value": "À côté de chaque fichier source",
@@ -259,11 +288,6 @@ STRINGS = {
         "open_pdf": "Ouvrir le PDF",
         "open_folder": "Ouvrir le dossier",
         "open_error": "Impossible d’ouvrir le chemin sélectionné : {error}",
-        "sample_preview_title": "Titre du document",
-        "sample_preview_body": (
-            "Ceci est un aperçu dynamique de votre style, de votre en-tête et "
-            "de votre pied de page. Chargez un fichier pour afficher son contenu."
-        ),
     },
 }
 

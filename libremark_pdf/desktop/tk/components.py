@@ -92,3 +92,16 @@ def configure_icon_button(
     tooltip = Tooltip(button, accessible_name)
     button.tooltip = tooltip
     return tooltip
+
+
+def configure_symbol_button(
+    button: ttk.Button,
+    symbol: str,
+    accessible_name: str,
+) -> Tooltip:
+    """Configure a local symbol action with keyboard and tooltip support."""
+    button.configure(text=symbol, takefocus=True, width=3)
+    button.accessible_name = accessible_name
+    tooltip = Tooltip(button, accessible_name)
+    button.tooltip = tooltip
+    return tooltip

@@ -53,6 +53,8 @@ class LibreMarkPdfApp(
         self._preview_after = None
         self._preview_running = False
         self._preview_last_submitted = None  # type: Optional[int]
+        self._preview_state = "empty"
+        self._preview_error = None  # type: Optional[str]
         self._poll_after = None
         self._cancel_event = threading.Event()
         self._result_queue = queue.Queue()  # type: queue.Queue
@@ -150,8 +152,8 @@ class LibreMarkPdfApp(
         self.render_date_label.config(text=self._t("render_date"))
         self.trusted_html_check.config(text=self._t("trusted_html"))
         self.trusted_html_help_label.config(text=self._t("trusted_html_help"))
-        self.preview_group.config(text=self._t("preview_label"))
-        self.refresh_preview_button.config(text=self._t("refresh_preview"))
+        self.preview_group.config(text=self._t("preview_heading"))
+        self._update_preview_translations()
         self.output_button.config(text=self._t("change_destination"))
         self.output_reset_button.config(text=self._t("reset_destination"))
         self.cancel_button.config(text=self._t("cancel_button"))
@@ -161,7 +163,7 @@ class LibreMarkPdfApp(
         self._render_theme_cards()
         self._render_file_list()
         self._refresh_accordion_headers()
-        self.zoom_label.config(text="{0}%".format(self.zoom_percent.get()))
+        self._refresh_preview_ui()
         self.status_label.config(
             text=self._t(self._status_key, **self._status_kwargs),
             style=status_label_style(self._status_key),
@@ -189,6 +191,7 @@ class LibreMarkPdfApp(
                         self._apply_preview_image(message[2])
                         self._set_status("status_ready")
                     else:
+                        self._set_preview_error(message[2])
                         self._set_status("status_preview_error", error=message[2])
                 if is_latest_request:
                     self._refresh_generate_button()

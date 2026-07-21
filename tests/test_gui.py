@@ -211,6 +211,26 @@ class TestGuiWorkerBoundaries(unittest.TestCase):
         source = inspect.getsource(gui.LibreMarkPdfApp._poll_queue)
         self.assertIn("generation == self._preview_generation", source)
 
+    def test_stale_preview_response_does_not_replace_current_state(self):
+        app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
+        app._poll_after = None
+        app._result_queue = queue.Queue()
+        app._result_queue.put(("preview_ok", 2, b"stale"))
+        app._preview_generation = 3
+        app._preview_last_submitted = 2
+        app._preview_running = True
+        app.operation = "idle"
+        app._apply_preview_image = mock.Mock()
+        app._set_preview_error = mock.Mock()
+        app._refresh_generate_button = mock.Mock()
+
+        app._poll_queue()
+
+        self.assertFalse(app._preview_running)
+        app._apply_preview_image.assert_not_called()
+        app._set_preview_error.assert_not_called()
+        app._refresh_generate_button.assert_called_once_with()
+
     def test_queue_completion_suppresses_dialogs_after_close_request(self):
         source = inspect.getsource(gui.LibreMarkPdfApp._poll_queue)
         self.assertGreaterEqual(source.count("if not self._close_requested"), 2)
@@ -729,6 +749,201 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
         self.assertEqual(tuple(observed), expected)
         self.assertEqual(app._redraw_preview.call_count, len(directions))
 
+    def test_preview_schedule_uses_450_ms_and_replaces_pending_request(self):
+        app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
+        app.operation = "idle"
+        app.files = [Path("one.md")]
+        app.refresh_preview_button = mock.Mock()
+        app._preview_generation = 4
+        app._preview_after = "older"
+        app.root = mock.Mock()
+        app.root.after.return_value = "newer"
+        app._set_preview_state = mock.Mock()
+
+        app._schedule_preview()
+
+        app.root.after_cancel.assert_called_once_with("older")
+        self.assertEqual(app.root.after.call_args.args[0], 450)
+        self.assertEqual(app._preview_after, "newer")
+        app._set_preview_state.assert_called_once_with("loading")
+
+    def test_refresh_without_files_keeps_explicit_empty_state(self):
+        app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
+        app.operation = "idle"
+        app.files = []
+        app._preview_after = None
+        app._preview_generation = 2
+        app._set_preview_state = mock.Mock()
+        app._start_preview = mock.Mock()
+
+        app._refresh_preview()
+
+        app._set_preview_state.assert_called_once_with("empty")
+        app._start_preview.assert_not_called()
+
+    def test_preview_error_is_inline_and_preserves_the_previous_image(self):
+        app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
+        app.files = [Path("one.md")]
+        app.active_file = Path("one.md")
+        app._preview_png = b"previous"
+        app._t = lambda key, **kwargs: key
+        app.active_preview_label = mock.Mock()
+        app.preview_message_label = mock.Mock()
+        app.preview_message_frame = mock.Mock()
+        app.preview_retry_button = mock.Mock()
+        app.preview_copy_button = mock.Mock()
+        app.zoom_label = mock.Mock()
+        app.zoom_percent = mock.Mock()
+        app.zoom_percent.get.return_value = 100
+        app.zoom_out_button = mock.Mock()
+        app.zoom_in_button = mock.Mock()
+        app.operation = "idle"
+        app.preview_canvas = mock.Mock()
+        app.preview_canvas.master = object()
+
+        app._set_preview_error("pypdfium2 is required")
+
+        self.assertEqual(app._preview_png, b"previous")
+        app.preview_message_label.config.assert_called_once_with(
+            text=(
+                "preview_unavailable: pypdfium2 is required "
+                "preview_conversion_possible"
+            )
+        )
+        app.preview_retry_button.pack.assert_called()
+        app.preview_copy_button.pack.assert_called()
+        app.preview_canvas.delete.assert_not_called()
+
+    def test_loading_state_keeps_the_previous_preview_bytes(self):
+        app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
+        app._preview_png = b"previous"
+        app._refresh_preview_ui = mock.Mock()
+        app._draw_preview_state = mock.Mock()
+
+        app._set_preview_state("loading")
+
+        self.assertEqual(app._preview_png, b"previous")
+        app._refresh_preview_ui.assert_called_once_with()
+        app._draw_preview_state.assert_not_called()
+
+    def test_generation_remains_available_during_preview_rendering(self):
+        app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
+        app.files = [Path("one.md")]
+        app.operation = "idle"
+        app._preview_running = True
+        app.generate_button = mock.Mock()
+        app._t = lambda key, **kwargs: key
+
+        app._refresh_generate_button()
+
+        app.generate_button.config.assert_called_once_with(
+            text="generate_button",
+            state="normal",
+        )
+        app._overwrite_choice = mock.Mock(return_value=None)
+        app._set_status = mock.Mock()
+        app._on_generate_clicked()
+        app._overwrite_choice.assert_called_once_with()
+
+    def test_pointer_centered_zoom_preserves_the_document_point(self):
+        app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
+        app._preview_png = b"png"
+        app.zoom_percent = mock.Mock()
+        app.zoom_percent.get.return_value = 100
+        app.preview_canvas = mock.Mock()
+        app.preview_canvas.canvasx.return_value = 112
+        app.preview_canvas.canvasy.return_value = 212
+        app.preview_canvas.cget.return_value = "0 0 1000 2000"
+        app._redraw_preview = mock.Mock()
+        app._update_zoom_controls = mock.Mock()
+
+        app._set_zoom(200, (10, 20))
+
+        app.zoom_percent.set.assert_called_once_with(200)
+        app.preview_canvas.xview_moveto.assert_called_once_with(0.202)
+        app.preview_canvas.yview_moveto.assert_called_once_with(0.196)
+
+    def test_preview_mouse_gestures_scroll_zoom_and_pan(self):
+        app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
+        app.preview_canvas = mock.Mock()
+        app._change_zoom = mock.Mock()
+        zoom_event = mock.Mock(delta=120, num=0, state=4, x=30, y=40)
+        scroll_event = mock.Mock(delta=-120, num=0, state=0, x=30, y=40)
+        pan_event = mock.Mock(x=12, y=18)
+
+        self.assertEqual(app._on_preview_mousewheel(zoom_event), "break")
+        app._change_zoom.assert_called_once_with(1, (30, 40))
+        self.assertEqual(app._on_preview_mousewheel(scroll_event), "break")
+        app.preview_canvas.yview_scroll.assert_called_once_with(1, "units")
+        self.assertEqual(app._start_preview_pan(pan_event), "break")
+        self.assertEqual(app._drag_preview_pan(pan_event), "break")
+        app.preview_canvas.scan_mark.assert_called_once_with(12, 18)
+        app.preview_canvas.scan_dragto.assert_called_once_with(12, 18, gain=1)
+
+    def test_zoom_bounds_disable_only_the_unavailable_direction(self):
+        app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
+        app.operation = "idle"
+        app.zoom_percent = mock.Mock()
+        app.zoom_label = mock.Mock()
+        app.zoom_out_button = mock.Mock()
+        app.zoom_in_button = mock.Mock()
+        app._t = lambda key, **kwargs: "{0}%".format(kwargs["percent"])
+
+        app.zoom_percent.get.return_value = 50
+        app._update_zoom_controls()
+        app.zoom_out_button.config.assert_called_with(state="disabled")
+        app.zoom_in_button.config.assert_called_with(state="normal")
+
+        app.zoom_percent.get.return_value = 200
+        app._update_zoom_controls()
+        app.zoom_out_button.config.assert_called_with(state="normal")
+        app.zoom_in_button.config.assert_called_with(state="disabled")
+
+    def test_preview_scrollbars_are_visible_only_when_needed(self):
+        app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
+        app.preview_canvas = mock.Mock()
+        app.preview_canvas.winfo_width.return_value = 400
+        app.preview_canvas.winfo_height.return_value = 300
+        app.preview_vertical = mock.Mock()
+        app.preview_horizontal = mock.Mock()
+
+        app.preview_canvas.bbox.return_value = (0, 0, 800, 200)
+        app._update_preview_scrollbars()
+        app.preview_horizontal.grid.assert_called_once_with(
+            row=1, column=0, sticky="ew"
+        )
+        app.preview_vertical.grid_remove.assert_called_once_with()
+
+        app.preview_canvas.bbox.return_value = (0, 0, 200, 200)
+        app._update_preview_scrollbars()
+        self.assertEqual(app.preview_horizontal.grid_remove.call_count, 1)
+        self.assertEqual(app.preview_vertical.grid_remove.call_count, 2)
+
+    def test_ctrl_zero_and_f1_handlers_are_non_destructive(self):
+        app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
+        app.operation = "idle"
+        app._set_zoom = mock.Mock()
+        app.dialogs = mock.Mock()
+        app._t = lambda key, **kwargs: key
+
+        self.assertEqual(app._reset_zoom(), "break")
+        app._set_zoom.assert_called_once_with(100)
+        self.assertEqual(app._show_keyboard_shortcuts(), "break")
+        app.dialogs.show_info.assert_called_once_with(
+            "keyboard_shortcuts_action",
+            "keyboard_shortcuts_body",
+        )
+
+    def test_preview_error_details_copy_only_the_worker_message(self):
+        app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
+        app._preview_error = "preview failed"
+        app.root = mock.Mock()
+
+        app._copy_preview_details()
+
+        app.root.clipboard_clear.assert_called_once_with()
+        app.root.clipboard_append.assert_called_once_with("preview failed")
+
     def test_initial_focus_is_given_to_browse_files(self):
         root = mock.Mock()
         services_boundary = mock.Mock()
@@ -976,6 +1191,27 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
         tooltip_type.assert_called_once_with(button, "Remove report.md")
         self.assertIs(result, tooltip)
 
+    def test_symbol_button_retains_visible_symbol_and_localized_name(self):
+        button = mock.Mock()
+        tooltip = mock.Mock()
+        with mock.patch.object(
+            tk_components,
+            "Tooltip",
+            return_value=tooltip,
+        ) as tooltip_type:
+            result = tk_components.configure_symbol_button(
+                button,
+                "↻",
+                "Refresh preview",
+            )
+
+        button.configure.assert_called_once_with(
+            text="↻", takefocus=True, width=3
+        )
+        self.assertEqual(button.accessible_name, "Refresh preview")
+        tooltip_type.assert_called_once_with(button, "Refresh preview")
+        self.assertIs(result, tooltip)
+
     def test_primary_generate_action_keeps_gear_and_text_in_both_languages(self):
         for language, word in (("en", "Generate"), ("fr", "Générer")):
             text = tk_app.i18n.t("generate_button", language, count=2)
@@ -1208,6 +1444,9 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
             "Continue?",
             default=tk_dialogs.messagebox.NO,
         )
+        with mock.patch.object(tk_dialogs.messagebox, "showinfo") as info:
+            dialogs.show_info("Shortcuts", "Ctrl+O")
+        info.assert_called_once_with("Shortcuts", "Ctrl+O")
 
     def test_native_dialog_calls_are_confined_to_the_dialog_boundary(self):
         for module in (tk_app, tk_layout, tk_preview):

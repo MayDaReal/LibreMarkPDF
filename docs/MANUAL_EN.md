@@ -36,8 +36,15 @@ install CPython 3.9 with pyenv first; the Linux bootstrap detects an installed
 4. Optional: expand **Headers and footers** and edit the explicitly labelled
    Left, Center, and Right positions. **Restore defaults** changes only
    these six fields and restores the default center footer.
-5. Select **Refresh preview** to render the active file's first page. Scroll it
-   or use the zoom controls from 50% through 200%.
+5. The active file's first page is refreshed after a short delay when a
+   preview-compatible setting changes. The preview keeps the previous image
+   visible while updating and identifies empty, updating, and unavailable
+   states explicitly. Select the ↻ button to refresh immediately. Use
+   **− 100% +**, `Ctrl+-`, `Ctrl++`, or `Ctrl+0` to set zoom from 50% through
+   200%. With the preview focused, the wheel scrolls, `Ctrl+wheel` zooms around
+   the pointer, and middle-button drag pans the page. Scrollbars appear only
+   when needed. A preview error can be retried or copied and does not prevent a
+   valid PDF generation attempt.
 6. Optional: expand **Destination** and select an output folder. Otherwise,
    each PDF is written beside its Markdown source.
    **Other advanced options** contains the render date and trusted static HTML.
@@ -123,6 +130,8 @@ is retained as a legacy alias of `--date`.
 Select **EN** or **FR** in the desktop window. The choice is stored locally in
 `~/.libremark-pdf/config.json`. Failure to save this preference does not block
 conversion.
+
+Press `F1` to display the available keyboard shortcuts.
 
 ## Files and safety
 

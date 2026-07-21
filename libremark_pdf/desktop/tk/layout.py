@@ -6,10 +6,11 @@ import tkinter as tk
 from tkinter import ttk
 
 from ... import core
-from .components import UiIconRegistry
+from .components import UiIconRegistry, configure_symbol_button
 from .styles import (
     DROP_ZONE_HEIGHT,
     FILE_LIST_HEIGHT,
+    ICON_BUTTON_STYLE,
     OUTER_PADDING,
     PREVIEW_HEIGHT,
     PRIMARY_BUTTON_STYLE,
@@ -37,6 +38,8 @@ AUTOMATION_ACTIONS = frozenset((
     "files.add", "files.clear", "language.en", "language.fr",
     "style.toggle", "destination.toggle", "header_footer.toggle",
     "other.toggle", "advanced.toggle", "preview.refresh",
+    "preview.zoom_out", "preview.zoom_in", "preview.retry",
+    "preview.copy_details",
     "output.choose", "output.reset",
     "convert.start", "convert.cancel",
 ))
@@ -401,43 +404,106 @@ class TkLayoutMixin:
         self.preview_group = ttk.LabelFrame(self.workspace, padding=SECTION_PADDING)
         preview_header = ttk.Frame(self.preview_group)
         preview_header.pack(fill="x")
+        self.active_preview_label = ttk.Label(
+            preview_header,
+            font=self.ui_styles.emphasis_font,
+            anchor="w",
+        )
+        self.active_preview_label.pack(side="left", fill="x", expand=True)
+        preview_controls = ttk.Frame(preview_header)
+        preview_controls.pack(side="right")
         self.refresh_preview_button = ttk.Button(
-            preview_header, command=self._refresh_preview
+            preview_controls,
+            command=self._refresh_preview,
+            style=ICON_BUTTON_STYLE,
         )
         self.refresh_preview_button.pack(side="left")
         self._register_automation_widget("preview.refresh", self.refresh_preview_button)
         self.zoom_out_button = ttk.Button(
-            preview_header, width=3, text="−", command=lambda: self._change_zoom(-1)
+            preview_controls,
+            command=lambda: self._change_zoom(-1),
+            style=ICON_BUTTON_STYLE,
         )
-        self.zoom_out_button.pack(side="right")
+        self.zoom_out_button.pack(side="left", padx=(SPACE_SM, 0))
+        self._register_automation_widget("preview.zoom_out", self.zoom_out_button)
+        self.zoom_label = ttk.Label(preview_controls, anchor="center", width=7)
+        self.zoom_label.pack(side="left", padx=SPACE_XS)
         self.zoom_in_button = ttk.Button(
-            preview_header, width=3, text="+", command=lambda: self._change_zoom(1)
+            preview_controls,
+            command=lambda: self._change_zoom(1),
+            style=ICON_BUTTON_STYLE,
         )
-        self.zoom_in_button.pack(side="right", padx=SPACE_XS)
-        self.zoom_label = ttk.Label(preview_header)
-        self.zoom_label.pack(side="right")
+        self.zoom_in_button.pack(side="left")
+        self._register_automation_widget("preview.zoom_in", self.zoom_in_button)
+        configure_symbol_button(
+            self.refresh_preview_button,
+            "↻",
+            self._t("refresh_preview_a11y"),
+        )
+        configure_symbol_button(
+            self.zoom_out_button,
+            "−",
+            self._t("zoom_out_a11y"),
+        )
+        configure_symbol_button(
+            self.zoom_in_button,
+            "+",
+            self._t("zoom_in_a11y"),
+        )
+
+        self.preview_message_frame = ttk.Frame(self.preview_group)
+        self.preview_message_label = ttk.Label(
+            self.preview_message_frame,
+            wraplength=480,
+            justify="left",
+        )
+        self.preview_message_label.pack(side="left", fill="x", expand=True)
+        self.preview_retry_button = ttk.Button(
+            self.preview_message_frame,
+            command=self._refresh_preview,
+        )
+        self.preview_retry_button.pack(side="right", padx=(SPACE_SM, 0))
+        self._register_automation_widget("preview.retry", self.preview_retry_button)
+        self.preview_copy_button = ttk.Button(
+            self.preview_message_frame,
+            command=self._copy_preview_details,
+        )
+        self.preview_copy_button.pack(side="right", padx=(SPACE_SM, 0))
+        self._register_automation_widget(
+            "preview.copy_details", self.preview_copy_button
+        )
         preview_box = ttk.Frame(self.preview_group)
         preview_box.pack(fill="both", expand=True, pady=(SPACE_SM, 0))
+        preview_box.rowconfigure(0, weight=1)
+        preview_box.columnconfigure(0, weight=1)
         self.preview_canvas = tk.Canvas(
             preview_box,
             height=PREVIEW_HEIGHT,
             bg=self.ui_styles.preview_background,
-            highlightthickness=0,
+            highlightbackground=self.ui_styles.drop_border,
+            highlightcolor=self.ui_styles.drop_border,
+            highlightthickness=1,
             takefocus=True,
         )
-        preview_vertical = ttk.Scrollbar(
+        self.preview_vertical = ttk.Scrollbar(
             preview_box, orient="vertical", command=self.preview_canvas.yview
         )
-        preview_horizontal = ttk.Scrollbar(
+        self.preview_horizontal = ttk.Scrollbar(
             preview_box, orient="horizontal", command=self.preview_canvas.xview
         )
         self.preview_canvas.configure(
-            yscrollcommand=preview_vertical.set,
-            xscrollcommand=preview_horizontal.set,
+            yscrollcommand=self.preview_vertical.set,
+            xscrollcommand=self.preview_horizontal.set,
         )
-        preview_vertical.pack(side="right", fill="y")
-        preview_horizontal.pack(side="bottom", fill="x")
-        self.preview_canvas.pack(side="left", fill="both", expand=True)
+        self.preview_canvas.grid(row=0, column=0, sticky="nsew")
+        self.preview_canvas.bind("<Configure>", self._on_preview_canvas_configure)
+        self.preview_canvas.bind("<Button-1>", self._focus_preview)
+        self.preview_canvas.bind("<MouseWheel>", self._on_preview_mousewheel)
+        self.preview_canvas.bind("<Control-MouseWheel>", self._on_preview_mousewheel)
+        self.preview_canvas.bind("<Button-4>", self._on_preview_mousewheel)
+        self.preview_canvas.bind("<Button-5>", self._on_preview_mousewheel)
+        self.preview_canvas.bind("<Button-2>", self._start_preview_pan)
+        self.preview_canvas.bind("<B2-Motion>", self._drag_preview_pan)
 
         self.results_frame = ttk.Frame(self.workspace)
 
@@ -447,7 +513,9 @@ class TkLayoutMixin:
             self.style_toggle, self.destination_toggle, self.advanced_toggle,
             self.other_toggle, self.reset_header_footer_button,
             self.render_date_entry, self.trusted_html_check,
-            self.refresh_preview_button,
+            self.refresh_preview_button, self.zoom_out_button,
+            self.zoom_in_button, self.preview_retry_button,
+            self.preview_copy_button,
             self.output_button, self.output_reset_button,
         ])
         self.root.bind("<Configure>", self._on_root_configure, add="+")
@@ -566,13 +634,21 @@ class TkLayoutMixin:
         self.root.bind_all("<Control-g>", lambda event: self._on_generate_clicked())
         self.root.bind_all("<Escape>", lambda event: self._cancel_conversion())
         self.root.bind_all("<Control-plus>", lambda event: self._change_zoom(1))
+        self.root.bind_all("<Control-equal>", lambda event: self._change_zoom(1))
         self.root.bind_all("<Control-minus>", lambda event: self._change_zoom(-1))
+        self.root.bind_all("<Control-Key-0>", lambda event: self._reset_zoom())
+        self.root.bind_all("<F1>", lambda event: self._show_keyboard_shortcuts())
         self.root.bind_all("<MouseWheel>", self._on_mousewheel)
 
     def _on_mousewheel(self, event) -> None:
-        target = (
-            self.preview_canvas
-            if self.preview_canvas.focus_get()
-            else self.body_canvas
-        )
+        if self.root.focus_get() is self.preview_canvas:
+            return self._on_preview_mousewheel(event)
+        target = self.body_canvas
         target.yview_scroll(-1 if event.delta > 0 else 1, "units")
+
+    def _show_keyboard_shortcuts(self) -> str:
+        self.dialogs.show_info(
+            self._t("keyboard_shortcuts_action"),
+            self._t("keyboard_shortcuts_body"),
+        )
+        return "break"

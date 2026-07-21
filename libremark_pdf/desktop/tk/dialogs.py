@@ -29,5 +29,8 @@ class TkDialogs:
     def show_error(self, title: str, message: str) -> None:
         messagebox.showerror(title, message)
 
+    def show_info(self, title: str, message: str) -> None:
+        messagebox.showinfo(title, message)
+
 
 DEFAULT_TK_DIALOGS = TkDialogs()

@@ -21,7 +21,6 @@ class TkConversionMixin:
                 "normal"
                 if self.files
                 and self.operation == "idle"
-                and not self._preview_running
                 else "disabled"
             ),
         )
@@ -51,7 +50,7 @@ class TkConversionMixin:
         )
 
     def _on_generate_clicked(self) -> None:
-        if self.operation != "idle" or self._preview_running:
+        if self.operation != "idle":
             return
         if not self.files:
             self.dialogs.show_error(
@@ -121,6 +120,7 @@ class TkConversionMixin:
         self.output_entry.config(state="readonly")
         self.cancel_button.config(state="disabled")
         self._render_theme_cards()
+        self._update_zoom_controls()
         self._refresh_generate_button()
 
     def _handle_generate_done(self, results: list) -> None:
