@@ -49,6 +49,9 @@ class LibreMarkPdfApp(
         self._status_key = "status_ready"
         self._status_kwargs = {}  # type: dict
         self._close_requested = False
+        self._close_dialog_open = False
+        self._conversion_results = []  # type: list
+        self._global_conversion_error = None  # type: Optional[str]
         self._preview_generation = 0
         self._preview_after = None
         self._preview_running = False
@@ -163,6 +166,7 @@ class LibreMarkPdfApp(
         self.output_button.config(text=self._t("change_destination"))
         self.output_reset_button.config(text=self._t("reset_destination"))
         self.cancel_button.config(text=self._t("cancel_button"))
+        self.results_frame.config(text=self._t("results_heading"))
         self._refresh_generate_button()
         self._refresh_css_entry()
         self._refresh_output_entry()
@@ -174,6 +178,11 @@ class LibreMarkPdfApp(
             text=self._t(self._status_key, **self._status_kwargs),
             style=status_label_style(self._status_key),
         )
+        if self._conversion_results or self._global_conversion_error:
+            self._render_results(
+                self._conversion_results,
+                global_error=self._global_conversion_error,
+            )
 
     def _schedule_queue_poll(self) -> None:
         if self._poll_after is None:
@@ -238,39 +247,61 @@ class LibreMarkPdfApp(
                 if is_latest_request:
                     self._refresh_generate_button()
             elif kind == "progress":
-                _kind, index, total, _result = message
-                self.progress_var.set(index)
-                self._set_status(
-                    "status_generating_progress", current=index, total=total
-                )
+                _kind, index, total, result = message
+                if not self._close_requested:
+                    self._handle_conversion_progress(index, total, result)
             elif kind == "generate_done":
                 if not self._close_requested:
                     self._handle_generate_done(message[1])
                 self._finish_operation()
             elif kind == "generate_failed":
                 if not self._close_requested:
-                    self._set_status("status_generation_error", error=message[1])
-                    self.dialogs.show_error(self._t("error_title"), message[1])
+                    self._handle_generate_failed(message[1])
                 self._finish_operation()
         if self.operation != "idle" or self._preview_running:
             self._schedule_queue_poll()
 
     def _request_close(self) -> None:
-        requests = getattr(self, "_preview_requests", None)
-        if requests is not None:
-            requests.put(None)
+        if self._close_requested or getattr(self, "_close_dialog_open", False):
+            return
         if self.operation == "idle":
             self._close_requested = True
+            requests = getattr(self, "_preview_requests", None)
+            if requests is not None:
+                requests.put(None)
             self._invalidate_preview()
             if self._poll_after is not None:
                 self.root.after_cancel(self._poll_after)
                 self._poll_after = None
             self.root.destroy()
             return
+        if self.operation == "generate":
+            self._close_dialog_open = True
+            try:
+                choice = self.dialogs.ask_close_during_conversion(
+                    self.root,
+                    self._t("close_conversion_title"),
+                    self._t("close_conversion_question"),
+                    self._t("continue_conversion"),
+                    self._t("cancel_conversion_and_close"),
+                )
+            finally:
+                self._close_dialog_open = False
+            if choice != "cancel_close":
+                self.status_label.focus_set()
+                return
+            if self.operation == "idle":
+                self._request_close()
+                return
         self._close_requested = True
+        requests = getattr(self, "_preview_requests", None)
+        if requests is not None:
+            requests.put(None)
         self._preview_generation += 1
         if self.operation == "generate":
-            self._cancel_event.set()
+            if not self._cancel_event.is_set():
+                self._cancel_event.set()
+            self.cancel_button.config(state="disabled")
         self._set_status("status_closing")
 
 

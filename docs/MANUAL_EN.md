@@ -57,10 +57,16 @@ install CPython 3.9 with pyenv first; the Linux bootstrap detects an installed
 7. Select **⚙ Generate PDF**.
 
 The application presents output collisions and existing PDFs before conversion.
-During a batch it displays progress and allows safe cancellation after the
-current file. When an item fails, the result identifies the source and error;
-other independent files continue. **Open PDF** and **Open folder** actions are
-shown only for successful outputs.
+The choices use explicit labels: a collision can be skipped while independent
+files continue, and an existing PDF can be replaced only after a successful
+render or kept and reported as a failure. During a batch the persistent action
+bar identifies progress and allows safe cancellation after the current file.
+Closing the window asks whether to **Continue conversion** (the safe default,
+also used by Escape) or **Cancel conversion and close**; the active file may
+finish before the remaining files are cancelled. The final list keeps one row
+per input in source order, including successful, failed, and cancelled items.
+Error codes can be expanded and copied. **Open PDF** and **Open folder** actions
+are shown only for successful outputs.
 
 ## Header and footer tokens
 

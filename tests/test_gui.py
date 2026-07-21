@@ -636,6 +636,7 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
         )
         app.progress = mock.Mock()
         app.progress_var = mock.Mock()
+        app._cancel_event = threading.Event()
         app._clear_results = mock.Mock()
         app._begin_operation = mock.Mock()
         app._set_status = mock.Mock()
@@ -1412,6 +1413,7 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
         app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
         app.files = [Path("one.md"), Path("two.md")]
         app.output_dir = None
+        app.root = mock.Mock()
         app._t = lambda key, **kwargs: key
         app.dialogs = mock.Mock()
         plans = [
@@ -1432,12 +1434,11 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
         app.dialogs.ask_collision_continue.assert_called_once()
         app.dialogs.ask_overwrite.assert_called_once()
 
-    def test_result_actions_receive_successes_only(self):
+    def test_mixed_results_keep_one_persistent_row_per_core_result(self):
         app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
         app._render_results = mock.Mock()
         app._set_status = mock.Mock()
-        app._t = lambda key, **kwargs: key
-        app.dialogs = mock.Mock()
+        app.results_summary_label = mock.Mock()
         results = [
             {
                 "input": "ok.md", "output": "ok.pdf", "status": "ok",
@@ -1453,27 +1454,135 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
             },
         ]
         app._handle_generate_done(results)
-        app._render_results.assert_called_once_with([results[0]])
+        app._render_results.assert_called_once_with(results)
         app._set_status.assert_called_once_with(
             "status_done_summary", ok=1, failed=1, cancelled=1
         )
-        app.dialogs.show_error.assert_called_once_with(
-            "error_title", "bad.md: [RENDER_FAILED] failed"
+        app.results_summary_label.focus_set.assert_called_once_with()
+
+    def test_progress_keeps_completed_result_and_names_the_active_item(self):
+        app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
+        app.progress_var = mock.Mock()
+        app._cancel_event = threading.Event()
+        app._conversion_results = []
+        app._render_results = mock.Mock()
+        app._set_status = mock.Mock()
+        result = {
+            "input": "folder/one.md", "output": "one.pdf", "status": "ok",
+            "error": None, "error_code": None,
+        }
+        app._handle_conversion_progress(1, 3, result)
+        self.assertEqual(app._conversion_results, [result])
+        app._render_results.assert_called_once_with([result])
+        app._set_status.assert_called_once_with(
+            "status_generating_file", current=1, total=3, name="one.md"
         )
 
-    def test_close_during_generation_requests_cancel_before_destroy(self):
+    def test_progress_does_not_hide_a_pending_cancellation(self):
+        app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
+        app.progress_var = mock.Mock()
+        app._cancel_event = threading.Event()
+        app._cancel_event.set()
+        app._conversion_results = []
+        app._render_results = mock.Mock()
+        app._set_status = mock.Mock()
+        result = {"input": "one.md", "status": "ok"}
+        app._handle_conversion_progress(1, 2, result)
+        app._set_status.assert_called_once_with("status_cancelling")
+
+    def test_global_error_preserves_completed_rows_without_modal(self):
+        app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
+        completed = [{"input": "one.md", "status": "ok"}]
+        app._conversion_results = completed
+        app._render_results = mock.Mock()
+        app._set_status = mock.Mock()
+        app.results_summary_label = mock.Mock()
+        app._handle_generate_failed("worker stopped")
+        app._render_results.assert_called_once_with(
+            completed, global_error="worker stopped"
+        )
+        app._set_status.assert_called_once_with(
+            "status_generation_error", error="worker stopped"
+        )
+        app.results_summary_label.focus_set.assert_called_once_with()
+
+    def test_only_success_rows_offer_open_actions(self):
+        app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
+        app.result_rows_frame = mock.Mock()
+        app._t = lambda key, **kwargs: key
+        app._open_result = mock.Mock()
+        app._copy_result_details = mock.Mock()
+        created_buttons = []
+
+        def button(*args, **kwargs):
+            widget = mock.Mock()
+            widget.creation_options = kwargs
+            created_buttons.append(widget)
+            return widget
+
+        widget = lambda *args, **kwargs: mock.Mock()
+        with mock.patch.object(tk_conversion.ttk, "LabelFrame", side_effect=widget), \
+                mock.patch.object(tk_conversion.ttk, "Frame", side_effect=widget), \
+                mock.patch.object(tk_conversion.ttk, "Label", side_effect=widget), \
+                mock.patch.object(tk_conversion.ttk, "Button", side_effect=button):
+            app._render_result_row({
+                "input": "ok.md", "output": "ok.pdf", "status": "ok",
+                "error": None, "error_code": None,
+            })
+            app._render_result_row({
+                "input": "bad.md", "output": None, "status": "error",
+                "error": "failed", "error_code": "RENDER_FAILED",
+            })
+            app._render_result_row({
+                "input": "later.md", "output": None, "status": "cancelled",
+                "error": "cancelled", "error_code": "CANCELLED",
+            })
+        labels = [item.creation_options.get("text") for item in created_buttons]
+        self.assertEqual(labels.count("open_pdf"), 1)
+        self.assertEqual(labels.count("open_folder"), 1)
+        self.assertNotIn("open_pdf", labels[2:])
+        self.assertNotIn("open_folder", labels[2:])
+
+    def test_continue_close_choice_does_not_cancel_or_close(self):
         app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
         app.operation = "generate"
         app.root = mock.Mock()
+        app.dialogs = mock.Mock()
+        app.dialogs.ask_close_during_conversion.return_value = "continue"
+        app._t = lambda key, **kwargs: key
         app._cancel_event = threading.Event()
         app._preview_generation = 3
         app._set_status = mock.Mock()
         app._close_requested = False
+        app._close_dialog_open = False
+        app.cancel_button = mock.Mock()
+        app.status_label = mock.Mock()
+        app._request_close()
+        self.assertFalse(app._close_requested)
+        self.assertFalse(app._cancel_event.is_set())
+        self.assertEqual(app._preview_generation, 3)
+        app.status_label.focus_set.assert_called_once_with()
+        app._set_status.assert_not_called()
+
+    def test_cancel_and_close_choice_waits_for_active_file(self):
+        app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
+        app.operation = "generate"
+        app.root = mock.Mock()
+        app.dialogs = mock.Mock()
+        app.dialogs.ask_close_during_conversion.return_value = "cancel_close"
+        app._t = lambda key, **kwargs: key
+        app._cancel_event = threading.Event()
+        app._preview_generation = 3
+        app._set_status = mock.Mock()
+        app._close_requested = False
+        app._close_dialog_open = False
+        app.cancel_button = mock.Mock()
         app._request_close()
         self.assertTrue(app._close_requested)
         self.assertTrue(app._cancel_event.is_set())
         self.assertEqual(app._preview_generation, 4)
         app.root.destroy.assert_not_called()
+        app.cancel_button.config.assert_called_once_with(state="disabled")
         app._set_status.assert_called_once_with("status_closing")
 
     def test_idle_close_is_immediate(self):
@@ -1481,6 +1590,7 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
         app.operation = "idle"
         app.root = mock.Mock()
         app._close_requested = False
+        app._close_dialog_open = False
         app._preview_after = "preview-after"
         app._poll_after = "poll-after"
         app._preview_generation = 2
@@ -1493,6 +1603,59 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
             app.root.after_cancel.call_args_list,
             [mock.call("preview-after"), mock.call("poll-after")],
         )
+        app.root.destroy.assert_called_once_with()
+
+    def test_close_dialog_dismissal_and_escape_continue_by_default(self):
+        dialogs = tk_dialogs.TkDialogs()
+        dialog = mock.Mock()
+        content = mock.Mock()
+        actions = mock.Mock()
+        cancel_button = mock.Mock()
+        continue_button = mock.Mock()
+        with mock.patch.object(tk_dialogs.tk, "Toplevel", return_value=dialog), \
+                mock.patch.object(
+                    tk_dialogs.ttk, "Frame", side_effect=[content, actions]
+                ), mock.patch.object(tk_dialogs.ttk, "Label", return_value=mock.Mock()), \
+                mock.patch.object(
+                    tk_dialogs.ttk,
+                    "Button",
+                    side_effect=[cancel_button, continue_button],
+                ):
+            self.assertEqual(
+                dialogs.ask_close_during_conversion(
+                    mock.Mock(), "Closing", "Keep going?", "Continue", "Cancel"
+                ),
+                "continue",
+            )
+        continue_button.focus_set.assert_called_once_with()
+        protocol_callback = dialog.protocol.call_args.args[1]
+        bindings = {call.args[0]: call.args[1] for call in dialog.bind.call_args_list}
+        escape_callback = bindings["<Escape>"]
+        return_callback = bindings["<Return>"]
+        protocol_callback()
+        self.assertEqual(escape_callback(mock.Mock()), "break")
+        self.assertEqual(return_callback(mock.Mock()), "break")
+        self.assertGreaterEqual(dialog.destroy.call_count, 3)
+
+    def test_cancel_and_close_after_terminal_event_closes_immediately(self):
+        app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
+        app.operation = "generate"
+        app.root = mock.Mock()
+        app.dialogs = mock.Mock()
+        app._t = lambda key, **kwargs: key
+        app._cancel_event = threading.Event()
+        app._preview_generation = 1
+        app._preview_after = None
+        app._poll_after = None
+        app._close_requested = False
+        app._close_dialog_open = False
+        app._invalidate_preview = mock.Mock()
+        app.dialogs.ask_close_during_conversion.side_effect = lambda *args: (
+            setattr(app, "operation", "idle") or "cancel_close"
+        )
+        app._request_close()
+        self.assertTrue(app._close_requested)
+        self.assertFalse(app._cancel_event.is_set())
         app.root.destroy.assert_called_once_with()
 
     def test_clear_files_does_not_start_a_sample_preview(self):
@@ -1583,9 +1746,25 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
         files.assert_called_once_with(
             title="Choose", filetypes=[("Markdown", "*.md")]
         )
-        with mock.patch.object(tk_dialogs.messagebox, "askyesnocancel", return_value=None) as overwrite:
-            self.assertIsNone(dialogs.ask_overwrite("Existing", "Replace?"))
-        overwrite.assert_called_once_with("Existing", "Replace?")
+        root = mock.Mock()
+        with mock.patch.object(
+            dialogs, "_ask_explicit_choice", return_value="cancel"
+        ) as overwrite:
+            self.assertIsNone(dialogs.ask_overwrite(
+                root, "Existing", "Replace?", "Replace", "Keep", "Cancel"
+            ))
+        overwrite.assert_called_once_with(
+            root,
+            "Existing",
+            "Replace?",
+            (
+                ("replace", "Replace"),
+                ("keep", "Keep"),
+                ("cancel", "Cancel"),
+            ),
+            default_choice="keep",
+            dismiss_choice="cancel",
+        )
         with mock.patch.object(
             tk_dialogs.messagebox, "askyesno", return_value=False
         ) as trusted:

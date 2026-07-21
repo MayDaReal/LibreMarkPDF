@@ -112,10 +112,12 @@ STRINGS = {
         "change_destination": "Change",
         "reset_destination": "Use source folders",
         "generate_button": "⚙ Generate PDF ({count} file(s))",
-        "cancel_button": "Cancel",
+        "cancel_button": "Cancel after this file",
+        "cancel_button_short": "Cancel",
         "status_ready": "Ready.",
         "status_generating": "Generating…",
         "status_generating_progress": "Generating… {current} / {total}",
+        "status_generating_file": "Generating… {current} / {total} · {name}",
         "status_cancelling": "Cancelling after the current file…",
         "status_cancelled": "Conversion cancelled before it started.",
         "status_closing": "Finishing the active operation before closing…",
@@ -123,10 +125,14 @@ STRINGS = {
         "status_done_summary": (
             "Done: {ok} succeeded, {failed} failed, {cancelled} cancelled."
         ),
+        "results_count_summary": (
+            "{ok} succeeded · {failed} failed · {cancelled} cancelled"
+        ),
         "status_done_with_errors": "{ok} succeeded, {failed} failed. See details below.",
         "status_rendering_preview": "Rendering preview…",
         "status_preview_error": "Could not render preview: {error}",
         "status_generation_error": "Could not complete conversion: {error}",
+        "status_details_copied": "Error details copied.",
         "status_theme_error": "Could not load installed themes: {error}",
         "error_title": "Error",
         "error_no_files": "Add at least one .md file first.",
@@ -141,12 +147,31 @@ STRINGS = {
             "These inputs cannot be written to their planned outputs and will "
             "be reported as failures:\n\n{details}\n\nContinue with independent files?"
         ),
+        "continue_with_others": "Continue with the others",
         "overwrite_title": "Existing output files",
         "overwrite_question": (
-            "{count} output file(s) already exist. Replace them only after each "
-            "new PDF renders successfully?\n\nYes: replace. No: keep and report "
-            "those items as failures. Cancel: do not start."
+            "{count} output file(s) already exist. Choose whether to replace "
+            "each one only after its new PDF renders successfully, or keep it "
+            "and report that item as a failure."
         ),
+        "replace_after_success": "Replace after successful render",
+        "keep_and_report": "Keep and report failures",
+        "close_conversion_title": "Conversion in progress",
+        "close_conversion_question": (
+            "A conversion is still running. Continuing is the safe choice. "
+            "If you cancel and close, the active file may finish and remaining "
+            "files will be cancelled."
+        ),
+        "continue_conversion": "Continue conversion",
+        "cancel_conversion_and_close": "Cancel conversion and close",
+        "results_heading": "Results",
+        "result_status_ok": "Succeeded",
+        "result_status_error": "Failed",
+        "result_status_cancelled": "Cancelled",
+        "result_error_code": "Technical code: {code}",
+        "show_details": "Show details",
+        "hide_details": "Hide details",
+        "batch_error": "Batch error",
         "open_pdf": "Open PDF",
         "open_folder": "Open folder",
         "open_error": "Could not open the selected path: {error}",
@@ -254,10 +279,14 @@ STRINGS = {
         "change_destination": "Changer",
         "reset_destination": "Utiliser les dossiers sources",
         "generate_button": "⚙ Générer le PDF ({count} fichier(s))",
-        "cancel_button": "Annuler",
+        "cancel_button": "Annuler après ce fichier",
+        "cancel_button_short": "Annuler",
         "status_ready": "Prêt.",
         "status_generating": "Génération en cours…",
         "status_generating_progress": "Génération en cours… {current} / {total}",
+        "status_generating_file": (
+            "Génération en cours… {current} / {total} · {name}"
+        ),
         "status_cancelling": "Annulation après le fichier en cours…",
         "status_cancelled": "Conversion annulée avant son démarrage.",
         "status_closing": "Fin de l’opération en cours avant la fermeture…",
@@ -266,12 +295,16 @@ STRINGS = {
             "Terminé : {ok} réussi(s), {failed} échoué(s), "
             "{cancelled} annulé(s)."
         ),
+        "results_count_summary": (
+            "{ok} réussi(s) · {failed} échoué(s) · {cancelled} annulé(s)"
+        ),
         "status_done_with_errors": (
             "{ok} réussi(s), {failed} échoué(s). Voir le détail ci-dessous."
         ),
         "status_rendering_preview": "Génération de l'aperçu…",
         "status_preview_error": "Impossible de générer l'aperçu : {error}",
         "status_generation_error": "Impossible de terminer la conversion : {error}",
+        "status_details_copied": "Détails de l’erreur copiés.",
         "status_theme_error": "Impossible de charger les thèmes installés : {error}",
         "error_title": "Erreur",
         "error_no_files": "Ajoutez d’abord au moins un fichier .md.",
@@ -287,13 +320,31 @@ STRINGS = {
             "et seront signalées comme des échecs :\n\n{details}\n\nPoursuivre "
             "avec les fichiers indépendants ?"
         ),
+        "continue_with_others": "Continuer avec les autres",
         "overwrite_title": "Fichiers de sortie existants",
         "overwrite_question": (
-            "{count} fichier(s) de sortie existent déjà. Les remplacer uniquement "
-            "après le rendu réussi de chaque nouveau PDF ?\n\nOui : remplacer. "
-            "Non : conserver et signaler ces éléments comme des échecs. "
-            "Annuler : ne pas démarrer."
+            "{count} fichier(s) de sortie existent déjà. Choisissez de remplacer "
+            "chacun uniquement après le rendu réussi du nouveau PDF, ou de le "
+            "conserver et de signaler cet élément comme un échec."
         ),
+        "replace_after_success": "Remplacer après un rendu réussi",
+        "keep_and_report": "Conserver et signaler les échecs",
+        "close_conversion_title": "Conversion en cours",
+        "close_conversion_question": (
+            "Une conversion est toujours en cours. La poursuivre est le choix "
+            "sûr. Si vous annulez et fermez, le fichier actif peut se terminer "
+            "et les fichiers restants seront annulés."
+        ),
+        "continue_conversion": "Continuer la conversion",
+        "cancel_conversion_and_close": "Annuler la conversion et fermer",
+        "results_heading": "Résultats",
+        "result_status_ok": "Réussi",
+        "result_status_error": "Échec",
+        "result_status_cancelled": "Annulé",
+        "result_error_code": "Code technique : {code}",
+        "show_details": "Afficher les détails",
+        "hide_details": "Masquer les détails",
+        "batch_error": "Erreur globale du lot",
         "open_pdf": "Ouvrir le PDF",
         "open_folder": "Ouvrir le dossier",
         "open_error": "Impossible d’ouvrir le chemin sélectionné : {error}",

@@ -37,16 +37,23 @@ class TkConversionMixin:
                 for plan in collisions
             )
             if not self.dialogs.ask_collision_continue(
+                self.root,
                 self._t("collision_title"),
                 self._t("collision_continue", details=details),
+                self._t("continue_with_others"),
+                self._t("cancel_button_short"),
             ):
                 return None
         existing = [plan for plan in plans if plan.error_code == "OUTPUT_EXISTS"]
         if not existing:
             return False
         return self.dialogs.ask_overwrite(
+            self.root,
             self._t("overwrite_title"),
             self._t("overwrite_question", count=len(existing)),
+            self._t("replace_after_success"),
+            self._t("keep_and_report"),
+            self._t("cancel_button_short"),
         )
 
     def _on_generate_clicked(self) -> None:
@@ -128,45 +135,157 @@ class TkConversionMixin:
         ok = [item for item in results if item["status"] == "ok"]
         failed = [item for item in results if item["status"] == "error"]
         cancelled = [item for item in results if item["status"] == "cancelled"]
-        self._render_results(ok)
+        self._render_results(results)
         self._set_status(
             "status_done_summary",
             ok=len(ok),
             failed=len(failed),
             cancelled=len(cancelled),
         )
-        if failed:
-            details = "\n".join(
-                "{0}: [{1}] {2}".format(
-                    item["input"], item["error_code"], item["error"]
-                )
-                for item in failed
+        self.results_summary_label.focus_set()
+
+    def _handle_conversion_progress(
+        self, index: int, total: int, result: dict
+    ) -> None:
+        self.progress_var.set(index)
+        self._conversion_results.append(result)
+        self._render_results(self._conversion_results)
+        if self._cancel_event.is_set():
+            self._set_status("status_cancelling")
+        else:
+            self._set_status(
+                "status_generating_file",
+                current=index,
+                total=total,
+                name=Path(result["input"]).name,
             )
-            self.dialogs.show_error(self._t("error_title"), details)
+
+    def _handle_generate_failed(self, error: str) -> None:
+        self._global_conversion_error = error
+        self._render_results(
+            self._conversion_results,
+            global_error=error,
+        )
+        self._set_status("status_generation_error", error=error)
+        self.results_summary_label.focus_set()
 
     def _clear_results(self) -> None:
-        for child in self.results_frame.winfo_children():
+        self._conversion_results = []
+        self._global_conversion_error = None
+        self.results_summary_label.config(text="")
+        self.results_error_label.pack_forget()
+        for child in self.result_rows_frame.winfo_children():
             child.destroy()
 
-    def _render_results(self, successful: list) -> None:
-        self._clear_results()
-        for result in successful:
-            output = Path(result["output"])
-            row = ttk.Frame(self.results_frame)
-            row.pack(fill="x", pady=2)
-            ttk.Label(row, text=str(output), anchor="w").pack(
-                side="left", fill="x", expand=True
+    def _render_results(
+        self,
+        results: list,
+        global_error: Optional[str] = None,
+    ) -> None:
+        self._conversion_results = list(results)
+        self._global_conversion_error = global_error
+        for child in self.result_rows_frame.winfo_children():
+            child.destroy()
+        ok = sum(item["status"] == "ok" for item in results)
+        failed = sum(item["status"] == "error" for item in results)
+        cancelled = sum(item["status"] == "cancelled" for item in results)
+        if results:
+            self.results_summary_label.config(text=self._t(
+                "results_count_summary",
+                ok=ok,
+                failed=failed,
+                cancelled=cancelled,
+            ))
+        else:
+            self.results_summary_label.config(text="")
+        if global_error:
+            self.results_error_label.config(
+                text="{0}: {1}".format(self._t("batch_error"), global_error)
             )
+            self.results_error_label.pack(fill="x", pady=(4, 0))
+        else:
+            self.results_error_label.pack_forget()
+        for result in results:
+            self._render_result_row(result)
+
+    def _render_result_row(self, result: dict) -> None:
+        source = Path(result["input"])
+        row = ttk.LabelFrame(
+            self.result_rows_frame,
+            text=source.name,
+            padding=6,
+        )
+        row.pack(fill="x", pady=2)
+        status = result["status"]
+        status_text = {
+            "ok": "✓ {0}".format(self._t("result_status_ok")),
+            "error": "! {0}".format(self._t("result_status_error")),
+            "cancelled": "– {0}".format(self._t("result_status_cancelled")),
+        }[status]
+        ttk.Label(row, text=status_text, anchor="w").pack(fill="x")
+        if status == "ok":
+            output = Path(result["output"])
+            ttk.Label(row, text=str(output), anchor="w").pack(fill="x")
+            actions = ttk.Frame(row)
+            actions.pack(fill="x", pady=(4, 0))
             ttk.Button(
-                row,
+                actions,
                 text=self._t("open_pdf"),
                 command=lambda path=output: self._open_result(path),
             ).pack(side="right")
             ttk.Button(
-                row,
+                actions,
                 text=self._t("open_folder"),
                 command=lambda path=output.parent: self._open_result(path),
             ).pack(side="right", padx=4)
+        elif status == "error":
+            ttk.Label(
+                row,
+                text=str(result.get("error") or ""),
+                anchor="w",
+                wraplength=440,
+            ).pack(fill="x")
+            details = ttk.Frame(row)
+            ttk.Label(
+                details,
+                text=self._t(
+                    "result_error_code",
+                    code=result.get("error_code") or "UNKNOWN",
+                ),
+                anchor="w",
+            ).pack(fill="x")
+            actions = ttk.Frame(row)
+            actions.pack(fill="x", pady=(4, 0))
+            toggle = ttk.Button(actions)
+
+            def toggle_details() -> None:
+                if details.winfo_manager():
+                    details.pack_forget()
+                    toggle.config(text=self._t("show_details"))
+                else:
+                    details.pack(fill="x", pady=(4, 0), before=actions)
+                    toggle.config(text=self._t("hide_details"))
+
+            toggle.config(
+                text=self._t("show_details"),
+                command=toggle_details,
+            )
+            toggle.pack(side="left")
+            ttk.Button(
+                actions,
+                text=self._t("copy_details"),
+                command=lambda item=result: self._copy_result_details(item),
+            ).pack(side="left", padx=4)
+
+    def _copy_result_details(self, result: dict) -> None:
+        details = "{0}: [{1}] {2}".format(
+            result["input"],
+            result.get("error_code") or "UNKNOWN",
+            result.get("error") or "",
+        )
+        self.root.clipboard_clear()
+        self.root.clipboard_append(details)
+        self._set_status("status_details_copied")
 
     def _open_result(self, path: Path) -> None:
         try:

@@ -20,7 +20,8 @@ agent contract in [`SKILL.md`](SKILL.md).
 - four summarized desktop setting sections for style, destination, six
   header/footer positions, date, and trusted static HTML;
 - English and French desktop interface;
-- cancellable batch progress and pre-conversion collision choices;
+- cancellable per-file batch progress, explicit close and collision choices,
+  and persistent success, failure, and cancellation results;
 - deterministic JSON output and meaningful exit status for automation.
 
 User guides: [English](docs/MANUAL_EN.md) · [Français](docs/MANUEL_FR.md)

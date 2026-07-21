@@ -147,10 +147,11 @@ class TkLayoutMixin:
             self.action_bar,
             wraplength=STATUS_WRAP_LENGTH,
             style=STATUS_LABEL_STYLE,
+            takefocus=True,
         )
         self.status_label.grid(row=0, column=0, sticky="ew", padx=(0, SPACE_SM))
         self.progress = ttk.Progressbar(
-            self.action_bar, variable=self.progress_var, maximum=1
+            self.action_bar, variable=self.progress_var, maximum=1, takefocus=True
         )
         self.progress.grid(
             row=1,
@@ -544,7 +545,24 @@ class TkLayoutMixin:
             "<Right>", lambda event: self._change_preview_page(1)
         )
 
-        self.results_frame = ttk.Frame(self.workspace)
+        self.results_frame = ttk.LabelFrame(
+            self.workspace,
+            padding=SECTION_PADDING,
+        )
+        self.results_summary_label = ttk.Label(
+            self.results_frame,
+            anchor="w",
+            takefocus=True,
+            font=self.ui_styles.emphasis_font,
+        )
+        self.results_summary_label.pack(fill="x")
+        self.results_error_label = ttk.Label(
+            self.results_frame,
+            justify="left",
+            wraplength=480,
+        )
+        self.result_rows_frame = ttk.Frame(self.results_frame)
+        self.result_rows_frame.pack(fill="x", pady=(SPACE_SM, 0))
 
         self._operation_controls.extend([
             self.browse_button, self.clear_files_button, self.css_button,

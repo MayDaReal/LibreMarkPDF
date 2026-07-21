@@ -61,11 +61,18 @@ automatiquement une version pyenv `3.9.x` déjà installée.
 7. Sélectionnez **⚙ Générer le PDF**.
 
 L’application présente les collisions de sortie et les PDF existants avant la
-conversion. Pendant un lot, elle affiche la progression et permet une
-annulation sûre après le fichier en cours. En cas d’échec, le résultat précise
-la source et l’erreur ; les autres fichiers indépendants continuent d’être
-traités. Les actions **Ouvrir le PDF** et **Ouvrir le dossier** ne sont proposées
-que pour les sorties réussies.
+conversion. Les choix sont explicites : une collision peut être ignorée pendant
+que les fichiers indépendants continuent, et un PDF existant peut être remplacé
+uniquement après un rendu réussi ou conservé et signalé comme un échec. Pendant
+un lot, la barre d’action persistante indique la progression et permet une
+annulation sûre après le fichier en cours. Fermer la fenêtre demande de
+**Continuer la conversion** (choix sûr par défaut, également utilisé par Échap)
+ou d’**Annuler la conversion et fermer** ; le fichier actif peut se terminer
+avant l’annulation des fichiers restants. La liste finale conserve une ligne
+par entrée dans l’ordre des sources, y compris les réussites, échecs et
+annulations. Les codes d’erreur peuvent être dépliés et copiés. Les actions
+**Ouvrir le PDF** et **Ouvrir le dossier** ne sont proposées que pour les
+sorties réussies.
 
 ## Jetons d’en-tête et de pied de page
 
