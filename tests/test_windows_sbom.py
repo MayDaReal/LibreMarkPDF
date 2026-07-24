@@ -56,6 +56,9 @@ class TestWindowsSbom(unittest.TestCase):
         packages = generate_windows_sbom.locked_packages(lock)
         self.assertGreaterEqual(len(packages), 19)
         self.assertNotIn("NOASSERTION", [item["license"] for item in packages])
+        licenses = {item["name"].lower(): item["license"] for item in packages}
+        self.assertEqual(licenses["customtkinter"], "MIT")
+        self.assertEqual(licenses["darkdetect"], "BSD-3-Clause")
 
 
 if __name__ == "__main__":

@@ -17,6 +17,30 @@ STRINGS = {
     "en": {
         "app_title": "LibreMark PDF",
         "app_version_compact": "v{version}",
+        "gallery_title": "Modern UI component gallery",
+        "gallery_foundations": "Visual foundations",
+        "gallery_components_tab": "Components",
+        "gallery_icons_tab": "Icons",
+        "gallery_buttons": "Buttons and states",
+        "gallery_primary": "Primary action",
+        "gallery_secondary": "Secondary action",
+        "gallery_disabled": "Disabled",
+        "gallery_hover": "Hover",
+        "gallery_pressed": "Pressed",
+        "gallery_icon_action": "Refresh preview",
+        "gallery_badges": "Status badges",
+        "gallery_neutral": "Pending",
+        "gallery_success": "Succeeded",
+        "gallery_warning": "Attention",
+        "gallery_error": "Failed",
+        "gallery_info": "Information",
+        "gallery_typography": "Typography and cards",
+        "gallery_body": "Clear body text on a calm office-style surface.",
+        "gallery_secondary_text": "Secondary information remains readable.",
+        "gallery_focus_hint": (
+            "Use Tab to inspect focus. Hover icon buttons for localized help."
+        ),
+        "gallery_icon_variants": "Neutral · accent · success · error",
         "help_menu": "Help",
         "about_action": "About LibreMark PDF",
         "about_version": "LibreMark PDF {version}",
@@ -235,6 +259,35 @@ STRINGS = {
     "fr": {
         "app_title": "LibreMark PDF",
         "app_version_compact": "v{version}",
+        "gallery_title": "Galerie des composants de l’IHM moderne",
+        "gallery_foundations": "Fondations visuelles",
+        "gallery_components_tab": "Composants",
+        "gallery_icons_tab": "Icônes",
+        "gallery_buttons": "Boutons et états",
+        "gallery_primary": "Action principale",
+        "gallery_secondary": "Action secondaire",
+        "gallery_disabled": "Désactivé",
+        "gallery_hover": "Survol",
+        "gallery_pressed": "Pressé",
+        "gallery_icon_action": "Actualiser l’aperçu",
+        "gallery_badges": "Badges d’état",
+        "gallery_neutral": "En attente",
+        "gallery_success": "Réussi",
+        "gallery_warning": "Attention",
+        "gallery_error": "Échec",
+        "gallery_info": "Information",
+        "gallery_typography": "Typographie et cartes",
+        "gallery_body": (
+            "Texte courant lisible sur une surface bureautique sobre."
+        ),
+        "gallery_secondary_text": (
+            "Les informations secondaires restent lisibles."
+        ),
+        "gallery_focus_hint": (
+            "Utilisez Tab pour vérifier le focus. Survolez les boutons icônes "
+            "pour afficher leur aide localisée."
+        ),
+        "gallery_icon_variants": "Neutre · accent · succès · erreur",
         "help_menu": "Aide",
         "about_action": "À propos de LibreMark PDF",
         "about_version": "LibreMark PDF {version}",

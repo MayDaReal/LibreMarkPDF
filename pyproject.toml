@@ -26,11 +26,13 @@ dependencies = [
 
 [project.optional-dependencies]
 gui = [
+  "customtkinter==6.0.0",
   "pillow==11.3.0",
   "pypdfium2==5.11.0",
   "tkinterdnd2==0.6.2",
 ]
 build = [
+  "customtkinter==6.0.0",
   "pillow==11.3.0",
   "pypdfium2==5.11.0",
   "tkinterdnd2==0.6.2",
@@ -38,6 +40,7 @@ build = [
   "setuptools==82.0.1",
 ]
 test = [
+  "customtkinter==6.0.0",
   "pillow==11.3.0",
   "pypdfium2==5.11.0",
   "tkinterdnd2==0.6.2",
@@ -74,6 +77,9 @@ include = ["libremark_pdf*"]
   "assets/libremark-pdf-logo-64.png",
   "assets/libremark-pdf.ico",
 ]
+"libremark_pdf/assets/ui-icons" = ["assets/ui-icons/manifest.json"]
+"libremark_pdf/assets/ui-icons/svg" = ["assets/ui-icons/svg/*.svg"]
+"libremark_pdf/assets/ui-icons/png" = ["assets/ui-icons/png/*.png"]
 "libremark_pdf/fonts" = [
   "fonts/NotoEmoji.ttf",
   "fonts/NotoSans-Regular.ttf",
@@ -84,6 +90,8 @@ include = ["libremark_pdf*"]
   "fonts/NotoSansSymbols2-Regular.ttf",
 ]
 "libremark_pdf/licenses" = [
+  "licenses/Bootstrap-Icons-LICENSE.txt",
+  "licenses/CustomTkinter-LICENSE.txt",
   "licenses/NotoCJK-OFL.txt",
   "licenses/NotoDistribution-OFL.txt",
   "licenses/NotoEmoji-OFL.txt",

@@ -3,6 +3,10 @@
 # 2026-07-18. Native distribution validation remains mandatory.
 altgraph==0.17.5 \
     --hash=sha256:f3a22400bce1b0c701683820ac4f3b159cd301acab067c51c653e06961600597
+customtkinter==6.0.0 \
+    --hash=sha256:704fcbf1d2fca06bd7881b0afacfae72aed9864c9b6de2870e632e55eb3a0456
+darkdetect==0.8.0 \
+    --hash=sha256:a7509ccf517eaad92b31c214f593dbcf138ea8a43b2935406bbd565e15527a85
 greenlet==3.2.4 \
     --hash=sha256:16458c245a38991aa19676900d48bd1a6f2ce3e16595051a4db9d012154e8433
 importlib-metadata==8.7.1 \

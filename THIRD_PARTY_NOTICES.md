@@ -13,6 +13,8 @@ The current locked Python components and declared licence expressions are:
 
 | Components | Licence expression |
 | --- | --- |
+| CustomTkinter | MIT |
+| darkdetect | BSD-3-Clause |
 | Markdown | BSD-3-Clause |
 | Playwright, importlib-metadata, coverage, PyInstaller hooks | Apache-2.0 |
 | pyee, altgraph, pefile, setuptools, Ruff, zipp | MIT |
@@ -24,6 +26,17 @@ The current locked Python components and declared licence expressions are:
 | PyInstaller | GPL-2.0-or-later WITH Bootloader-exception |
 | tkinterdnd2 | MIT |
 | typing-extensions | PSF-2.0 |
+
+The application also includes a selected local subset of Bootstrap Icons
+1.11.1 under MIT. Its source SVG files, generated runtime PNG variants and
+origin manifest are under `assets/ui-icons/`; its complete licence is retained
+as `licenses/Bootstrap-Icons-LICENSE.txt`. CustomTkinter's complete bundled MIT
+licence is retained as `licenses/CustomTkinter-LICENSE.txt`.
+
+CustomTkinter 6.0.0's wheel contains that MIT licence and an MIT classifier,
+but its legacy `License` metadata field incorrectly says
+`Creative Commons Zero v1.0 Universal`. Upstream confirmation and correction
+are tracked in https://github.com/TomSchimansky/CustomTkinter/issues/2857.
 
 The exact versions and platform-specific archive SHA-256 values are in
 `requirements/locks/windows-x64-py39.txt` and

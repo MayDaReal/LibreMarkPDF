@@ -5,6 +5,10 @@ altgraph==0.17.5 \
     --hash=sha256:f3a22400bce1b0c701683820ac4f3b159cd301acab067c51c653e06961600597
 coverage==7.10.7 \
     --hash=sha256:c134869d5ffe34547d14e174c866fd8fe2254918cc0a95e99052903bc1543e07
+customtkinter==6.0.0 \
+    --hash=sha256:704fcbf1d2fca06bd7881b0afacfae72aed9864c9b6de2870e632e55eb3a0456
+darkdetect==0.8.0 \
+    --hash=sha256:a7509ccf517eaad92b31c214f593dbcf138ea8a43b2935406bbd565e15527a85
 greenlet==3.2.4 \
     --hash=sha256:d2e685ade4dafd447ede19c31277a224a239a0a1a4eca4e6390efedf20260cfb
 importlib-metadata==8.7.1 \

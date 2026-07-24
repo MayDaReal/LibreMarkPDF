@@ -11,6 +11,8 @@ from pathlib import Path
 LICENSES = {
     "altgraph": "MIT",
     "coverage": "Apache-2.0",
+    "customtkinter": "MIT",
+    "darkdetect": "BSD-3-Clause",
     "greenlet": "MIT AND PSF-2.0",
     "importlib-metadata": "Apache-2.0",
     "markdown": "BSD-3-Clause",

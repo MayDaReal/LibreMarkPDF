@@ -54,3 +54,26 @@ UI tests target stable business actions such as `files.add`,
 `advanced.toggle`, `preview.refresh`, and `convert.start`. They do not depend on
 coordinates, colors, or EN/FR labels. Native checklists retain human checks for
 contrast, focus, DPI, and desktop integration.
+
+The internal modern-component gallery is independent of conversion services:
+
+```powershell
+python -m tools.ui_component_gallery --lang fr
+python -m tools.ui_component_gallery --lang en
+```
+
+Its local Bootstrap Icons subset is owned by
+`libremark_pdf.desktop.ctk.assets`. When the approved upstream version, icon
+list, sizes, or semantic colors change, replace the retained SVG sources and
+run:
+
+```powershell
+$env:PLAYWRIGHT_BROWSERS_PATH = (Resolve-Path browser-win).Path
+python -m tools.generate_ui_icons
+python -m unittest tests.test_ctk_foundations -v
+```
+
+Review `assets/ui-icons/manifest.json`, the generated PNG diff, upstream
+licence, source hashes, 100/125/150% DPI rendering, and offline packaging.
+Delete the generator only if the runtime no longer consumes rasterized local
+icons.

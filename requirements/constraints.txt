@@ -2,6 +2,8 @@
 # The Windows release lock adds archive hashes and is the release authority.
 altgraph==0.17.5
 coverage==7.10.7
+customtkinter==6.0.0
+darkdetect==0.8.0
 greenlet==3.2.4
 importlib-metadata==8.7.1; python_version < "3.10"
 Markdown==3.9

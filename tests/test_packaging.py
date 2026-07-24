@@ -21,13 +21,13 @@ class TestPackagingConfiguration(unittest.TestCase):
         self.assertIn('["libremark_pdf_entry.py"]', portable)
         self.assertIn("exclude_binaries=True", portable)
         self.assertIn("COLLECT(", portable)
-        self.assertIn("hiddenimports=[]", portable)
         for resource in (
             "style.css", "icons", "assets", "browsers", "fonts", "licenses",
             "LICENSE", "THIRD_PARTY_NOTICES.md", "THEME_CONTRIBUTING.md",
-            "CLI_JSON_SCHEMA.json",
+            "CLI_JSON_SCHEMA.json", "customtkinter",
         ):
             self.assertIn(resource, portable)
+        self.assertIn('hiddenimports=["customtkinter"]', portable)
 
     def test_portable_spec_has_distinct_gui_cli_and_diagnostic_entry_paths(self):
         spec = (ROOT / "LibreMarkPDF.spec").read_text(encoding="utf-8")
@@ -98,6 +98,22 @@ class TestPackagingConfiguration(unittest.TestCase):
                 (ROOT / "assets" / f"libremark-pdf-logo-{size}.png").is_file()
             )
         self.assertTrue((ROOT / "assets" / "libremark-pdf.ico").is_file())
+
+    def test_modern_ui_licenses_and_icon_manifest_are_packaged(self):
+        project = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
+        notices = (ROOT / "THIRD_PARTY_NOTICES.md").read_text(
+            encoding="utf-8"
+        )
+        for name in (
+            "Bootstrap-Icons-LICENSE.txt",
+            "CustomTkinter-LICENSE.txt",
+        ):
+            self.assertTrue((ROOT / "licenses" / name).is_file())
+            self.assertIn(name, project)
+        self.assertIn("assets/ui-icons/manifest.json", project)
+        self.assertIn("assets/ui-icons/svg/*.svg", project)
+        self.assertIn("assets/ui-icons/png/*.png", project)
+        self.assertIn("CustomTkinter/issues/2857", notices)
 
     def test_cli_json_schema_is_valid_json_and_covers_batch_results(self):
         schema = json.loads(

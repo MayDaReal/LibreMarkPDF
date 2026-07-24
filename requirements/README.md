@@ -18,6 +18,10 @@ its browser manifest requires a dedicated dependency PR, an updated
 platform-specific lock, renderer-spike review, and golden evidence; Dependabot
 must not merge it automatically.
 
+The GUI input and both candidate locks select CustomTkinter 6.0.0 exactly.
+Its runtime resources are collected by the PyInstaller specification; normal
+application startup never downloads the package, themes, or assets.
+
 ## Contributor setup
 
 From a clean checkout, use `bootstrap-windows.ps1` or `bootstrap-linux.sh`.

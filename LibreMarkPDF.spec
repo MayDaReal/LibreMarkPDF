@@ -3,6 +3,8 @@
 import os
 import sys
 
+from PyInstaller.utils.hooks import collect_data_files
+
 
 browser_source = os.environ.get(
     "LIBREMARK_PDF_BROWSER_SOURCE",
@@ -14,7 +16,7 @@ a = Analysis(
     ["libremark_pdf_entry.py"],
     pathex=[],
     binaries=[],
-    datas=[
+    datas=collect_data_files("customtkinter") + [
         ("style.css", "."),
         ("VERSION", "."),
         ("icons", "icons"),
@@ -27,7 +29,7 @@ a = Analysis(
         ("docs/CLI_JSON_SCHEMA.json", "docs"),
         (browser_source, "browsers"),
     ],
-    hiddenimports=[],
+    hiddenimports=["customtkinter"],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
