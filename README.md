@@ -21,6 +21,8 @@ agent contract in [`SKILL.md`](SKILL.md).
   header/footer positions, date, and trusted static HTML;
 - English and French desktop interface;
 - compact in-window version access with local, copyable technical identities;
+- an editable local problem report with opt-in anonymized diagnostics, copy,
+  and UTF-8 save actions, with no automatic submission;
 - cancellable per-file batch progress, explicit close and collision choices,
   and persistent success, failure, and cancellation results;
 - deterministic JSON output and meaningful exit status for automation.

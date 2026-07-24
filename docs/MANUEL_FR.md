@@ -162,6 +162,27 @@ sélectionnés, ni contenu des documents, ni chemins privés, variables
 d’environnement ou journaux ne sont inclus, et rien n’est envoyé sur le
 réseau.
 
+**Aide → Signaler un problème** ouvre un rapport entièrement local et
+modifiable. Décrivez le problème ; les étapes de reproduction et le résultat
+attendu sont facultatifs. Si le dialogue est ouvert depuis l’échec d’un
+fichier, son code d’erreur est prérempli. **Inclure un diagnostic technique
+anonymisé** est décoché par défaut. Une fois activé, il ajoute les identités de
+l’application et du moteur, le système, la présence des ressources,
+l’identifiant du thème sélectionné, le nombre de fichiers, l’état du
+glisser-déposer et une erreur anonymisée. Il n’ajoute jamais les noms ou
+chemins des fichiers sélectionnés, les contenus Markdown, PDF, HTML ou CSS, les
+noms de compte ou de machine, les variables d’environnement, le presse-papiers
+ou les journaux globaux. Vérifiez et modifiez le rapport complet avant
+d’utiliser **Copier le rapport** ou **Enregistrer le rapport…**. Rien n’est
+téléversé ni envoyé.
+
+Aucune page d’assistance officielle n’est configurée dans cette version : le
+dialogue affiche donc des instructions hors ligne au lieu d’inventer un lien.
+Copiez ou enregistrez le rapport vérifié et ne le partagez que par un canal
+officiel auquel vous faites confiance. Relisez-le vous-même avant tout partage :
+la suppression automatique des chemins est une protection, pas un remplacement
+de cette vérification.
+
 ## Fichiers et sécurité
 
 - Utilisez des fichiers Markdown encodés en UTF-8.

@@ -144,6 +144,7 @@ class TkLayoutMixin:
         self._register_automation_widget("language.fr", self.btn_fr)
         self.help_menu_widget = tk.Menu(top, tearoff=False)
         self.help_menu_widget.add_command(command=self._show_keyboard_shortcuts)
+        self.help_menu_widget.add_command(command=self._show_problem_report)
         self.help_menu_widget.add_separator()
         self.help_menu_widget.add_command(command=self._show_about)
         self.help_button = ttk.Menubutton(

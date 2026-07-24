@@ -154,6 +154,23 @@ values: it does not include selected files, document contents, private paths,
 environment variables, or logs, and it does not send anything over the
 network.
 
+**Help → Report a problem** opens an entirely local, editable report. Describe
+what happened; reproduction steps and the expected result are optional. If the
+dialog was opened from a failed file, its error code is prefilled. **Include
+anonymized technical diagnostics** is off by default. When enabled, it adds
+application and renderer identities, operating-system details, resource
+presence, the selected theme identifier, file count, drag-and-drop state, and
+an anonymized error. It never adds selected filenames or paths, Markdown, PDF,
+HTML or CSS contents, account or machine names, environment variables,
+clipboard contents, or global logs. Review and edit the complete report before
+using **Copy report** or **Save report…**. Nothing is uploaded or sent.
+
+No official support page is configured in this build, so the dialog provides
+offline instructions instead of inventing a link. Save or copy the reviewed
+report and share it only through an official channel you trust. Review the
+report yourself before sharing it; automated path removal is a safeguard, not
+a substitute for that review.
+
 ## Files and safety
 
 - Use UTF-8 Markdown.

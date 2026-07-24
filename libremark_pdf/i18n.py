@@ -32,6 +32,40 @@ STRINGS = {
         "technical_python": "Python",
         "technical_system": "System",
         "technical_architecture": "Architecture",
+        "report_issue_action": "Report a problem",
+        "report_title": "Report a problem",
+        "report_document_title": "LibreMark PDF problem report",
+        "report_summary": "What happened?",
+        "report_summary_required": "Describe what happened before reviewing the report.",
+        "report_steps": "Steps to reproduce (optional)",
+        "report_expected": "Expected result (optional)",
+        "report_error_code": "Error code",
+        "include_diagnostics": "Include anonymized technical diagnostics",
+        "diagnostics_consent": (
+            "Nothing is sent automatically. Review the report before copying "
+            "or saving it."
+        ),
+        "report_local_help": (
+            "Copy or save this report, review it for private information, then "
+            "share it through an official support channel. Do not include "
+            "confidential Markdown, PDF, CSS or personal data."
+        ),
+        "preview_report": "Review report",
+        "report_preview": "Editable report",
+        "report_diagnostics_heading": "Anonymized technical diagnostics (JSON)",
+        "copy_report": "Copy report",
+        "save_report": "Save report…",
+        "open_support_channel": "Open support page",
+        "support_not_configured": (
+            "No support page is configured. Copy or save the report instead."
+        ),
+        "report_copied": "Report copied.",
+        "report_saved": "Report saved to {path}.",
+        "report_copy_error": "Could not copy the report: {error}",
+        "report_save_error": "Could not save the report: {error}",
+        "support_open_error": "Could not open the support page: {error}",
+        "report_text_filter": "Text reports",
+        "report_save_title": "Save the problem report",
         "source_files_label": "Source files",
         "drop_hint": "Drop one or more .md files here",
         "browse_files": "Browse files",
@@ -216,6 +250,46 @@ STRINGS = {
         "technical_python": "Python",
         "technical_system": "Système",
         "technical_architecture": "Architecture",
+        "report_issue_action": "Signaler un problème",
+        "report_title": "Signaler un problème",
+        "report_document_title": "Rapport de problème LibreMark PDF",
+        "report_summary": "Que s’est-il passé ?",
+        "report_summary_required": (
+            "Décrivez ce qui s’est passé avant de vérifier le rapport."
+        ),
+        "report_steps": "Étapes pour reproduire le problème (facultatif)",
+        "report_expected": "Résultat attendu (facultatif)",
+        "report_error_code": "Code d’erreur",
+        "include_diagnostics": "Inclure un diagnostic technique anonymisé",
+        "diagnostics_consent": (
+            "Rien n’est envoyé automatiquement. Vérifiez le rapport avant de "
+            "le copier ou de l’enregistrer."
+        ),
+        "report_local_help": (
+            "Copiez ou enregistrez ce rapport, vérifiez qu’il ne contient pas "
+            "d’informations privées, puis partagez-le par un canal d’assistance "
+            "officiel. N’incluez aucun Markdown, PDF ou CSS confidentiel ni "
+            "aucune donnée personnelle."
+        ),
+        "preview_report": "Vérifier le rapport",
+        "report_preview": "Rapport modifiable",
+        "report_diagnostics_heading": "Diagnostic technique anonymisé (JSON)",
+        "copy_report": "Copier le rapport",
+        "save_report": "Enregistrer le rapport…",
+        "open_support_channel": "Ouvrir la page d’assistance",
+        "support_not_configured": (
+            "Aucune page d’assistance n’est configurée. Copiez ou enregistrez "
+            "le rapport."
+        ),
+        "report_copied": "Rapport copié.",
+        "report_saved": "Rapport enregistré dans {path}.",
+        "report_copy_error": "Impossible de copier le rapport : {error}",
+        "report_save_error": "Impossible d’enregistrer le rapport : {error}",
+        "support_open_error": (
+            "Impossible d’ouvrir la page d’assistance : {error}"
+        ),
+        "report_text_filter": "Rapports texte",
+        "report_save_title": "Enregistrer le rapport de problème",
         "source_files_label": "Fichiers sources",
         "drop_hint": "Déposez un ou plusieurs fichiers .md ici",
         "browse_files": "Parcourir les fichiers",

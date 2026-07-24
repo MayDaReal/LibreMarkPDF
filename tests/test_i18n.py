@@ -85,6 +85,26 @@ class TestTranslations(unittest.TestCase):
                     values[1],
                 )
 
+    def test_problem_reporting_copy_is_local_explicit_and_bilingual(self):
+        expected = {
+            "en": (
+                "Report a problem",
+                "Include anonymized technical diagnostics",
+                "Nothing is sent automatically.",
+            ),
+            "fr": (
+                "Signaler un problème",
+                "Inclure un diagnostic technique anonymisé",
+                "Rien n’est envoyé automatiquement.",
+            ),
+        }
+        for lang, values in expected.items():
+            with self.subTest(lang=lang):
+                self.assertEqual(i18n.t("report_issue_action", lang), values[0])
+                self.assertEqual(i18n.t("include_diagnostics", lang), values[1])
+                self.assertIn(values[2], i18n.t("diagnostics_consent", lang))
+                self.assertNotIn("http", i18n.t("support_not_configured", lang))
+
 
 if __name__ == "__main__":
     unittest.main()

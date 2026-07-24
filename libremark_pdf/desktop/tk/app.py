@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Optional
 
 from ... import __version__, core, i18n
+from ..reporting import DEFAULT_REPORTING_SERVICE, ReportingService
 from ..services import DEFAULT_DESKTOP_SERVICES, DesktopServices
 from .conversion import TkConversionMixin
 from .dialogs import DEFAULT_TK_DIALOGS, TkDialogs
@@ -36,10 +37,12 @@ class LibreMarkPdfApp(
         root: tk.Misc,
         services: DesktopServices = DEFAULT_DESKTOP_SERVICES,
         dialogs: TkDialogs = DEFAULT_TK_DIALOGS,
+        reporting: ReportingService = DEFAULT_REPORTING_SERVICE,
     ) -> None:
         self.root = root
         self.services = services
         self.dialogs = dialogs
+        self.reporting = reporting
         self.lang = i18n.load_language()
         self.files = []  # type: list[Path]
         self.active_file = None  # type: Optional[Path]
@@ -211,6 +214,74 @@ class LibreMarkPdfApp(
             self._t("close_action"),
         )
 
+    def _show_problem_report(
+        self,
+        error_code: str = "",
+        error_message: str = "",
+    ) -> None:
+        private_paths = tuple(self.files)
+
+        def build_report(
+            summary: str,
+            steps: str,
+            expected: str,
+            include_diagnostics: bool,
+        ) -> str:
+            diagnostics = None
+            if include_diagnostics:
+                diagnostics = self.reporting.diagnostic_payload(
+                    language=self.lang,
+                    theme=self.theme_var.get(),
+                    file_count=len(self.files),
+                    has_drag_and_drop=HAS_DND,
+                    error_code=error_code,
+                    error_message=error_message,
+                    private_paths=private_paths,
+                )
+            return self.reporting.build_report(
+                language=self.lang,
+                summary=summary,
+                steps=steps,
+                expected=expected,
+                error_code=error_code,
+                diagnostics=diagnostics,
+            )
+
+        keys = (
+            "report_title",
+            "report_summary",
+            "report_summary_required",
+            "report_steps",
+            "report_expected",
+            "report_error_code",
+            "include_diagnostics",
+            "diagnostics_consent",
+            "report_local_help",
+            "preview_report",
+            "report_preview",
+            "copy_report",
+            "save_report",
+            "open_support_channel",
+            "support_not_configured",
+            "report_copied",
+            "report_saved",
+            "report_copy_error",
+            "report_save_error",
+            "support_open_error",
+            "report_text_filter",
+            "report_save_title",
+            "close_action",
+        )
+        self.dialogs.show_problem_report(
+            self.root,
+            labels={key: self._t(key) for key in keys},
+            error_code=error_code,
+            build_report=build_report,
+            save_report=self.reporting.save_report,
+            has_support_channel=self.reporting.has_support_channel,
+            open_support_page=self.reporting.open_support_page,
+        )
+
     def _retranslate(self) -> None:
         self.root.title(self._t("app_title"))
         self.title_label.config(text=self._t("app_title"))
@@ -221,7 +292,10 @@ class LibreMarkPdfApp(
         self.help_menu_widget.entryconfigure(
             0, label=self._t("keyboard_shortcuts_action")
         )
-        self.help_menu_widget.entryconfigure(2, label=self._t("about_action"))
+        self.help_menu_widget.entryconfigure(
+            1, label=self._t("report_issue_action")
+        )
+        self.help_menu_widget.entryconfigure(3, label=self._t("about_action"))
         self._update_language_accessibility()
         self.source_group.config(text=self._t("files_heading"))
         self._drop_zone_text = self._t(drop_zone_text_key(HAS_DND))

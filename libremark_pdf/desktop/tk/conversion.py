@@ -291,6 +291,14 @@ class TkConversionMixin:
                 text=self._t("copy_details"),
                 command=lambda item=result: self._copy_result_details(item),
             ).pack(side="left", padx=4)
+            ttk.Button(
+                actions,
+                text=self._t("report_issue_action"),
+                command=lambda item=result: self._show_problem_report(
+                    item.get("error_code") or "UNKNOWN",
+                    item.get("error") or "",
+                ),
+            ).pack(side="left", padx=4)
 
     def _copy_result_details(self, result: dict) -> None:
         details = "{0}: [{1}] {2}".format(

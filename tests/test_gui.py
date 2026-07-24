@@ -1132,6 +1132,62 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
             "Fermer",
         )
 
+    def test_problem_report_uses_optional_diagnostics_and_never_passes_paths_to_report(self):
+        app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
+        app.root = mock.Mock()
+        app.dialogs = mock.Mock()
+        app.reporting = mock.Mock()
+        app.reporting.has_support_channel = False
+        app.reporting.diagnostic_payload.return_value = {"safe": True}
+        app.reporting.build_report.return_value = "reviewed report\n"
+        app.lang = "en"
+        app.files = [Path("C:/Users/Alice/private.md")]
+        app.theme_var = mock.Mock()
+        app.theme_var.get.return_value = "default@1"
+
+        app._show_problem_report("RENDER_FAILED", "failed private.md")
+
+        call = app.dialogs.show_problem_report.call_args
+        self.assertEqual(call.args, (app.root,))
+        self.assertEqual(call.kwargs["error_code"], "RENDER_FAILED")
+        self.assertFalse(call.kwargs["has_support_channel"])
+        build = call.kwargs["build_report"]
+        self.assertEqual(
+            build("Summary", "Steps", "Expected", False),
+            "reviewed report\n",
+        )
+        app.reporting.diagnostic_payload.assert_not_called()
+        app.reporting.build_report.assert_called_with(
+            language="en",
+            summary="Summary",
+            steps="Steps",
+            expected="Expected",
+            error_code="RENDER_FAILED",
+            diagnostics=None,
+        )
+
+        build("Summary", "", "", True)
+        diagnostic_call = app.reporting.diagnostic_payload.call_args.kwargs
+        self.assertEqual(diagnostic_call["file_count"], 1)
+        self.assertEqual(
+            diagnostic_call["private_paths"],
+            (Path("C:/Users/Alice/private.md"),),
+        )
+        app.reporting.build_report.assert_called_with(
+            language="en",
+            summary="Summary",
+            steps="",
+            expected="",
+            error_code="RENDER_FAILED",
+            diagnostics={"safe": True},
+        )
+
+    def test_problem_report_dialog_starts_without_diagnostic_consent(self):
+        source = inspect.getsource(tk_dialogs.TkDialogs.show_problem_report)
+        self.assertIn("tk.BooleanVar(value=False)", source)
+        self.assertIn("summary.focus_set()", source)
+        self.assertIn('dialog.bind("<Escape>", close)', source)
+
     def test_preview_error_details_copy_only_the_worker_message(self):
         app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
         app._preview_error = "preview failed"
@@ -1630,6 +1686,7 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
         app._t = lambda key, **kwargs: key
         app._open_result = mock.Mock()
         app._copy_result_details = mock.Mock()
+        app._show_problem_report = mock.Mock()
         created_buttons = []
 
         def button(*args, **kwargs):
@@ -1658,8 +1715,17 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
         labels = [item.creation_options.get("text") for item in created_buttons]
         self.assertEqual(labels.count("open_pdf"), 1)
         self.assertEqual(labels.count("open_folder"), 1)
+        self.assertEqual(labels.count("report_issue_action"), 1)
         self.assertNotIn("open_pdf", labels[2:])
         self.assertNotIn("open_folder", labels[2:])
+        report_button = next(
+            item for item in created_buttons
+            if item.creation_options.get("text") == "report_issue_action"
+        )
+        report_button.creation_options["command"]()
+        app._show_problem_report.assert_called_once_with(
+            "RENDER_FAILED", "failed"
+        )
 
     def test_continue_close_choice_does_not_cancel_or_close(self):
         app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
