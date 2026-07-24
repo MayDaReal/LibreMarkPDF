@@ -440,7 +440,19 @@ class ComponentGallery(ctk.CTk):
         self.primary.set_interaction_state("pressed")
         pressed_color = self.primary.cget("fg_color")
         self.primary.set_interaction_state("normal")
-        self.probe_icon_button.tooltip.schedule()
+        pointer_target = self.winfo_containing(
+            self.probe_icon_button.winfo_rootx() + 1,
+            self.probe_icon_button.winfo_rooty() + 1,
+        )
+        if pointer_target is None:
+            raise RuntimeError("Icon button has no pointer event target")
+        pointer_target.event_generate("<Enter>")
+        self.update()
+        pointer_target.event_generate(
+            "<Motion>",
+            x=1,
+            y=1,
+        )
         deadline = time.perf_counter() + 0.75
         while (
             not self.probe_icon_button.tooltip.visible

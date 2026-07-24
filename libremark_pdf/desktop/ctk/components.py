@@ -89,8 +89,9 @@ class Tooltip:
         self.hide()
 
     def _motion(self, _event=None) -> None:
-        if self._after_id is not None or self._window is not None:
-            self.hide()
+        self.hide()
+        if self.text:
+            self._after_id = self.widget.after(self.delay_ms, self._show)
 
     def schedule(self, _event=None) -> None:
         """Schedule localized help after the prescribed hover delay."""
