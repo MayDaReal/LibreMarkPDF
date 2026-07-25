@@ -24,7 +24,8 @@ class TestPackagingConfiguration(unittest.TestCase):
         for resource in (
             "style.css", "icons", "assets", "browsers", "fonts", "licenses",
             "LICENSE", "THIRD_PARTY_NOTICES.md", "THEME_CONTRIBUTING.md",
-            "CLI_JSON_SCHEMA.json", "customtkinter",
+            "CLI_JSON_SCHEMA.json", "MANUAL_EN.md", "MANUEL_FR.md",
+            "customtkinter",
         ):
             self.assertIn(resource, portable)
         self.assertIn('hiddenimports=["customtkinter"]', portable)

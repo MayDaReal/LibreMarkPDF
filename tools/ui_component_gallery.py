@@ -440,9 +440,13 @@ class ComponentGallery(ctk.CTk):
         self.primary.set_interaction_state("pressed")
         pressed_color = self.primary.cget("fg_color")
         self.primary.set_interaction_state("normal")
-        pointer_target = self.winfo_containing(
-            self.probe_icon_button.winfo_rootx() + 1,
-            self.probe_icon_button.winfo_rooty() + 1,
+        pointer_target = next(
+            (
+                child
+                for child in self.probe_icon_button.winfo_children()
+                if child.bind("<Enter>")
+            ),
+            None,
         )
         if pointer_target is None:
             raise RuntimeError("Icon button has no pointer event target")
@@ -462,7 +466,7 @@ class ComponentGallery(ctk.CTk):
             time.sleep(0.01)
         tooltip_bounds = self.probe_icon_button.tooltip.bounds
         tooltip_visible = self.probe_icon_button.tooltip.visible
-        self.probe_icon_button.event_generate("<Leave>")
+        pointer_target.event_generate("<Leave>")
         self.update()
         return {
             "assets_retained": self.assets.retained_image_count,

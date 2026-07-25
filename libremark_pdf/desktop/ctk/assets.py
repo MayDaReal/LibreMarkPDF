@@ -35,6 +35,9 @@ ICON_NAMES = (
     "x-lg",
 )
 ICON_SIZES = (16, 20, 24)
+CONTEXT_ICON_COLORS = {
+    "on-primary": "#FFFFFF",
+}
 
 
 def default_asset_root() -> Path:
@@ -42,6 +45,22 @@ def default_asset_root() -> Path:
     from ... import core
 
     return core.resource_path("assets/ui-icons")
+
+
+def product_logo(size: int = 32) -> ctk.CTkImage:
+    """Load the canonical local product logo at a logical size."""
+    from ... import core
+
+    path = core.resource_path(
+        "assets/libremark-pdf-logo-{0}.png".format(size)
+    )
+    with Image.open(path) as source:
+        image = source.convert("RGBA").copy()
+    return ctk.CTkImage(
+        light_image=image,
+        dark_image=image,
+        size=(size, size),
+    )
 
 
 class UiAssetRegistry:

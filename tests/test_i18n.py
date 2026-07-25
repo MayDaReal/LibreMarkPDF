@@ -19,7 +19,7 @@ class TestTranslations(unittest.TestCase):
     def test_format_arguments_are_applied(self):
         self.assertEqual(
             i18n.t("generate_many", "en", count=2),
-            "⚙ Generate 2 PDFs",
+            "Generate 2 PDFs",
         )
 
     def test_count_forms_use_singular_only_for_one(self):
@@ -29,10 +29,10 @@ class TestTranslations(unittest.TestCase):
 
     def test_target_count_copy_is_natural_in_english_and_french(self):
         expected = {
-            ("en", 1): "⚙ Generate PDF",
-            ("en", 3): "⚙ Generate 3 PDFs",
-            ("fr", 1): "⚙ Générer le PDF",
-            ("fr", 3): "⚙ Générer 3 PDF",
+            ("en", 1): "Generate PDF",
+            ("en", 3): "Generate 3 PDFs",
+            ("fr", 1): "Générer le PDF",
+            ("fr", 3): "Générer 3 PDF",
         }
         for (lang, count), text in expected.items():
             with self.subTest(lang=lang, count=count):

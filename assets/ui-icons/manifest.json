@@ -5,6 +5,9 @@
     "neutral": "#172033",
     "success": "#16803C"
   },
+  "context_colors": {
+    "on-primary": "#FFFFFF"
+  },
   "files": {
     "arrow-clockwise:16:accent": {
       "path": "png/arrow-clockwise-16-accent.png",
@@ -498,6 +501,10 @@
       "path": "png/file-earmark-text-16-neutral.png",
       "sha256": "cfe3f94963037a7728719d57ac60194680fda3c7e9501d76043d4a091b59425a"
     },
+    "file-earmark-text:16:on-primary": {
+      "path": "png/file-earmark-text-16-on-primary.png",
+      "sha256": "1486e7fcd1503726ded756d0baa07967c989df5adbe695becfd0bae1d6f45b0d"
+    },
     "file-earmark-text:16:success": {
       "path": "png/file-earmark-text-16-success.png",
       "sha256": "0c06fe1d38d2d2c5a05708fa6bc4ec51919f6d7617687dda853f0098a070771c"
@@ -514,6 +521,10 @@
       "path": "png/file-earmark-text-20-neutral.png",
       "sha256": "c56253b781f15a426678d380528f76fbe934c740b989bf3272ac5c757c3a2613"
     },
+    "file-earmark-text:20:on-primary": {
+      "path": "png/file-earmark-text-20-on-primary.png",
+      "sha256": "2d321daf990738e5214c6454e3b34b6415f359407d4341c67a19e4884149c505"
+    },
     "file-earmark-text:20:success": {
       "path": "png/file-earmark-text-20-success.png",
       "sha256": "14fd9e003e53523e88a07775c57c2c85e6f6669322a6e1d669471a7ab0f219b4"
@@ -529,6 +540,10 @@
     "file-earmark-text:24:neutral": {
       "path": "png/file-earmark-text-24-neutral.png",
       "sha256": "c8864aff0fe74805624f082c02da547905dd0028585ca9a8bf6e3fee4e7fd8b7"
+    },
+    "file-earmark-text:24:on-primary": {
+      "path": "png/file-earmark-text-24-on-primary.png",
+      "sha256": "00544ec9e280452e15d1e41de1291370c259100da6436389f1221eed7c24fc7f"
     },
     "file-earmark-text:24:success": {
       "path": "png/file-earmark-text-24-success.png",

@@ -138,13 +138,15 @@ is retained as a legacy alias of `--date`.
 
 ## Language preference
 
-Select **EN** or **FR** in the desktop window. The choice is stored locally in
+Use the language menu in the fixed desktop header and select **English** or
+**Français**. The checked choice is stored locally in
 `~/.libremark-pdf/config.json`. Failure to save this preference does not block
 conversion. Changing language immediately retranslates visible labels and
 accessible names without clearing the selected files, active preview, or PDF
 settings.
 
 Press `F1` to display the available keyboard shortcuts.
+**Help → User manual** opens this local guide in the system application.
 
 The compact version beside the LibreMark PDF name opens **About LibreMark
 PDF**. The same dialog is available from **Help → About LibreMark PDF**. It

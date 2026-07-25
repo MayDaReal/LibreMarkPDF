@@ -14,6 +14,7 @@ import customtkinter as ctk
 from PIL import Image
 
 from libremark_pdf.desktop.ctk.assets import (
+    CONTEXT_ICON_COLORS,
     ICON_NAMES,
     ICON_SIZES,
     default_asset_root,
@@ -144,10 +145,17 @@ class TestModernUiAssets(unittest.TestCase):
         self.assertEqual(tuple(manifest["icons"]), ICON_NAMES)
         self.assertEqual(tuple(manifest["sizes"]), ICON_SIZES)
         self.assertEqual(manifest["colors"], ICON_COLORS)
+        self.assertEqual(
+            manifest["context_colors"],
+            CONTEXT_ICON_COLORS,
+        )
         self.assertEqual(len(manifest["sources"]), len(ICON_NAMES))
         self.assertEqual(
             len(manifest["files"]),
-            len(ICON_NAMES) * len(ICON_SIZES) * len(ICON_COLORS),
+            (
+                len(ICON_NAMES) * len(ICON_SIZES) * len(ICON_COLORS)
+                + len(ICON_SIZES) * len(CONTEXT_ICON_COLORS)
+            ),
         )
         self.assertEqual(
             manifest["origin"]["archive_sha256"],
@@ -255,12 +263,10 @@ class TestComponentGallery(unittest.TestCase):
 
     def test_foundations_do_not_use_private_customtkinter_apis(self):
         sources = "\n".join(
-            (ROOT / path).read_text(encoding="utf-8")
+            path.read_text(encoding="utf-8")
             for path in (
-                "libremark_pdf/desktop/ctk/theme.py",
-                "libremark_pdf/desktop/ctk/assets.py",
-                "libremark_pdf/desktop/ctk/components.py",
-                "tools/ui_component_gallery.py",
+                list((ROOT / "libremark_pdf" / "desktop" / "ctk").rglob("*.py"))
+                + [ROOT / "tools" / "ui_component_gallery.py"]
             )
         )
         for private_name in (

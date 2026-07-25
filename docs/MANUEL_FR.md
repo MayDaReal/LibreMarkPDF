@@ -145,13 +145,15 @@ Gérez les thèmes locaux avec `theme list`, `theme show`, `theme install` et
 
 ## Préférence de langue
 
-Sélectionnez **EN** ou **FR** dans la fenêtre. Le choix est enregistré localement
-dans `~/.libremark-pdf/config.json`. Un échec d’enregistrement n’empêche pas la
+Utilisez le menu de langue de l’en-tête fixe et sélectionnez **Français** ou
+**English**. Le choix coché est enregistré localement dans
+`~/.libremark-pdf/config.json`. Un échec d’enregistrement n’empêche pas la
 conversion. Le changement de langue retraduit immédiatement les libellés
 visibles et leurs noms accessibles sans vider les fichiers sélectionnés, le
 fichier d’aperçu actif ni les réglages PDF.
 
 Appuyez sur `F1` pour afficher les raccourcis clavier disponibles.
+**Aide → Manuel utilisateur** ouvre ce guide local dans l’application système.
 
 La version compacte à côté du nom LibreMark PDF ouvre **À propos de LibreMark
 PDF**. Le même dialogue est disponible par **Aide → À propos de LibreMark

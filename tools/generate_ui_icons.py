@@ -16,7 +16,11 @@ ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from libremark_pdf.desktop.ctk.assets import ICON_NAMES, ICON_SIZES
+from libremark_pdf.desktop.ctk.assets import (
+    CONTEXT_ICON_COLORS,
+    ICON_NAMES,
+    ICON_SIZES,
+)
 from libremark_pdf.desktop.ctk.theme import ICON_COLORS
 
 
@@ -53,8 +57,11 @@ def generate(asset_root: Path) -> dict:
                     "path": source.relative_to(asset_root).as_posix(),
                     "sha256": _sha256(source),
                 }
+                colors = dict(ICON_COLORS)
+                if name == "file-earmark-text":
+                    colors.update(CONTEXT_ICON_COLORS)
                 for size in ICON_SIZES:
-                    for color_name, color_value in ICON_COLORS.items():
+                    for color_name, color_value in colors.items():
                         page = browser.new_page(
                             viewport={"width": size + 8, "height": size + 8},
                             device_scale_factor=4,
@@ -107,6 +114,7 @@ def generate(asset_root: Path) -> dict:
         "icons": list(ICON_NAMES),
         "sizes": list(ICON_SIZES),
         "colors": ICON_COLORS,
+        "context_colors": CONTEXT_ICON_COLORS,
         "sources": sources,
         "files": files,
     }

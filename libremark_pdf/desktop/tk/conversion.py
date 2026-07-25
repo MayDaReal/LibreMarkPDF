@@ -106,6 +106,9 @@ class TkConversionMixin:
 
     def _begin_operation(self, operation: str) -> None:
         self.operation = operation
+        action_bar = getattr(self, "action_bar", None)
+        if action_bar is not None:
+            action_bar.set_conversion_active(operation == "generate")
         for widget in self._operation_controls:
             try:
                 widget.config(state="disabled")
@@ -123,6 +126,9 @@ class TkConversionMixin:
         if self._close_requested:
             self.root.destroy()
             return
+        action_bar = getattr(self, "action_bar", None)
+        if action_bar is not None:
+            action_bar.set_conversion_active(False)
         for widget in self._operation_controls:
             try:
                 widget.config(state="normal")

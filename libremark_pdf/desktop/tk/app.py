@@ -116,6 +116,11 @@ class LibreMarkPdfApp(
         ]:
             variable.trace_add("write", self._on_render_setting_changed)
         self.root.protocol("WM_DELETE_WINDOW", self._request_close)
+        self.root.bind(
+            "<<CustomTitlebarClose>>",
+            lambda _event: self._request_close(),
+            add="+",
+        )
         self.browse_button.focus_set()
 
     def _set_lang(self, lang: str) -> None:
@@ -140,7 +145,7 @@ class LibreMarkPdfApp(
             **values
         )
 
-    def automation_widget(self, action: str) -> tk.Misc:
+    def automation_widget(self, action: str) -> object:
         """Return the semantic control used by stable UI automation."""
         try:
             return self._automation_widgets[action]
@@ -156,6 +161,13 @@ class LibreMarkPdfApp(
         )
 
     def _translated_status(self, key: str, kwargs: dict) -> str:
+        if key == "status_ready" and self.files:
+            return self._tp(
+                "action_ready_one",
+                "action_ready_many",
+                len(self.files),
+                destination=self._destination_summary(),
+            )
         if key == "status_done_summary":
             return self._t(
                 key,
@@ -179,9 +191,18 @@ class LibreMarkPdfApp(
             (self.btn_en, "language_english_a11y"),
             (self.btn_fr, "language_french_a11y"),
         ):
-            accessible_name = self._t(key)
-            button.accessible_name = accessible_name
-            button.tooltip.text = accessible_name
+            button.accessible_name = self._t(key)
+
+    def _show_user_manual(self) -> None:
+        manual_name = "MANUEL_FR.md" if self.lang == "fr" else "MANUAL_EN.md"
+        manual_path = core.resource_path("docs/{0}".format(manual_name))
+        try:
+            self.services.open_path(manual_path)
+        except Exception as exc:
+            self.dialogs.show_error(
+                self._t("error_title"),
+                self._t("manual_open_error", error=str(exc)),
+            )
 
     def _technical_information(self) -> str:
         system = " ".join(
@@ -284,18 +305,20 @@ class LibreMarkPdfApp(
 
     def _retranslate(self) -> None:
         self.root.title(self._t("app_title"))
-        self.title_label.config(text=self._t("app_title"))
-        self.version_button.config(
-            text=self._t("app_version_compact", version=__version__)
+        header_keys = (
+            "app_title",
+            "app_version_compact",
+            "help_menu",
+            "keyboard_shortcuts_action",
+            "manual_action",
+            "report_issue_action",
+            "about_action",
         )
-        self.help_button.config(text=self._t("help_menu"))
-        self.help_menu_widget.entryconfigure(
-            0, label=self._t("keyboard_shortcuts_action")
+        self.app_header.retranslate(
+            {key: self._t(key) for key in header_keys},
+            version=__version__,
+            language=self.lang,
         )
-        self.help_menu_widget.entryconfigure(
-            1, label=self._t("report_issue_action")
-        )
-        self.help_menu_widget.entryconfigure(3, label=self._t("about_action"))
         self._update_language_accessibility()
         self.source_group.config(text=self._t("files_heading"))
         self._drop_zone_text = self._t(drop_zone_text_key(HAS_DND))
@@ -424,6 +447,9 @@ class LibreMarkPdfApp(
             return
         if self.operation == "idle":
             self._close_requested = True
+            responsive = getattr(self, "_responsive_controller", None)
+            if responsive is not None:
+                responsive.cancel()
             requests = getattr(self, "_preview_requests", None)
             if requests is not None:
                 requests.put(None)
@@ -452,6 +478,9 @@ class LibreMarkPdfApp(
                 self._request_close()
                 return
         self._close_requested = True
+        responsive = getattr(self, "_responsive_controller", None)
+        if responsive is not None:
+            responsive.cancel()
         requests = getattr(self, "_preview_requests", None)
         if requests is not None:
             requests.put(None)

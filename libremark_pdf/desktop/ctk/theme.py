@@ -61,6 +61,7 @@ SIZES = {
     "field": 36,
     "tab": 38,
     "header": 56,
+    "window_resize_border": 4,
 }
 
 FONT_SPECS = {

@@ -27,6 +27,8 @@ a = Analysis(
         ("THIRD_PARTY_NOTICES.md", "."),
         ("docs/THEME_CONTRIBUTING.md", "docs"),
         ("docs/CLI_JSON_SCHEMA.json", "docs"),
+        ("docs/MANUAL_EN.md", "docs"),
+        ("docs/MANUEL_FR.md", "docs"),
         (browser_source, "browsers"),
     ],
     hiddenimports=["customtkinter"],

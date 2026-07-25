@@ -5,23 +5,32 @@ from __future__ import annotations
 import tkinter as tk
 from tkinter import ttk
 
-from ... import core
+from ... import __version__, core
+from ..ctk.app_shell import AppShell
+from ..ctk.assets import UiAssetRegistry, product_logo
+from ..ctk.responsive import (
+    DebouncedLayoutController,
+    resolve_layout_mode,
+)
+from ..ctk.theme import (
+    COLORS,
+    SIZES,
+    SystemFontResolver,
+    install_light_theme,
+)
+from ..ctk.widgets.action_bar import ActionBar
+from ..ctk.widgets.app_header import AppHeader
 from .components import UiIconRegistry, configure_symbol_button
 from .styles import (
     DROP_ZONE_HEIGHT,
     FILE_LIST_HEIGHT,
     ICON_BUTTON_STYLE,
-    LINK_BUTTON_STYLE,
     OUTER_PADDING,
     PREVIEW_HEIGHT,
-    PRIMARY_BUTTON_STYLE,
     SECTION_GAP,
     SECTION_PADDING,
     SPACE_SM,
     SPACE_XS,
-    STATUS_LABEL_STYLE,
-    STATUS_WRAP_LENGTH,
-    TITLE_LABEL_STYLE,
 )
 
 try:
@@ -47,12 +56,10 @@ AUTOMATION_ACTIONS = frozenset((
     "about.open",
 ))
 
-INITIAL_WINDOW_WIDTH = 1060
-INITIAL_WINDOW_HEIGHT = 720
+INITIAL_WINDOW_WIDTH = 1180
+INITIAL_WINDOW_HEIGHT = 760
 MINIMUM_WINDOW_WIDTH = 560
 MINIMUM_WINDOW_HEIGHT = 520
-NARROW_MAX_WIDTH = 759
-MEDIUM_MAX_WIDTH = 1099
 
 
 def initial_window_size(root: tk.Misc) -> tuple[int, int]:
@@ -60,18 +67,20 @@ def initial_window_size(root: tk.Misc) -> tuple[int, int]:
     available_width = int(root.winfo_screenwidth())
     available_height = int(root.winfo_screenheight())
     return (
-        max(MINIMUM_WINDOW_WIDTH, min(INITIAL_WINDOW_WIDTH, available_width)),
-        max(MINIMUM_WINDOW_HEIGHT, min(INITIAL_WINDOW_HEIGHT, available_height)),
+        max(
+            MINIMUM_WINDOW_WIDTH,
+            min(INITIAL_WINDOW_WIDTH, int(available_width * 0.92)),
+        ),
+        max(
+            MINIMUM_WINDOW_HEIGHT,
+            min(INITIAL_WINDOW_HEIGHT, int(available_height * 0.90)),
+        ),
     )
 
 
 def responsive_mode(width: int) -> str:
     """Return the responsive mode for a window width."""
-    if width <= NARROW_MAX_WIDTH:
-        return "narrow"
-    if width <= MEDIUM_MAX_WIDTH:
-        return "medium"
-    return "large"
+    return resolve_layout_mode(width)
 
 
 def drop_zone_text_key(has_dnd: bool) -> str:
@@ -86,120 +95,98 @@ def load_logo(size: int) -> tk.PhotoImage:
     return LOGO_ICON_CACHE[size]
 
 
+class AutoHideVerticalScrollbar(ttk.Scrollbar):
+    """Show the legacy body scrollbar only when its content overflows."""
+
+    def set(self, first, last) -> None:
+        if float(first) <= 0.0 and float(last) >= 1.0:
+            self.pack_forget()
+        elif not self.winfo_manager():
+            self.pack(side="right", fill="y")
+        super().set(first, last)
+
+
 class TkLayoutMixin:
     """Build and bind widgets without owning application state transitions."""
 
     def _build_ui(self) -> None:
+        install_light_theme()
         initial_width, initial_height = initial_window_size(self.root)
         self.root.geometry("{0}x{1}".format(initial_width, initial_height))
         self.root.minsize(MINIMUM_WINDOW_WIDTH, MINIMUM_WINDOW_HEIGHT)
         self._layout_mode = None
         self._dnd_files_type = DND_FILES
         self.ui_icons = UiIconRegistry(self.root)
-
-        top = ttk.Frame(
-            self.root,
-            padding=(OUTER_PADDING, SECTION_GAP),
+        self.ui_fonts = SystemFontResolver(self.root)
+        self.ui_assets = UiAssetRegistry(self.root)
+        # CTk frames proxy their master's configure method. Calling Tk's base
+        # implementation avoids retaining a destroyed frame's proxy when a
+        # root is deliberately reused by GUI characterization tests.
+        tk.Misc.configure(self.root, background=COLORS["app_bg"])
+        self.app_shell = AppShell(self.root)
+        resize_border = SIZES["window_resize_border"]
+        self.app_shell.pack(
+            fill="both",
+            expand=True,
+            padx=resize_border,
+            pady=resize_border,
         )
-        top.pack(fill="x")
-        logo = load_logo(32)
-        self.logo_label = ttk.Label(top, image=logo)
-        self.logo_label.image = logo
-        self.logo_label.pack(side="left")
+        self.app_header = AppHeader(
+            self.app_shell,
+            root=self.root,
+            logo=product_logo(32),
+            version=__version__,
+            language=self.lang,
+            fonts=self.ui_fonts,
+            on_shortcuts=self._show_keyboard_shortcuts,
+            on_manual=self._show_user_manual,
+            on_report=self._show_problem_report,
+            on_about=self._show_about,
+            on_language=self._set_lang,
+        )
+        self.app_shell.attach_header(self.app_header)
+        self.logo_label = self.app_header.logo_label
         try:
             self.root.iconphoto(True, load_logo(64))
         except Exception:
             pass
-        self.title_label = ttk.Label(top, style=TITLE_LABEL_STYLE)
-        self.title_label.pack(side="left", padx=SECTION_GAP)
-        self.version_button = ttk.Button(
-            top,
-            command=self._show_about,
-            style=LINK_BUTTON_STYLE,
-            takefocus=True,
-        )
-        self.version_button.pack(side="left")
+        self.title_label = self.app_header.product_label
+        self.version_button = self.app_header.version_button
+        self.help_button = self.app_header.help_button
+        self.help_menu_widget = self.app_header.help_menu
+        self.language_menu_widget = self.app_header.language_menu
+        self.btn_en = self.app_header.language_actions["en"]
+        self.btn_fr = self.app_header.language_actions["fr"]
         self._register_automation_widget("about.open", self.version_button)
-        language = ttk.Frame(top)
-        language.pack(side="right")
-        self.btn_en = ttk.Button(
-            language, text="EN", width=4, command=lambda: self._set_lang("en")
-        )
-        self.btn_fr = ttk.Button(
-            language, text="FR", width=4, command=lambda: self._set_lang("fr")
-        )
-        configure_symbol_button(
-            self.btn_en,
-            "EN",
-            self._t("language_english_a11y"),
-        )
-        configure_symbol_button(
-            self.btn_fr,
-            "FR",
-            self._t("language_french_a11y"),
-        )
-        self.btn_en.pack(side="left")
-        self.btn_fr.pack(side="left")
         self._register_automation_widget("language.en", self.btn_en)
         self._register_automation_widget("language.fr", self.btn_fr)
-        self.help_menu_widget = tk.Menu(top, tearoff=False)
-        self.help_menu_widget.add_command(command=self._show_keyboard_shortcuts)
-        self.help_menu_widget.add_command(command=self._show_problem_report)
-        self.help_menu_widget.add_separator()
-        self.help_menu_widget.add_command(command=self._show_about)
-        self.help_button = ttk.Menubutton(
-            top,
-            menu=self.help_menu_widget,
-            takefocus=True,
+        self.action_bar = ActionBar(
+            self.app_shell,
+            fonts=self.ui_fonts,
+            on_generate=self._on_generate_clicked,
+            on_cancel=self._cancel_conversion,
+            progress_variable=self.progress_var,
+            generate_icon=self.ui_assets.image(
+                "file-earmark-text",
+                size=20,
+                color="on-primary",
+            ),
         )
-        self.help_button.pack(side="right", padx=(0, SPACE_SM))
-
-        self.action_bar = ttk.Frame(
-            self.root,
-            padding=(OUTER_PADDING, SPACE_SM),
-        )
-        self.action_bar.pack(side="bottom", fill="x")
-        self.action_bar.columnconfigure(0, weight=1)
-        action_row = ttk.Frame(self.action_bar)
-        action_row.grid(row=0, column=1, sticky="e")
-        self.generate_button = ttk.Button(
-            action_row,
-            command=self._on_generate_clicked,
-            style=PRIMARY_BUTTON_STYLE,
-        )
-        self.generate_button.pack(side="left")
-        self.cancel_button = ttk.Button(
-            action_row, command=self._cancel_conversion, state="disabled"
-        )
-        self.cancel_button.pack(side="left", padx=(SPACE_SM, 0))
+        self.app_shell.attach_action_bar(self.action_bar)
+        self.generate_button = self.action_bar.generate_button
+        self.cancel_button = self.action_bar.cancel_button
+        self.status_label = self.action_bar.status_label
+        self.progress = self.action_bar.progress
         self._register_automation_widget("convert.start", self.generate_button)
         self._register_automation_widget("convert.cancel", self.cancel_button)
-        self.status_label = ttk.Label(
-            self.action_bar,
-            wraplength=STATUS_WRAP_LENGTH,
-            style=STATUS_LABEL_STYLE,
-            takefocus=True,
-        )
-        self.status_label.grid(row=0, column=0, sticky="ew", padx=(0, SPACE_SM))
-        self.progress = ttk.Progressbar(
-            self.action_bar, variable=self.progress_var, maximum=1, takefocus=True
-        )
-        self.progress.grid(
-            row=1,
-            column=0,
-            columnspan=2,
-            sticky="ew",
-            pady=(SPACE_SM, 0),
-        )
 
-        container = ttk.Frame(self.root)
+        container = ttk.Frame(self.app_shell.content)
         container.pack(fill="both", expand=True)
         self.body_canvas = tk.Canvas(container, highlightthickness=0, takefocus=True)
-        body_scroll = ttk.Scrollbar(
+        self.body_scroll = AutoHideVerticalScrollbar(
             container, orient="vertical", command=self.body_canvas.yview
         )
-        self.body_canvas.configure(yscrollcommand=body_scroll.set)
-        body_scroll.pack(side="right", fill="y")
+        self.body_canvas.configure(yscrollcommand=self.body_scroll.set)
         self.body_canvas.pack(side="left", fill="both", expand=True)
         self.body = ttk.Frame(
             self.body_canvas,
@@ -324,15 +311,18 @@ class TkLayoutMixin:
             command=self._activate_css_mode,
         )
         self.css_mode_radio.pack(anchor="w", pady=(SPACE_SM, 0))
-        css_row = ttk.Frame(style_content)
-        css_row.pack(fill="x", pady=(SPACE_SM, 0))
-        self.css_label = ttk.Label(css_row)
+        self.css_row = ttk.Frame(style_content)
+        self.css_row.pack(fill="x", pady=(SPACE_SM, 0))
+        self.css_label = ttk.Label(self.css_row)
         self.css_label.pack(side="left")
-        self.css_entry = ttk.Entry(css_row, state="readonly")
+        self.css_entry = ttk.Entry(self.css_row, state="readonly")
         self.css_entry.pack(side="left", fill="x", expand=True, padx=SPACE_SM)
-        self.css_button = ttk.Button(css_row, command=self._choose_css)
+        self.css_button = ttk.Button(self.css_row, command=self._choose_css)
         self.css_button.pack(side="left")
-        self.css_reset_button = ttk.Button(css_row, command=self._reset_css)
+        self.css_reset_button = ttk.Button(
+            self.css_row,
+            command=self._reset_css,
+        )
         self.css_reset_button.pack(side="left", padx=(SPACE_SM, 0))
 
         (
@@ -343,14 +333,18 @@ class TkLayoutMixin:
         self._register_automation_widget(
             "destination.toggle", self.destination_toggle
         )
-        output_row = ttk.Frame(destination_content)
-        output_row.pack(fill="x")
-        self.output_entry = ttk.Entry(output_row, state="readonly")
+        self.output_row = ttk.Frame(destination_content)
+        self.output_row.pack(fill="x")
+        self.output_entry = ttk.Entry(self.output_row, state="readonly")
         self.output_entry.pack(side="left", fill="x", expand=True)
-        self.output_button = ttk.Button(output_row, command=self._choose_output_dir)
+        self.output_button = ttk.Button(
+            self.output_row,
+            command=self._choose_output_dir,
+        )
         self.output_button.pack(side="left", padx=(SPACE_SM, 0))
         self.output_reset_button = ttk.Button(
-            output_row, command=self._reset_output_dir
+            self.output_row,
+            command=self._reset_output_dir,
         )
         self.output_reset_button.pack(side="left", padx=(SPACE_SM, 0))
         self._register_automation_widget("output.choose", self.output_button)
@@ -435,25 +429,25 @@ class TkLayoutMixin:
         self.trusted_html_help_label.pack(fill="x", pady=(SPACE_XS, 0))
 
         self.preview_group = ttk.LabelFrame(self.workspace, padding=SECTION_PADDING)
-        preview_header = ttk.Frame(self.preview_group)
-        preview_header.pack(fill="x")
+        self.preview_header = ttk.Frame(self.preview_group)
+        self.preview_header.pack(fill="x")
         self.active_preview_label = ttk.Label(
-            preview_header,
+            self.preview_header,
             font=self.ui_styles.emphasis_font,
             anchor="w",
         )
         self.active_preview_label.pack(side="left", fill="x", expand=True)
-        preview_controls = ttk.Frame(preview_header)
-        preview_controls.pack(side="right")
+        self.preview_controls = ttk.Frame(self.preview_header)
+        self.preview_controls.pack(side="right")
         self.refresh_preview_button = ttk.Button(
-            preview_controls,
+            self.preview_controls,
             command=self._refresh_preview,
             style=ICON_BUTTON_STYLE,
         )
         self.refresh_preview_button.pack(side="left")
         self._register_automation_widget("preview.refresh", self.refresh_preview_button)
         self.previous_page_button = ttk.Button(
-            preview_controls,
+            self.preview_controls,
             command=lambda: self._change_preview_page(-1),
             style=ICON_BUTTON_STYLE,
         )
@@ -462,11 +456,11 @@ class TkLayoutMixin:
             "preview.previous_page", self.previous_page_button
         )
         self.preview_page_label = ttk.Label(
-            preview_controls, anchor="center", width=16
+            self.preview_controls, anchor="center", width=16
         )
         self.preview_page_label.pack(side="left", padx=SPACE_XS)
         self.next_page_button = ttk.Button(
-            preview_controls,
+            self.preview_controls,
             command=lambda: self._change_preview_page(1),
             style=ICON_BUTTON_STYLE,
         )
@@ -475,16 +469,20 @@ class TkLayoutMixin:
             "preview.next_page", self.next_page_button
         )
         self.zoom_out_button = ttk.Button(
-            preview_controls,
+            self.preview_controls,
             command=lambda: self._change_zoom(-1),
             style=ICON_BUTTON_STYLE,
         )
         self.zoom_out_button.pack(side="left", padx=(SPACE_SM, 0))
         self._register_automation_widget("preview.zoom_out", self.zoom_out_button)
-        self.zoom_label = ttk.Label(preview_controls, anchor="center", width=7)
+        self.zoom_label = ttk.Label(
+            self.preview_controls,
+            anchor="center",
+            width=7,
+        )
         self.zoom_label.pack(side="left", padx=SPACE_XS)
         self.zoom_in_button = ttk.Button(
-            preview_controls,
+            self.preview_controls,
             command=lambda: self._change_zoom(1),
             style=ICON_BUTTON_STYLE,
         )
@@ -607,12 +605,16 @@ class TkLayoutMixin:
             self.previous_page_button, self.next_page_button,
             self.output_button, self.output_reset_button,
         ])
+        self._responsive_controller = DebouncedLayoutController(
+            self.root,
+            self._apply_responsive_layout,
+        )
         self.root.bind("<Configure>", self._on_root_configure, add="+")
         self._apply_responsive_layout(initial_width, initial_height)
 
     def _on_root_configure(self, event) -> None:
         if event.widget is self.root:
-            self._apply_responsive_layout(event.width, event.height)
+            self._responsive_controller.schedule(event.width, event.height)
 
     def _apply_responsive_layout(self, width: int, height: int) -> None:
         """Adapt existing panes without rebuilding widgets or changing focus."""
@@ -633,7 +635,7 @@ class TkLayoutMixin:
                 section.grid_forget()
             for row in range(len(sections)):
                 self.workspace.rowconfigure(row, weight=0)
-            if mode == "narrow":
+            if mode == "compact":
                 self.workspace.columnconfigure(0, weight=1, minsize=0)
                 self.workspace.columnconfigure(1, weight=0, minsize=0)
                 for row, section in enumerate(sections):
@@ -644,13 +646,13 @@ class TkLayoutMixin:
                         pady=(0, SECTION_GAP),
                     )
             else:
-                left_minimum = 360 if mode == "large" else 300
+                left_minimum = 390 if mode == "large" else 340
                 right_minimum = 480 if mode == "large" else 320
                 self.workspace.columnconfigure(
-                    0, weight=38, minsize=left_minimum
+                    0, weight=0, minsize=left_minimum
                 )
                 self.workspace.columnconfigure(
-                    1, weight=62, minsize=right_minimum
+                    1, weight=1, minsize=right_minimum
                 )
                 left_sections = (
                     self.source_group,
@@ -678,7 +680,7 @@ class TkLayoutMixin:
             for fields in self.header_footer_field_rows:
                 for field in fields:
                     field.pack_forget()
-                    if mode == "narrow":
+                    if mode == "compact":
                         field.pack(fill="x", pady=(0, SPACE_XS))
                     else:
                         field.pack(
@@ -687,22 +689,62 @@ class TkLayoutMixin:
                             expand=True,
                             padx=SPACE_XS,
                         )
+            self._layout_legacy_setting_rows()
+            self._layout_preview_header()
             self._layout_mode = mode
 
-        outer_padding = SECTION_GAP if mode == "narrow" else OUTER_PADDING
+        outer_padding = SECTION_GAP if mode == "compact" else OUTER_PADDING
         preview_height = {
-            "narrow": 240,
+            "compact": 240,
             "medium": 280,
             "large": 320,
+        }[mode]
+        legacy_panel_width = {
+            "compact": 1,
+            "medium": 300,
+            "large": 340,
         }[mode]
         self.body.configure(
             padding=(outer_padding, SPACE_XS, outer_padding, OUTER_PADDING)
         )
-        self.action_bar.configure(padding=(outer_padding, SPACE_SM))
+        self.drop_canvas.configure(width=legacy_panel_width)
+        self.file_canvas.configure(width=legacy_panel_width)
         self.preview_canvas.configure(height=preview_height)
         self.status_label.configure(
             wraplength=max(160, width // 2),
         )
+        self.app_header.set_layout_mode(mode)
+
+    def _layout_legacy_setting_rows(self) -> None:
+        """Keep temporary legacy editors usable inside the bounded left pane."""
+        for widget in (
+            self.css_label,
+            self.css_entry,
+            self.css_button,
+            self.css_reset_button,
+        ):
+            widget.pack_forget()
+        self.css_label.pack(anchor="w")
+        self.css_entry.pack(fill="x", pady=(SPACE_XS, SPACE_SM))
+        self.css_button.pack(side="left")
+        self.css_reset_button.pack(side="left", padx=(SPACE_SM, 0))
+
+        for widget in (
+            self.output_entry,
+            self.output_button,
+            self.output_reset_button,
+        ):
+            widget.pack_forget()
+        self.output_entry.pack(fill="x", pady=(0, SPACE_SM))
+        self.output_button.pack(side="left")
+        self.output_reset_button.pack(side="left", padx=(SPACE_SM, 0))
+
+    def _layout_preview_header(self) -> None:
+        """Keep the active file and legacy toolbar visible without clipping."""
+        self.active_preview_label.pack_forget()
+        self.preview_controls.pack_forget()
+        self.active_preview_label.pack(fill="x")
+        self.preview_controls.pack(anchor="e", pady=(SPACE_XS, 0))
 
     def _register_automation_widget(self, action: str, widget: tk.Misc) -> None:
         """Expose a stable semantic control for automated desktop checks."""

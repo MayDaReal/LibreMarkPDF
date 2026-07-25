@@ -284,29 +284,29 @@ class TestGuiAutomationContract(unittest.TestCase):
 
 
 class TestGuiStateAndPlatformAdapters(unittest.TestCase):
-    def test_initial_window_size_targets_1060_by_720_and_respects_limits(self):
+    def test_initial_window_size_targets_1180_by_760_and_respects_limits(self):
         root = mock.Mock()
         root.winfo_screenwidth.return_value = 1920
         root.winfo_screenheight.return_value = 1080
-        self.assertEqual(tk_layout.initial_window_size(root), (1060, 720))
+        self.assertEqual(tk_layout.initial_window_size(root), (1180, 760))
 
         root.winfo_screenwidth.return_value = 800
         root.winfo_screenheight.return_value = 600
-        self.assertEqual(tk_layout.initial_window_size(root), (800, 600))
+        self.assertEqual(tk_layout.initial_window_size(root), (736, 540))
 
         root.winfo_screenwidth.return_value = 500
         root.winfo_screenheight.return_value = 400
         self.assertEqual(tk_layout.initial_window_size(root), (560, 520))
 
-    def test_reference_widths_select_large_medium_and_narrow_modes(self):
+    def test_reference_widths_select_large_medium_and_compact_modes(self):
         expected = {
             1440: "large",
             1280: "large",
             1100: "large",
             1024: "medium",
             820: "medium",
-            720: "narrow",
-            560: "narrow",
+            720: "compact",
+            560: "compact",
         }
         self.assertEqual(
             {
@@ -315,7 +315,7 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
             },
             expected,
         )
-        self.assertEqual(tk_layout.responsive_mode(759), "narrow")
+        self.assertEqual(tk_layout.responsive_mode(759), "compact")
         self.assertEqual(tk_layout.responsive_mode(760), "medium")
         self.assertEqual(tk_layout.responsive_mode(1099), "medium")
         self.assertEqual(tk_layout.responsive_mode(1100), "large")
@@ -340,10 +340,15 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
             [mock.Mock(), mock.Mock(), mock.Mock()],
         ]
         app._enforce_compact_accordions = mock.Mock()
+        app._layout_legacy_setting_rows = mock.Mock()
+        app._layout_preview_header = mock.Mock()
         app.body = mock.Mock()
         app.action_bar = mock.Mock()
+        app.drop_canvas = mock.Mock()
+        app.file_canvas = mock.Mock()
         app.preview_canvas = mock.Mock()
         app.status_label = mock.Mock()
+        app.app_header = mock.Mock()
         app.root = mock.Mock()
         widgets = (
             app.source_group,
@@ -397,15 +402,19 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
 
     def test_primary_action_and_progress_are_outside_scrolling_content(self):
         source = inspect.getsource(tk_layout.TkLayoutMixin._build_ui)
-        self.assertIn("self.action_bar = ttk.Frame(\n            self.root", source)
+        self.assertIn("self.app_shell = AppShell(self.root)", source)
+        self.assertIn("self.action_bar = ActionBar(\n            self.app_shell", source)
         self.assertIn(
-            "self.progress = ttk.Progressbar(\n"
-            "            self.action_bar",
+            "self.app_shell.attach_action_bar(self.action_bar)",
             source,
         )
         self.assertLess(
-            source.index("self.action_bar.pack"),
+            source.index("self.app_shell.attach_action_bar"),
             source.index("container.pack"),
+        )
+        self.assertIn(
+            "container = ttk.Frame(self.app_shell.content)",
+            source,
         )
         self.assertIn(
             "self.root.minsize(MINIMUM_WINDOW_WIDTH, MINIMUM_WINDOW_HEIGHT)",
@@ -1132,6 +1141,27 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
             "Fermer",
         )
 
+    def test_user_manual_uses_localized_packaged_document_and_service(self):
+        app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
+        app.services = mock.Mock()
+        app.dialogs = mock.Mock()
+        app.lang = "fr"
+        app._t = lambda key, **kwargs: key
+
+        app._show_user_manual()
+
+        app.services.open_path.assert_called_once_with(
+            core.resource_path("docs/MANUEL_FR.md")
+        )
+
+        app.services.open_path.side_effect = RuntimeError("unavailable")
+        app.lang = "en"
+        app._show_user_manual()
+        app.dialogs.show_error.assert_called_once_with(
+            "error_title",
+            "manual_open_error",
+        )
+
     def test_problem_report_uses_optional_diagnostics_and_never_passes_paths_to_report(self):
         app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
         app.root = mock.Mock()
@@ -1487,10 +1517,10 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
         tooltip_type.assert_called_once_with(button, "Refresh preview")
         self.assertIs(result, tooltip)
 
-    def test_primary_generate_action_keeps_gear_and_text_in_both_languages(self):
+    def test_primary_generate_action_keeps_text_outside_the_icon_in_both_languages(self):
         for language, word in (("en", "Generate"), ("fr", "Générer")):
             text = tk_app.i18n.t("generate_many", language, count=2)
-            self.assertTrue(text.startswith("⚙ "))
+            self.assertNotIn("⚙", text)
             self.assertIn(word, text)
 
     def test_result_summary_uses_natural_singular_and_plural_forms(self):
@@ -1503,6 +1533,22 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
             with self.subTest(language=language):
                 app.lang = language
                 self.assertEqual(app._format_result_summary(1, 2, 0), summary)
+
+    def test_ready_action_summary_uses_file_count_and_destination(self):
+        app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
+        app.output_dir = None
+        expected = {
+            "en": "2 files ready · Destination: Next to each source file",
+            "fr": "2 fichiers prêts · Destination : À côté de chaque fichier source",
+        }
+        for language, summary in expected.items():
+            with self.subTest(language=language):
+                app.lang = language
+                app.files = [Path("one.md"), Path("two.md")]
+                self.assertEqual(
+                    app._translated_status("status_ready", {}),
+                    summary,
+                )
 
     def test_language_change_preserves_files_and_render_settings(self):
         app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
@@ -1524,9 +1570,7 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
     def test_language_accessible_names_follow_hot_retranslation(self):
         app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
         app.btn_en = mock.Mock()
-        app.btn_en.tooltip = mock.Mock()
         app.btn_fr = mock.Mock()
-        app.btn_fr.tooltip = mock.Mock()
         app.lang = "fr"
 
         app._update_language_accessibility()
@@ -1538,10 +1582,6 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
         self.assertEqual(
             app.btn_fr.accessible_name,
             "Passer l’interface en français",
-        )
-        self.assertEqual(
-            app.btn_en.tooltip.text,
-            app.btn_en.accessible_name,
         )
 
     def test_status_styles_preserve_semantics_across_retranslation(self):
@@ -1778,6 +1818,7 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
         app._preview_after = "preview-after"
         app._poll_after = "poll-after"
         app._preview_generation = 2
+        app._responsive_controller = mock.Mock()
         app._request_close()
         self.assertTrue(app._close_requested)
         self.assertEqual(app._preview_generation, 3)
@@ -1788,6 +1829,7 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
             [mock.call("preview-after"), mock.call("poll-after")],
         )
         app.root.destroy.assert_called_once_with()
+        app._responsive_controller.cancel.assert_called_once_with()
 
     def test_close_dialog_dismissal_and_escape_continue_by_default(self):
         dialogs = tk_dialogs.TkDialogs()
