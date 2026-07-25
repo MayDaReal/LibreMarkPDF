@@ -24,6 +24,7 @@ from ..ctk.theme import (
 )
 from ..ctk.widgets.action_bar import ActionBar
 from ..ctk.widgets.app_header import AppHeader
+from ..ctk.widgets.compact_tabs import CompactTabBar
 from ..ctk.widgets.file_panel import FilesPanel
 from ..ctk.widgets.settings_summary import SettingsSummaryPanel
 from .components import configure_symbol_button
@@ -56,7 +57,8 @@ AUTOMATION_ACTIONS = frozenset((
     "preview.copy_details",
     "preview.previous_page", "preview.next_page",
     "output.choose", "output.reset",
-    "convert.start", "convert.cancel",
+    "convert.start", "convert.cancel", "menu.compact",
+    "tab.files", "tab.preview", "tab.settings", "tab.results",
     "about.open",
 ))
 
@@ -123,6 +125,7 @@ class TkLayoutMixin:
         self.root.geometry("{0}x{1}".format(initial_width, initial_height))
         self.root.minsize(MINIMUM_WINDOW_WIDTH, MINIMUM_WINDOW_HEIGHT)
         self._layout_mode = None
+        self._compact_vertical_padding = None
         self._dnd_files_type = DND_FILES
         self.ui_fonts = SystemFontResolver(self.root)
         self.ui_assets = UiAssetRegistry(self.root)
@@ -150,6 +153,9 @@ class TkLayoutMixin:
             on_report=self._show_problem_report,
             on_about=self._show_about,
             on_language=self._set_lang,
+            compact_menu_icon=self.ui_assets.image(
+                "three-dots-vertical", size=20, color="neutral"
+            ),
         )
         self.app_shell.attach_header(self.app_header)
         self.logo_label = self.app_header.logo_label
@@ -162,11 +168,15 @@ class TkLayoutMixin:
         self.help_button = self.app_header.help_button
         self.help_menu_widget = self.app_header.help_menu
         self.language_menu_widget = self.app_header.language_menu
+        self.compact_menu_widget = self.app_header.compact_menu
         self.btn_en = self.app_header.language_actions["en"]
         self.btn_fr = self.app_header.language_actions["fr"]
         self._register_automation_widget("about.open", self.version_button)
         self._register_automation_widget("language.en", self.btn_en)
         self._register_automation_widget("language.fr", self.btn_fr)
+        self._register_automation_widget(
+            "menu.compact", self.app_header.compact_menu_button
+        )
         self.action_bar = ActionBar(
             self.app_shell,
             fonts=self.ui_fonts,
@@ -187,8 +197,18 @@ class TkLayoutMixin:
         self._register_automation_widget("convert.start", self.generate_button)
         self._register_automation_widget("convert.cancel", self.cancel_button)
 
-        container = ttk.Frame(self.app_shell.content)
-        container.pack(fill="both", expand=True)
+        self.compact_tabs = CompactTabBar(
+            self.app_shell.content,
+            labels=self._compact_tab_labels(),
+            fonts=self.ui_fonts,
+            on_select=self._select_compact_tab,
+        )
+        self.compact_tabs.set_active(self._active_compact_tab)
+        for name, button in self.compact_tabs.buttons.items():
+            self._register_automation_widget("tab.{0}".format(name), button)
+        self.content_container = ttk.Frame(self.app_shell.content)
+        self.content_container.pack(fill="both", expand=True)
+        container = self.content_container
         self.body_canvas = tk.Canvas(container, highlightthickness=0, takefocus=True)
         self.body_scroll = AutoHideVerticalScrollbar(
             container, orient="vertical", command=self.body_canvas.yview
@@ -208,12 +228,7 @@ class TkLayoutMixin:
                 scrollregion=self.body_canvas.bbox("all")
             ),
         )
-        self.body_canvas.bind(
-            "<Configure>",
-            lambda event: self.body_canvas.itemconfigure(
-                self._body_window, width=event.width
-            ),
-        )
+        self.body_canvas.bind("<Configure>", self._on_body_canvas_configure)
 
         self.workspace = ttk.Frame(self.body)
         self.workspace.pack(fill="both", expand=True)
@@ -748,6 +763,88 @@ class TkLayoutMixin:
         if event.widget is self.root:
             self._responsive_controller.schedule(event.width, event.height)
 
+    def _on_body_canvas_configure(self, event) -> None:
+        self._sync_body_window_size(event.width, event.height)
+
+    def _sync_body_window_size(self, width: int, height: int) -> None:
+        window_height = 0
+        if self._layout_mode == "compact" and self._active_compact_tab in (
+            "files",
+            "preview",
+        ):
+            window_height = max(1, height)
+        self.body_canvas.itemconfigure(
+            self._body_window,
+            width=width,
+            height=window_height,
+        )
+
+    def _sync_body_window_to_canvas(self) -> None:
+        """Refresh the compact viewport after Tk settles remapped content."""
+        self._sync_body_window_size(
+            self.body_canvas.winfo_width(),
+            self.body_canvas.winfo_height(),
+        )
+
+    def _refresh_compact_viewport(self) -> None:
+        """Force Tk to project a remapped tab into an unchanged viewport."""
+        viewport_width = self.body_canvas.winfo_width()
+        refresh_width = viewport_width - 1 if viewport_width > 1 else 2
+        self.body_canvas.itemconfigure(
+            self._body_window,
+            width=refresh_width,
+        )
+        self.body_canvas.after_idle(self._sync_body_window_to_canvas)
+
+    def _compact_sections(self) -> dict:
+        return {
+            "files": self.source_group,
+            "preview": self.preview_group,
+            "settings": self.settings_panel,
+            "results": self.results_frame,
+        }
+
+    def _select_compact_tab(self, name: str) -> str:
+        """Remember and display one compact tab without changing business state."""
+        if name not in self._compact_sections():
+            raise ValueError("Unknown compact tab: {0}".format(name))
+        self._active_compact_tab = name
+        self.compact_tabs.set_active(name)
+        if self._layout_mode == "compact":
+            self._show_active_compact_section(move_focus=True)
+        return "break"
+
+    def _show_active_compact_section(self, move_focus: bool = False) -> None:
+        sections = self._compact_sections()
+        focus = self.root.focus_get()
+        for section in sections.values():
+            section.grid_forget()
+        active = sections[self._active_compact_tab]
+        active.grid(row=0, column=0, sticky="nsew")
+        self.workspace.rowconfigure(0, weight=1)
+        self.compact_tabs.set_active(self._active_compact_tab)
+        self.body_canvas.yview_moveto(0)
+        self._sync_body_window_to_canvas()
+        # Tk can leave a remapped grid child hidden when the canvas window
+        # keeps exactly the same dimensions. Two idle stages let grid settle,
+        # then make it project the new tab without resizing the root.
+        self.body_canvas.after_idle(self._refresh_compact_viewport)
+        focus_was_in_hidden_section = any(
+            section is not active and self._is_descendant(focus, section)
+            for section in sections.values()
+        )
+        if move_focus or focus_was_in_hidden_section:
+            self.compact_tabs.focus_active()
+
+    @staticmethod
+    def _is_descendant(widget, ancestor) -> bool:
+        current = widget
+        while current is not None:
+            if current is ancestor:
+                return True
+            current = getattr(current, "master", None)
+        return False
+
     def _apply_responsive_layout(self, width: int, height: int) -> None:
         """Adapt existing panes without rebuilding widgets or changing focus."""
         self._viewport_height = height
@@ -765,18 +862,18 @@ class TkLayoutMixin:
             for row in range(len(sections)):
                 self.workspace.rowconfigure(row, weight=0)
             if mode == "compact":
+                self.compact_tabs.pack(
+                    fill="x",
+                    before=self.content_container,
+                )
                 self.workspace.columnconfigure(0, weight=1, minsize=0)
                 self.workspace.columnconfigure(1, weight=0, minsize=0)
                 self.workspace.columnconfigure(2, weight=0, minsize=0)
                 self.workspace_splitter.grid_remove()
-                for row, section in enumerate(sections):
-                    section.grid(
-                        row=row,
-                        column=0,
-                        sticky="nsew",
-                        pady=(0, SECTION_GAP),
-                    )
+                self._show_active_compact_section()
             else:
+                self.compact_tabs.pack_forget()
+                self.body_canvas.itemconfigure(self._body_window, height=0)
                 left_minimum = (
                     self._left_panel_width if mode == "large" else 340
                 )
@@ -826,6 +923,10 @@ class TkLayoutMixin:
             self._layout_legacy_setting_rows()
             self._layout_preview_header()
             self._layout_mode = mode
+            self._sync_body_window_size(
+                self.body_canvas.winfo_width(),
+                self.body_canvas.winfo_height(),
+            )
 
         if layout_changed:
             outer_padding = SPACE_SM
@@ -850,6 +951,21 @@ class TkLayoutMixin:
                 self.file_canvas.configure(width=legacy_panel_width)
             self.preview_canvas.configure(height=preview_height)
             self.app_header.set_layout_mode(mode)
+            self.action_bar.set_layout_mode(mode)
+        if mode == "compact":
+            vertical_padding = 12 if height < 640 else SPACING["lg"]
+            if vertical_padding != self._compact_vertical_padding:
+                self.body.configure(
+                    padding=(
+                        SPACING["md"],
+                        vertical_padding,
+                        SPACING["md"],
+                        vertical_padding,
+                    )
+                )
+                self._compact_vertical_padding = vertical_padding
+        else:
+            self._compact_vertical_padding = None
         self.status_label.configure(
             wraplength=max(160, width // 2),
         )

@@ -39,6 +39,11 @@ install CPython 3.9 with pyenv first; the Linux bootstrap detects an installed
    this width is retained only for the current session. Long parent paths are
    elided in the middle while their complete value remains available from the
    tooltip and **Copy path** action.
+   At window widths of 759 px and below, use the **Files**, **Preview**,
+   **Settings**, and **Results** tabs. Exactly one panel is visible, the active
+   tab is remembered for the current session, and resizing does not clear the
+   files, active preview page, zoom, settings, conversion, or results. The
+   generate/progress area remains fixed at the bottom.
 3. The four **Settings** rows always summarize the active PDF style,
    destination, headers and footers, and advanced options. Long values remain
    on one line and their complete value is available in a tooltip. Select the
@@ -161,13 +166,18 @@ conversion. Changing language immediately retranslates visible labels and
 accessible names without clearing the selected files, active preview, or PDF
 settings.
 
+In compact windows, open the image-only application menu beside the product
+name. It contains **User manual**, **Keyboard shortcuts**, the checked
+**Language** submenu, **Report a problem**, **About LibreMark PDF**, and the
+current version. The logo, product name, menu, and native window controls stay
+visible at the minimum 560 px width.
+
 Press `F1` to display the available keyboard shortcuts.
 **Help → User manual** opens this local guide in the system application.
 
-The compact version beside the LibreMark PDF name opens **About LibreMark
-PDF**. The same dialog is available from **Help → About LibreMark PDF**. It
-shows the application, render profile, Playwright, Chromium, Python, system,
-and architecture identities. **Copy technical information** copies only these
+**About LibreMark PDF** shows the application, render profile, Playwright,
+Chromium, Python, system, and architecture identities. **Copy technical
+information** copies only these
 values: it does not include selected files, document contents, private paths,
 environment variables, or logs, and it does not send anything over the
 network.

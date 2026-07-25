@@ -21,9 +21,13 @@ agent contract in [`SKILL.md`](SKILL.md).
 - four summarized desktop setting sections for style, destination, six
   header/footer positions, date, and trusted static HTML, with complete
   tooltips for long values and one on-demand unified editor;
+- compact navigation at 759 px and below with persistent Files, Preview,
+  Settings, and Results tabs, one visible content panel, and a fixed
+  full-width generate/progress area;
 - English and French desktop interface;
-- a fixed modern header with native Help and language menus, plus compact
-  in-window version access with local, copyable technical identities;
+- a fixed modern header with native Help and language menus; compact windows
+  use one keyboard-accessible application menu for the manual, shortcuts,
+  language, problem reporting, About, and version information;
 - an editable local problem report with opt-in anonymized diagnostics, copy,
   and UTF-8 save actions, with no automatic submission;
 - cancellable per-file batch progress, explicit close and collision choices,

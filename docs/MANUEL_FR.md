@@ -43,6 +43,12 @@ automatiquement une version pyenv `3.9.x` déjà installée.
    360 à 440 px ; cette valeur est conservée uniquement pendant la session.
    Les chemins parents longs sont élidés au milieu, tandis que leur valeur
    complète reste accessible dans l’infobulle et par **Copier le chemin**.
+   Pour une largeur de fenêtre inférieure ou égale à 759 px, utilisez les
+   onglets **Fichiers**, **Aperçu**, **Réglages** et **Résultats**. Un seul
+   panneau est visible, l’onglet actif est mémorisé pendant la session et le
+   redimensionnement ne vide ni les fichiers, ni la page ou le zoom de
+   l’aperçu, ni les réglages, la conversion ou les résultats. La zone de
+   génération et de progression reste fixe en bas.
 3. Les quatre lignes **Réglages** résument toujours le style PDF, la
    destination, les en-têtes et pieds de page et les options avancées actifs.
    Les valeurs longues restent sur une ligne et leur valeur complète est
@@ -170,14 +176,20 @@ conversion. Le changement de langue retraduit immédiatement les libellés
 visibles et leurs noms accessibles sans vider les fichiers sélectionnés, le
 fichier d’aperçu actif ni les réglages PDF.
 
+Dans une fenêtre compacte, ouvrez le menu image de l’application à côté du
+nom du produit. Il contient **Manuel utilisateur**, **Raccourcis clavier**, le
+sous-menu **Langue** avec le choix actif coché, **Signaler un problème**, **À
+propos de LibreMark PDF** et la version courante. Le logo, le nom du produit,
+le menu et les contrôles natifs de fenêtre restent visibles à la largeur
+minimale de 560 px.
+
 Appuyez sur `F1` pour afficher les raccourcis clavier disponibles.
 **Aide → Manuel utilisateur** ouvre ce guide local dans l’application système.
 
-La version compacte à côté du nom LibreMark PDF ouvre **À propos de LibreMark
-PDF**. Le même dialogue est disponible par **Aide → À propos de LibreMark
-PDF**. Il affiche les identités de l’application, du profil de rendu, de
-Playwright, de Chromium, de Python, du système et de l’architecture. **Copier
-les informations techniques** copie uniquement ces valeurs : ni fichiers
+**À propos de LibreMark PDF** affiche les identités de l’application, du
+profil de rendu, de Playwright, de Chromium, de Python, du système et de
+l’architecture. **Copier les informations techniques** copie uniquement ces
+valeurs : ni fichiers
 sélectionnés, ni contenu des documents, ni chemins privés, variables
 d’environnement ou journaux ne sont inclus, et rien n’est envoyé sur le
 réseau.

@@ -271,6 +271,8 @@ class TestGuiAutomationContract(unittest.TestCase):
             "style.toggle", "destination.toggle", "header_footer.toggle",
             "other.toggle",
             "about.open",
+            "menu.compact", "tab.files", "tab.preview", "tab.settings",
+            "tab.results",
         }
         self.assertTrue(expected.issubset(tk_layout.AUTOMATION_ACTIONS))
 
@@ -323,6 +325,8 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
     def test_responsive_transitions_reuse_widgets_without_moving_focus(self):
         app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
         app._layout_mode = None
+        app._compact_vertical_padding = None
+        app._active_compact_tab = "files"
         app.workspace = mock.Mock()
         app.workspace_splitter = mock.Mock()
         app._left_panel_width = tk_layout.LEFT_PANEL_TARGET_WIDTH
@@ -339,7 +343,14 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
         app.preview_canvas = mock.Mock()
         app.status_label = mock.Mock()
         app.app_header = mock.Mock()
+        app.compact_tabs = mock.Mock()
+        app.content_container = mock.Mock()
+        app.body_canvas = mock.Mock()
+        app.body_canvas.winfo_width.return_value = 560
+        app.body_canvas.winfo_height.return_value = 400
+        app._body_window = mock.Mock()
         app.root = mock.Mock()
+        app.root.focus_get.return_value = None
         widgets = (
             app.source_group,
             app.preview_group,
@@ -351,18 +362,16 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
         app._apply_responsive_layout(560, 520)
         app.body.configure.assert_called_with(
             padding=(
-                tk_styles.SPACE_SM,
-                tk_styles.SPACE_SM,
-                tk_styles.SPACE_SM,
-                tk_styles.SPACE_XS,
+                12,
+                12,
+                12,
+                12,
             )
         )
-        app.preview_group.grid.assert_called_with(
-            row=1,
-            column=0,
-            sticky="nsew",
-            pady=(0, tk_styles.SECTION_GAP),
+        app.source_group.grid.assert_called_with(
+            row=0, column=0, sticky="nsew"
         )
+        app.preview_group.grid.assert_not_called()
         for widget in (
             app.body,
             app.drop_canvas,
@@ -391,7 +400,7 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
                 app.status_label,
             ),
         )
-        app.root.focus_get.assert_not_called()
+        self.assertGreaterEqual(app.root.focus_get.call_count, 1)
         app.root.focus_set.assert_not_called()
         self.assertEqual(app._layout_mode, "large")
         app.source_group.grid.assert_called_with(
@@ -420,7 +429,7 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
             source.index("container.pack"),
         )
         self.assertIn(
-            "container = ttk.Frame(self.app_shell.content)",
+            "self.content_container = ttk.Frame(self.app_shell.content)",
             source,
         )
         self.assertIn(

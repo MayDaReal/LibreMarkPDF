@@ -8,7 +8,7 @@ from typing import Callable, Dict, Optional, Tuple
 
 import customtkinter as ctk
 
-from ..components import FocusRing
+from ..components import FocusRing, IconButton
 from ..theme import COLORS, RADII, SIZES, SPACING, SystemFontResolver
 
 
@@ -626,6 +626,7 @@ class AppHeader(ctk.CTkFrame):
         on_report: Callable[[], None],
         on_about: Callable[[], None],
         on_language: Callable[[str], None],
+        compact_menu_icon=None,
     ) -> None:
         super().__init__(
             master,
@@ -743,6 +744,33 @@ class AppHeader(ctk.CTkFrame):
             padx=(0, SPACING["xs"]),
             pady=SPACING["sm"],
         )
+        self.compact_menu = tk.Menu(root, tearoff=False)
+        self.compact_menu.add_command(command=on_manual)
+        self.compact_menu.add_command(command=on_shortcuts)
+        self.compact_menu.add_cascade(menu=self.language_menu)
+        self.compact_menu.add_command(command=on_report)
+        self.compact_menu.add_separator()
+        self.compact_menu.add_command(command=on_about)
+        self.compact_menu.add_command(command=on_about)
+        self.compact_menu_button = IconButton(
+            self,
+            image=compact_menu_icon,
+            accessible_name="",
+            command=lambda: self._post_menu(
+                self.compact_menu_button,
+                self.compact_menu,
+            ),
+            width=36,
+            height=36,
+        )
+        self.compact_menu_button.grid(
+            row=0,
+            column=2,
+            sticky="w",
+            padx=(SPACING["xs"], 0),
+            pady=SPACING["sm"],
+        )
+        self.compact_menu_button.grid_remove()
         self.minimize_button = self._window_button(
             text=WINDOW_CONTROL_GLYPHS["minimize"],
             command=self.window_chrome.minimize,
@@ -857,13 +885,22 @@ class AppHeader(ctk.CTkFrame):
             )
         return button
 
-    @staticmethod
-    def _post_menu(button: ctk.CTkButton, menu: tk.Menu) -> None:
+    def _post_menu(self, button: ctk.CTkButton, menu: tk.Menu) -> None:
+        tooltip = getattr(button, "tooltip", None)
+        if tooltip is not None:
+            tooltip.hide()
+        menu.update_idletasks()
+        work_x, work_y, work_width, work_height = (
+            self.window_chrome._work_area()
+        )
+        menu_width = max(220, menu.winfo_reqwidth())
+        menu_height = max(120, menu.winfo_reqheight())
+        desired_x = button.winfo_rootx()
+        desired_y = button.winfo_rooty() + button.winfo_height()
+        x = max(work_x, min(desired_x, work_x + work_width - menu_width))
+        y = max(work_y, min(desired_y, work_y + work_height - menu_height))
         try:
-            menu.tk_popup(
-                button.winfo_rootx(),
-                button.winfo_rooty() + button.winfo_height(),
-            )
+            menu.tk_popup(x, y)
         finally:
             menu.grab_release()
 
@@ -885,6 +922,26 @@ class AppHeader(ctk.CTkFrame):
         self.help_menu.entryconfigure(1, label=labels["manual_action"])
         self.help_menu.entryconfigure(2, label=labels["report_issue_action"])
         self.help_menu.entryconfigure(4, label=labels["about_action"])
+        self.compact_menu.entryconfigure(0, label=labels["manual_action"])
+        self.compact_menu.entryconfigure(
+            1,
+            label=labels["keyboard_shortcuts_action"],
+        )
+        self.compact_menu.entryconfigure(
+            2,
+            label=labels.get("language_menu", "Language"),
+        )
+        self.compact_menu.entryconfigure(3, label=labels["report_issue_action"])
+        self.compact_menu.entryconfigure(5, label=labels["about_action"])
+        self.compact_menu.entryconfigure(
+            6,
+            label=labels.get(
+                "version_information", "Version {version}"
+            ).format(version=version),
+        )
+        self.compact_menu_button.update_accessible_name(
+            labels.get("compact_menu_a11y", "Application menu")
+        )
 
     @property
     def active_language(self) -> str:
@@ -895,12 +952,15 @@ class AppHeader(ctk.CTkFrame):
         """Use compact header spacing without activating compact navigation."""
         if mode == "compact":
             self.version_button.grid_remove()
+            self.help_button.grid_remove()
+            self.language_button.grid_remove()
+            self.compact_menu_button.grid()
             self.logo_label.grid_configure(padx=(SPACING["md"], SPACING["sm"]))
-            self.language_button.grid_configure(
-                padx=(0, 0)
-            )
         else:
+            self.compact_menu_button.grid_remove()
             self.version_button.grid()
+            self.help_button.grid()
+            self.language_button.grid()
             self.logo_label.grid_configure(padx=(SPACING["lg"], SPACING["sm"]))
             self.language_button.grid_configure(
                 padx=(0, SPACING["xs"])

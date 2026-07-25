@@ -58,6 +58,7 @@ class LibreMarkPdfApp(
         self._close_dialog_open = False
         self._conversion_results = []  # type: list
         self._global_conversion_error = None  # type: Optional[str]
+        self._active_compact_tab = "files"
         self._preview_generation = 0
         self._preview_after = None
         self._preview_running = False
@@ -163,6 +164,14 @@ class LibreMarkPdfApp(
             "conversion_cancelled",
         )
         return {key: self._t(key) for key in keys}
+
+    def _compact_tab_labels(self) -> dict:
+        return {
+            "files": self._t("compact_tab_files"),
+            "preview": self._t("compact_tab_preview"),
+            "settings": self._t("compact_tab_settings"),
+            "results": self._t("compact_tab_results"),
+        }
 
     def _tp(
         self,
@@ -354,6 +363,9 @@ class LibreMarkPdfApp(
             "manual_action",
             "report_issue_action",
             "about_action",
+            "language_menu",
+            "compact_menu_a11y",
+            "version_information",
         )
         self.app_header.retranslate(
             {key: self._t(key) for key in header_keys},
@@ -361,6 +373,7 @@ class LibreMarkPdfApp(
             language=self.lang,
         )
         self._update_language_accessibility()
+        self.compact_tabs.retranslate(self._compact_tab_labels())
         self._drop_zone_text = self._t(drop_zone_text_key(HAS_DND))
         self.files_panel.retranslate(self._file_panel_labels())
         self.theme_mode_radio.config(text=self._t("local_theme"))

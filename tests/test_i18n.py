@@ -141,6 +141,21 @@ class TestTranslations(unittest.TestCase):
                     values[4],
                 )
 
+    def test_compact_tabs_and_application_menu_are_bilingual(self):
+        expected = {
+            "en": ("Files", "Preview", "Settings", "Results", "Language"),
+            "fr": ("Fichiers", "Aperçu", "Réglages", "Résultats", "Langue"),
+        }
+        for lang, values in expected.items():
+            with self.subTest(lang=lang):
+                self.assertEqual(
+                    tuple(
+                        i18n.t("compact_tab_{0}".format(name), lang)
+                        for name in ("files", "preview", "settings", "results")
+                    ) + (i18n.t("language_menu", lang),),
+                    values,
+                )
+
 
 if __name__ == "__main__":
     unittest.main()

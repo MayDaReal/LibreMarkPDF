@@ -85,6 +85,25 @@ class TestResponsiveShellContract(unittest.TestCase):
 
 
 class TestWindowChromeContract(unittest.TestCase):
+    def test_compact_menu_is_clamped_to_the_current_monitor_work_area(self):
+        header = AppHeader.__new__(AppHeader)
+        header.window_chrome = mock.Mock()
+        header.window_chrome._work_area.return_value = (-1920, 0, 1920, 1040)
+        button = mock.Mock()
+        button.winfo_rootx.return_value = -100
+        button.winfo_rooty.return_value = 40
+        button.winfo_height.return_value = 36
+        button.tooltip = mock.Mock()
+        menu = mock.Mock()
+        menu.winfo_reqwidth.return_value = 300
+        menu.winfo_reqheight.return_value = 180
+
+        header._post_menu(button, menu)
+
+        menu.tk_popup.assert_called_once_with(-300, 76)
+        menu.grab_release.assert_called_once_with()
+        button.tooltip.hide.assert_called_once_with()
+
     def test_taskbar_registration_refreshes_the_borderless_window_once(self):
         chrome = WindowChrome.__new__(WindowChrome)
         chrome.root = mock.Mock()
@@ -292,6 +311,9 @@ class TestModernShellWidgets(unittest.TestCase):
             "manual_action": "User manual",
             "report_issue_action": "Report a problem",
             "about_action": "About LibreMark PDF",
+            "language_menu": "Language",
+            "compact_menu_a11y": "Application menu",
+            "version_information": "Version {version}",
         }
         header.retranslate(labels, __version__, "en")
         self.root.update()
@@ -315,6 +337,23 @@ class TestModernShellWidgets(unittest.TestCase):
             tk.Frame.cget(header.help_button, "takefocus"),
             "1",
         )
+        header.set_layout_mode("compact")
+        self.assertEqual(header.help_button.winfo_manager(), "")
+        self.assertEqual(header.language_button.winfo_manager(), "")
+        self.assertEqual(header.version_button.winfo_manager(), "")
+        self.assertEqual(header.compact_menu_button.winfo_manager(), "grid")
+        self.assertEqual(header.compact_menu.type(0), "command")
+        self.assertEqual(header.compact_menu.type(2), "cascade")
+        self.assertEqual(header.compact_menu.type(4), "separator")
+        self.assertEqual(
+            header.compact_menu.entrycget(6, "label"),
+            "Version {0}".format(__version__),
+        )
+        header.compact_menu.invoke(0)
+        header.compact_menu.invoke(1)
+        header.compact_menu.invoke(3)
+        header.compact_menu.invoke(5)
+        self.assertEqual(calls[-4:], ["manual", "shortcuts", "report", "about"])
 
         french = dict(labels)
         french.update({
@@ -357,7 +396,7 @@ class TestModernShellWidgets(unittest.TestCase):
         application._responsive_controller.flush()
         self.root.geometry("560x520+0+0")
         self.root.update()
-        self.assertEqual(application.body_scroll.winfo_manager(), "pack")
+        self.assertEqual(application.body_scroll.winfo_manager(), "")
         application._responsive_controller.schedule(1440, 900)
         application._responsive_controller.flush()
         self.root.geometry("1440x900+0+0")
@@ -391,6 +430,131 @@ class TestModernShellWidgets(unittest.TestCase):
         services.run_preview_worker.assert_not_called()
         services.run_conversion_job.assert_not_called()
         services.open_path.assert_not_called()
+
+    def test_compact_tabs_reuse_panels_retranslate_and_keep_action_visible(self):
+        services = mock.Mock()
+        dialogs = mock.Mock()
+        with mock.patch.object(tk_layout, "HAS_DND", False), mock.patch.object(
+            tk_app.i18n,
+            "load_language",
+            return_value="en",
+        ):
+            application = tk_app.LibreMarkPdfApp(
+                self.root,
+                services=services,
+                dialogs=dialogs,
+            )
+        panels = {
+            "files": application.source_group,
+            "preview": application.preview_group,
+            "settings": application.settings_panel,
+            "results": application.results_frame,
+        }
+        identities = {name: id(panel) for name, panel in panels.items()}
+        application._preview_page = 3
+        application.zoom_percent.set(150)
+        application.files = [Path("one.md"), Path("two.md")]
+        application.active_file = Path("two.md")
+        application._render_file_list()
+
+        self.root.geometry("560x520+0+0")
+        self.root.update()
+        application._responsive_controller.flush()
+        self.root.update()
+
+        self.assertEqual(application.compact_tabs.winfo_manager(), "pack")
+        self.assertEqual(application.compact_tabs.active, "files")
+        self.assertEqual(
+            [name for name, panel in panels.items() if panel.winfo_manager()],
+            ["files"],
+        )
+        self.assertGreaterEqual(
+            application.generate_button.winfo_width(),
+            application.action_bar.winfo_width() - 40,
+        )
+        application.compact_tabs.buttons["preview"].invoke()
+        self.root.update()
+        self.assertEqual(application._active_compact_tab, "preview")
+        self.assertEqual(
+            [name for name, panel in panels.items() if panel.winfo_manager()],
+            ["preview"],
+        )
+        self.assertEqual(application._preview_page, 3)
+        self.assertEqual(application.zoom_percent.get(), 150)
+        self.assertGreaterEqual(application.preview_canvas.winfo_height(), 180)
+        self.assertEqual(application.body_scroll.winfo_manager(), "")
+
+        application.operation = "generate"
+        application._apply_responsive_layout(720, 640)
+        self.assertEqual(application._active_compact_tab, "preview")
+        application.lang = "fr"
+        application._retranslate()
+        self.assertEqual(
+            [
+                application.compact_tabs.buttons[name].cget("text")
+                for name in application.compact_tabs.TAB_NAMES
+            ],
+            ["Fichiers", "Aperçu", "Réglages", "Résultats"],
+        )
+
+        self.root.geometry("1180x760+0+0")
+        self.root.update()
+        application._responsive_controller.flush()
+        self.root.update()
+        self.assertEqual(application.compact_tabs.winfo_manager(), "")
+        self.assertEqual(
+            {name: id(panel) for name, panel in panels.items()},
+            identities,
+        )
+        self.assertEqual(application._active_compact_tab, "preview")
+        self.assertEqual(application._preview_page, 3)
+        self.assertEqual(application.zoom_percent.get(), 150)
+
+        self.root.geometry("560x520+0+0")
+        self.root.update()
+        application._responsive_controller.flush()
+        self.root.update()
+        application.compact_tabs.buttons["files"].invoke()
+        self.root.update()
+        self.root.after(20, self.root.quit)
+        self.root.mainloop()
+
+        self.assertEqual(application._active_compact_tab, "files")
+        self.assertEqual(application.source_group.winfo_manager(), "grid")
+        self.assertTrue(application.source_group.winfo_ismapped())
+        self.assertGreater(application.source_group.winfo_height(), 100)
+        self.assertEqual(
+            application.files_panel.list_view.winfo_manager(),
+            "canvas",
+        )
+        self.assertTrue(application.files_panel.list_view.winfo_ismapped())
+        self.assertGreater(application.files_panel.list_view.winfo_height(), 100)
+
+    def test_compact_conversion_controls_remain_fixed_at_short_height(self):
+        shell = AppShell(self.root)
+        shell.pack(fill="both", expand=True)
+        action_bar = ActionBar(
+            shell,
+            fonts=self.fonts,
+            on_generate=lambda: None,
+            on_cancel=lambda: None,
+            progress_variable=tk.IntVar(master=self.root, value=1),
+            generate_icon=None,
+        )
+        shell.attach_action_bar(action_bar)
+        action_bar.set_conversion_active(True)
+        action_bar.set_layout_mode("compact")
+        self.root.geometry("560x520+0+0")
+        self.root.update()
+
+        self.assertEqual(action_bar.winfo_manager(), "grid")
+        self.assertEqual(action_bar.generate_button.winfo_manager(), "grid")
+        self.assertEqual(action_bar.cancel_button.winfo_manager(), "grid")
+        self.assertEqual(action_bar.progress.winfo_manager(), "grid")
+        self.assertLessEqual(
+            action_bar.winfo_rooty() + action_bar.winfo_height(),
+            self.root.winfo_rooty() + self.root.winfo_height(),
+        )
 
     def test_unified_settings_dialog_retranslates_and_applies_or_cancels_all(self):
         services = mock.Mock()
