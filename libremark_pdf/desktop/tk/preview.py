@@ -88,7 +88,7 @@ class TkPreviewMixin:
         if source_path is None:
             self._set_preview_state("empty")
             return
-        options = self._render_options()
+        options = self._preview_render_options()
         try:
             profile = core.render_profile_for_options(**options)
         except Exception as exc:

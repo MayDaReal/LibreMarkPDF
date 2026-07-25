@@ -47,16 +47,37 @@ install CPython 3.9 with pyenv first; the Linux bootstrap detects an installed
 3. The four **Settings** rows always summarize the active PDF style,
    destination, headers and footers, and advanced options. Long values remain
    on one line and their complete value is available in a tooltip. Select the
-   single **Edit** action beside the Settings heading to open one dialog for
-   all four families; **Apply** keeps all changes and **Cancel** or Escape
-   restores the settings present when it opened. In **PDF style**,
-   select a validated local theme, or select **Custom CSS** and **Choose CSS**.
-   These choices are mutually exclusive;
-   **Use the selected theme** removes the custom CSS without forgetting the theme
-   selected for this session.
-4. Optional: edit **Headers and footers** and change the explicitly labelled
-   Left, Center, and Right positions. **Restore defaults** changes only
-   these six fields and restores the default center footer.
+   **PDF style** row to open its dedicated editor. Select a validated local
+   theme, or select **Custom CSS** and **Choose CSS**. These choices are
+   mutually exclusive, but choosing CSS does not forget the selected theme.
+   Draft changes refresh the preview after 450 ms; **Save** applies them to the
+   session, while **Cancel**, Escape, close, or compact **Back** restores the
+   previous style and preview. Select the **Destination** row to open its
+   dedicated editor. Choose either **Same folder as each source file** or
+   **Single folder**, then use **Browse** to select a path. The complete custom
+   path remains selectable and copyable; Unicode characters and spaces are
+   preserved. Destination drafts never refresh or replace the preview.
+   **Save** applies the destination to the session; **Cancel**, Escape, close,
+   or compact **Back** restores it exactly. Select **Headers and footers** to
+   edit the explicitly labelled Left, Center, and Right positions. An empty
+   field displays nothing. Select `{titre}`, `{title}`, `{date}`, `{page}`, or
+   `{total}` to insert that variable at the active field’s cursor. Draft field
+   changes refresh the preview after 450 ms. **Restore defaults** asks for
+   confirmation only when custom values exist, changes only these six fields,
+   and restores `Page {page} / {total}` in the center footer. Save and Cancel
+   follow the same session and preview restoration rules as PDF style. In
+   compact mode each dedicated editor fills the Settings tab and keeps Save
+   visible. The header/footer fields retain their three-column layout; an
+   internal vertical scrollbar appears only when the remaining height cannot
+   show the variables and reset action. Select **Advanced options**, or the
+   **Edit** action beside the Settings heading, to open its dedicated editor.
+   Leave the render date empty for the automatic current date, or enter a valid
+   `YYYY-MM-DD` value. Invalid dates are reported inline. Enabling trusted
+   static HTML asks for confirmation on its first activation in the application
+   session; refusing leaves the switch off. Scripts, remote resources, and
+   active content remain blocked. Advanced drafts refresh the preview after
+   450 ms, and Save or Cancel follows the same exact session and preview rules.
+4. Optional: edit **Headers and footers** as described above.
 5. The active file's preview is refreshed after a short delay when a
    preview-compatible setting changes. The preview keeps the previous image
    visible while updating and identifies empty, updating, and unavailable
@@ -70,11 +91,10 @@ install CPython 3.9 with pyenv first; the Linux bootstrap detects an installed
    the pointer, and middle-button drag pans the page. Scrollbars appear only
    when needed. A preview error can be retried or copied and does not prevent a
    valid PDF generation attempt.
-6. Optional: edit **Destination** and select an output folder. Otherwise,
-   each PDF is written beside its Markdown source.
-   **Advanced options** contains the render date and trusted static HTML.
-   Enabling trusted HTML requires confirmation the first time in each
-   application session.
+6. Optional: edit **Destination** and select **Single folder**. Otherwise, each
+   PDF is written beside its Markdown source.
+   **Advanced options** contains the render date and trusted static HTML as
+   described above.
 7. Select **Generate PDF** for one file, or **Generate n PDFs** for a
    batch. The label follows the file count without abbreviated plural forms.
 
@@ -206,7 +226,7 @@ a substitute for that review.
   `url(...)` resources.
 - Existing output is refused unless the CLI caller passes `--overwrite`; a
   replacement is published only after successful rendering.
-- Default conversion renders raw HTML literally. **Other advanced options** in
+- Default conversion renders raw HTML literally. **Advanced options** in
   the desktop interface and the CLI `--trusted-html` compatibility option
   permit the same narrow static subset, never scripts, event handlers, frames,
   resource loaders, or network/`file:` URLs. The desktop asks for confirmation

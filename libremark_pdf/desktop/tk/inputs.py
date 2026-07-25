@@ -224,6 +224,9 @@ class TkInputMixin:
             self._settings_draft_style_mode_var.set("css")
             self._refresh_css_entry()
             self._render_theme_cards()
+            if getattr(self, "_style_editor_open", False):
+                self._refresh_style_editors()
+                self._schedule_style_draft_preview()
 
     def _activate_css_mode(self) -> None:
         if self._settings_draft_css_path:
@@ -286,16 +289,250 @@ class TkInputMixin:
                 card.config(state="disabled")
         self._refresh_accordion_headers()
 
+    def _style_editor_labels(self) -> dict:
+        return {
+            "title": self._t("style_editor_title"),
+            "description": self._t("style_editor_description"),
+            "back": self._t("back_settings"),
+            "local_theme": self._t("local_theme"),
+            "custom_css": self._t("custom_css"),
+            "choose_css": self._t("choose_css"),
+            "cancel": self._t("cancel_settings"),
+            "save": self._t("save_settings"),
+        }
+
+    def _style_editor_themes(self) -> list:
+        try:
+            return core.list_themes()
+        except Exception as exc:
+            self._set_status("status_theme_error", error=str(exc))
+            return [core.show_theme(core.DEFAULT_THEME_ID)]
+
+    def _refresh_style_editors(self) -> None:
+        if not hasattr(self, "style_dialog_editor"):
+            return
+        themes = self._style_editor_themes()
+        selected = self._settings_draft_theme_var.get()
+        selected_info = next(
+            (info for info in themes if info.reference == selected),
+            themes[0],
+        )
+        self._style_theme_display_var.set(selected_info.names[self.lang])
+        self._style_css_display_var.set(
+            self._settings_draft_css_path or self._t("css_empty_state")
+        )
+        labels = self._style_editor_labels()
+        choices = tuple(
+            (info.reference, info.names[self.lang]) for info in themes
+        )
+        technical = self._t(
+            "style_theme_technical", reference=selected_info.reference
+        )
+        mode = self._settings_draft_style_mode_var.get()
+        for editor in (self.style_dialog_editor, self.compact_style_editor):
+            editor.retranslate(labels)
+            editor.set_themes(choices, selected_info.reference, technical)
+            editor.set_mode(mode)
+
+    def _on_style_mode_changed(self) -> None:
+        if self._settings_draft_style_mode_var.get() == "css" and not (
+            self._settings_draft_css_path
+        ):
+            self._choose_css()
+            if not self._settings_draft_css_path:
+                self._settings_draft_style_mode_var.set("theme")
+        self._refresh_style_editors()
+        self._schedule_style_draft_preview()
+
+    def _select_style_theme(self, reference: str) -> None:
+        self._settings_draft_theme_var.set(reference)
+        self._settings_draft_style_mode_var.set("theme")
+        self._refresh_style_editors()
+        self._schedule_style_draft_preview()
+
+    def _draft_style_render_options(self) -> dict:
+        options = self._render_options()
+        if self._settings_draft_style_mode_var.get() == "css":
+            options["css_path"] = self._settings_draft_css_path
+            options["theme"] = None
+        else:
+            options["css_path"] = None
+            options["theme"] = self._settings_draft_theme_var.get()
+        return options
+
+    def _validate_style_draft(self) -> bool:
+        if (
+            self._settings_draft_style_mode_var.get() == "css"
+            and not self._settings_draft_css_path
+        ):
+            self._style_error_var.set(self._t("css_validation_required"))
+            return False
+        try:
+            core.render_profile_for_options(**self._draft_style_render_options())
+        except Exception:
+            self._style_error_var.set(self._t("css_validation_invalid"))
+            return False
+        self._style_error_var.set("")
+        return True
+
+    def _schedule_style_draft_preview(self) -> None:
+        if not getattr(self, "_style_editor_open", False):
+            return
+        if not self._validate_style_draft():
+            self._invalidate_preview()
+            return
+        self._schedule_preview()
+
+    def _preview_render_options(self) -> dict:
+        if getattr(self, "_style_editor_open", False):
+            return self._draft_style_render_options()
+        if getattr(self, "_header_footer_editor_open", False):
+            return self._draft_header_footer_render_options()
+        if getattr(self, "_advanced_editor_open", False):
+            return self._draft_advanced_render_options()
+        return self._render_options()
+
+    def _capture_preview_snapshot(self) -> dict:
+        return {
+            "png": self._preview_png,
+            "state": self._preview_state,
+            "error": self._preview_error,
+            "page": self._preview_page,
+            "total_pages": self._preview_total_pages,
+            "pages": dict(self._preview_pages),
+            "page_pending": self._preview_page_pending,
+            "failed_page": self._preview_failed_page,
+            "status_key": self._status_key,
+            "status_kwargs": dict(self._status_kwargs),
+        }
+
+    def _restore_preview_snapshot(self, snapshot: dict) -> None:
+        self._invalidate_preview()
+        self._preview_running = False
+        self._preview_active_request = None
+        self._preview_png = snapshot["png"]
+        self._preview_state = snapshot["state"]
+        self._preview_error = snapshot["error"]
+        self._preview_page = snapshot["page"]
+        self._preview_total_pages = snapshot["total_pages"]
+        self._preview_pages = dict(snapshot["pages"])
+        self._preview_page_pending = snapshot["page_pending"]
+        self._preview_failed_page = snapshot["failed_page"]
+        if self._preview_png is not None:
+            self._redraw_preview()
+        else:
+            self._draw_preview_state()
+        self._refresh_preview_ui()
+        self._refresh_generate_button()
+        self._set_status(snapshot["status_key"], **snapshot["status_kwargs"])
+
+    def _open_style_editor(self) -> str:
+        if self.operation != "idle":
+            return "break"
+        if getattr(self, "_destination_editor_open", False):
+            return "break"
+        if getattr(self, "_header_footer_editor_open", False):
+            return "break"
+        if getattr(self, "_advanced_editor_open", False):
+            return "break"
+        if self._style_editor_open:
+            self._show_style_editor_host()
+            return "break"
+        self._settings_dialog["snapshot"] = self._settings_snapshot()
+        self._load_settings_draft(self._settings_dialog["snapshot"])
+        self._style_editor_preview_snapshot = self._capture_preview_snapshot()
+        self._settings_dialog["return_focus"] = self.root.focus_get()
+        self._style_error_var.set("")
+        self._style_editor_open = True
+        self._refresh_style_editors()
+        self._show_style_editor_host()
+        return "break"
+
+    def _position_style_dialog(self) -> None:
+        dialog = self._style_dialog
+        width = max(560, min(680, self.root.winfo_width() - 48))
+        height = max(520, min(620, self.root.winfo_height() - 48))
+        x = self.root.winfo_rootx() + max(0, (self.root.winfo_width() - width) // 2)
+        y = self.root.winfo_rooty() + max(0, (self.root.winfo_height() - height) // 2)
+        dialog.geometry("{0}x{1}+{2}+{3}".format(width, height, x, y))
+
+    def _show_style_editor_host(self) -> None:
+        if not self._style_editor_open:
+            return
+        dialog = self._style_dialog
+        if self._layout_mode == "compact":
+            if dialog.grab_current() is dialog:
+                dialog.grab_release()
+            dialog.withdraw()
+            self._active_compact_tab = "settings"
+            self._show_active_compact_section()
+            self.compact_style_editor.focus_initial(
+                self._settings_draft_style_mode_var.get()
+            )
+            return
+        self.compact_style_editor.grid_forget()
+        self._position_style_dialog()
+        dialog.deiconify()
+        dialog.lift()
+        dialog.grab_set()
+        dialog.focus_force()
+        self.style_dialog_editor.focus_initial(
+            self._settings_draft_style_mode_var.get()
+        )
+
+    def _close_style_editor(self) -> str:
+        dialog = self._style_dialog
+        if dialog.grab_current() is dialog:
+            dialog.grab_release()
+        dialog.withdraw()
+        self.compact_style_editor.grid_forget()
+        self._style_editor_open = False
+        if self._layout_mode == "compact":
+            self._show_active_compact_section()
+        focus = self._settings_dialog.get("return_focus")
+        try:
+            (focus or self.settings_panel.rows["style"]).focus_set()
+        except tk.TclError:
+            self.root.focus_set()
+        return "break"
+
+    def _save_style_editor(self) -> str:
+        if not self._validate_style_draft():
+            return "break"
+        mode = self._settings_draft_style_mode_var.get()
+        self.css_path = (
+            self._settings_draft_css_path if mode == "css" else None
+        )
+        self.style_mode_var.set(mode)
+        self.theme_var.set(self._settings_draft_theme_var.get())
+        self._refresh_accordion_headers()
+        return self._close_style_editor()
+
+    def _cancel_style_editor(self, _event=None) -> str:
+        if not getattr(self, "_style_editor_open", False):
+            return "break"
+        snapshot = self._settings_dialog.get("snapshot")
+        if snapshot is not None:
+            self._load_settings_draft(snapshot)
+        preview = self._style_editor_preview_snapshot
+        if preview is not None:
+            self._restore_preview_snapshot(preview)
+        return self._close_style_editor()
+
     def _choose_output_dir(self) -> None:
         path = self.dialogs.choose_output_folder(
             self._t("choose_output_folder_title")
         )
         if path:
             self._settings_draft_output_dir = path
+            if hasattr(self, "_destination_mode_var"):
+                self._destination_mode_var.set("custom")
             self._refresh_output_entry()
 
     def _reset_output_dir(self) -> None:
         self._settings_draft_output_dir = None
+        if hasattr(self, "_destination_mode_var"):
+            self._destination_mode_var.set("source")
         self._refresh_output_entry()
 
     def _refresh_output_entry(self) -> None:
@@ -307,7 +544,504 @@ class TkInputMixin:
         self.output_entry.delete(0, "end")
         self.output_entry.insert(0, value)
         self.output_entry.config(state="readonly")
+        self._refresh_destination_editors()
         self._refresh_accordion_headers()
+
+    def _destination_editor_labels(self) -> dict:
+        return {
+            "title": self._t("destination_editor_title"),
+            "description": self._t("destination_editor_description"),
+            "back": self._t("back_settings"),
+            "source": self._t("destination_source_option"),
+            "custom": self._t("destination_custom_option"),
+            "choose": self._t("destination_choose_folder"),
+            "cancel": self._t("cancel_settings"),
+            "save": self._t("save_settings"),
+        }
+
+    def _refresh_destination_editors(self) -> None:
+        if not hasattr(self, "destination_dialog_editor"):
+            return
+        mode = "custom" if self._settings_draft_output_dir else "source"
+        self._destination_mode_var.set(mode)
+        self._destination_path_var.set(
+            self._settings_draft_output_dir
+            or self._t("destination_no_folder_selected")
+        )
+        labels = self._destination_editor_labels()
+        for editor in (
+            self.destination_dialog_editor,
+            self.compact_destination_editor,
+        ):
+            editor.retranslate(labels)
+            editor.set_mode(mode)
+
+    def _on_destination_mode_changed(self) -> None:
+        mode = self._destination_mode_var.get()
+        self._destination_error_var.set("")
+        if mode == "source":
+            self._settings_draft_output_dir = None
+            self._refresh_output_entry()
+            return
+        if not self._settings_draft_output_dir:
+            self._choose_destination_folder()
+            if not self._settings_draft_output_dir:
+                self._destination_mode_var.set("source")
+        self._refresh_destination_editors()
+
+    def _choose_destination_folder(self) -> None:
+        self._choose_output_dir()
+        self._refresh_destination_editors()
+
+    def _validate_destination_draft(self) -> bool:
+        if (
+            self._destination_mode_var.get() == "custom"
+            and not self._settings_draft_output_dir
+        ):
+            self._destination_error_var.set(
+                self._t("destination_validation_required")
+            )
+            return False
+        self._destination_error_var.set("")
+        return True
+
+    def _open_destination_editor(self) -> str:
+        if self.operation != "idle":
+            return "break"
+        if getattr(self, "_style_editor_open", False):
+            return "break"
+        if getattr(self, "_header_footer_editor_open", False):
+            return "break"
+        if getattr(self, "_advanced_editor_open", False):
+            return "break"
+        if self._destination_editor_open:
+            self._show_destination_editor_host()
+            return "break"
+        self._settings_dialog["snapshot"] = self._settings_snapshot()
+        self._load_settings_draft(self._settings_dialog["snapshot"])
+        self._settings_dialog["return_focus"] = self.root.focus_get()
+        self._destination_error_var.set("")
+        self._destination_editor_open = True
+        self._refresh_destination_editors()
+        self._show_destination_editor_host()
+        return "break"
+
+    def _position_destination_dialog(self) -> None:
+        dialog = self._destination_dialog
+        width = max(560, min(680, self.root.winfo_width() - 48))
+        height = max(520, min(580, self.root.winfo_height() - 48))
+        x = self.root.winfo_rootx() + max(
+            0, (self.root.winfo_width() - width) // 2
+        )
+        y = self.root.winfo_rooty() + max(
+            0, (self.root.winfo_height() - height) // 2
+        )
+        dialog.geometry("{0}x{1}+{2}+{3}".format(width, height, x, y))
+
+    def _show_destination_editor_host(self) -> None:
+        if not self._destination_editor_open:
+            return
+        dialog = self._destination_dialog
+        mode = self._destination_mode_var.get()
+        if self._layout_mode == "compact":
+            if dialog.grab_current() is dialog:
+                dialog.grab_release()
+            dialog.withdraw()
+            self._active_compact_tab = "settings"
+            self._show_active_compact_section()
+            self.compact_destination_editor.focus_initial(mode)
+            return
+        self.compact_destination_editor.grid_forget()
+        self._position_destination_dialog()
+        dialog.deiconify()
+        dialog.lift()
+        dialog.grab_set()
+        dialog.focus_force()
+        self.destination_dialog_editor.focus_initial(mode)
+
+    def _close_destination_editor(self) -> str:
+        dialog = self._destination_dialog
+        if dialog.grab_current() is dialog:
+            dialog.grab_release()
+        dialog.withdraw()
+        self.compact_destination_editor.grid_forget()
+        self._destination_editor_open = False
+        if self._layout_mode == "compact":
+            self._show_active_compact_section()
+        focus = self._settings_dialog.get("return_focus")
+        try:
+            (focus or self.settings_panel.rows["destination"]).focus_set()
+        except tk.TclError:
+            self.root.focus_set()
+        return "break"
+
+    def _save_destination_editor(self) -> str:
+        if not self._validate_destination_draft():
+            return "break"
+        self.output_dir = self._settings_draft_output_dir
+        self._refresh_output_entry()
+        self._refresh_accordion_headers()
+        return self._close_destination_editor()
+
+    def _cancel_destination_editor(self, _event=None) -> str:
+        if not getattr(self, "_destination_editor_open", False):
+            return "break"
+        snapshot = self._settings_dialog.get("snapshot")
+        if snapshot is not None:
+            self._load_settings_draft(snapshot)
+        return self._close_destination_editor()
+
+    @staticmethod
+    def _header_footer_defaults() -> dict:
+        return {
+            "header_left": "",
+            "header_center": "",
+            "header_right": "",
+            "footer_left": "",
+            "footer_center": "Page {page} / {total}",
+            "footer_right": "",
+        }
+
+    def _header_footer_editor_labels(self) -> dict:
+        return {
+            "title": self._t("header_footer_editor_title"),
+            "description": self._t("header_footer_editor_description"),
+            "back": self._t("back_settings"),
+            "header": self._t("header_label"),
+            "footer": self._t("footer_label"),
+            "left": self._t("position_left"),
+            "center": self._t("position_center"),
+            "right": self._t("position_right"),
+            "tokens": self._t("header_footer_tokens_label"),
+            "token_help": self._t("header_footer_token_help"),
+            "restore": self._t("reset_header_footer"),
+            "cancel": self._t("cancel_settings"),
+            "save": self._t("save_settings"),
+        }
+
+    def _refresh_header_footer_editors(self) -> None:
+        if not hasattr(self, "header_footer_dialog_editor"):
+            return
+        labels = self._header_footer_editor_labels()
+        for editor in (
+            self.header_footer_dialog_editor,
+            self.compact_header_footer_editor,
+        ):
+            editor.retranslate(labels)
+
+    def _draft_header_footer_config(self) -> core.HeaderFooterConfig:
+        return core.HeaderFooterConfig(
+            top_left=self._settings_draft_hf_vars["header_left"].get(),
+            top_center=self._settings_draft_hf_vars["header_center"].get(),
+            top_right=self._settings_draft_hf_vars["header_right"].get(),
+            bottom_left=self._settings_draft_hf_vars["footer_left"].get(),
+            bottom_center=self._settings_draft_hf_vars["footer_center"].get(),
+            bottom_right=self._settings_draft_hf_vars["footer_right"].get(),
+        )
+
+    def _draft_header_footer_render_options(self) -> dict:
+        options = self._render_options()
+        options["header_footer"] = self._draft_header_footer_config()
+        return options
+
+    def _validate_header_footer_draft(self) -> bool:
+        try:
+            core.render_profile_for_options(
+                **self._draft_header_footer_render_options()
+            )
+        except Exception:
+            return False
+        return True
+
+    def _on_header_footer_draft_changed(self, *unused) -> None:
+        if not getattr(self, "_header_footer_editor_open", False):
+            return
+        if not self._validate_header_footer_draft():
+            self._invalidate_preview()
+            return
+        self._schedule_preview()
+
+    def _restore_header_footer_defaults(self) -> None:
+        defaults = self._header_footer_defaults()
+        customized = any(
+            self._settings_draft_hf_vars[key].get() != value
+            for key, value in defaults.items()
+        )
+        if customized and not self.dialogs.ask_restore_header_footer(
+            self._t("restore_header_footer_title"),
+            self._t("restore_header_footer_question"),
+        ):
+            return
+        for key, value in defaults.items():
+            self._settings_draft_hf_vars[key].set(value)
+
+    def _open_header_footer_editor(self) -> str:
+        if self.operation != "idle":
+            return "break"
+        if (
+            getattr(self, "_style_editor_open", False)
+            or getattr(self, "_destination_editor_open", False)
+            or getattr(self, "_advanced_editor_open", False)
+        ):
+            return "break"
+        if self._header_footer_editor_open:
+            self._show_header_footer_editor_host()
+            return "break"
+        self._settings_dialog["snapshot"] = self._settings_snapshot()
+        self._load_settings_draft(self._settings_dialog["snapshot"])
+        self._header_footer_editor_preview_snapshot = (
+            self._capture_preview_snapshot()
+        )
+        self._settings_dialog["return_focus"] = self.root.focus_get()
+        self._header_footer_editor_open = True
+        self._refresh_header_footer_editors()
+        self._show_header_footer_editor_host()
+        return "break"
+
+    def _position_header_footer_dialog(self) -> None:
+        dialog = self._header_footer_dialog
+        width = max(560, min(720, self.root.winfo_width() - 48))
+        height = max(520, min(680, self.root.winfo_height() - 48))
+        x = self.root.winfo_rootx() + max(
+            0, (self.root.winfo_width() - width) // 2
+        )
+        y = self.root.winfo_rooty() + max(
+            0, (self.root.winfo_height() - height) // 2
+        )
+        dialog.geometry("{0}x{1}+{2}+{3}".format(width, height, x, y))
+
+    def _show_header_footer_editor_host(self) -> None:
+        if not self._header_footer_editor_open:
+            return
+        dialog = self._header_footer_dialog
+        if self._layout_mode == "compact":
+            if dialog.grab_current() is dialog:
+                dialog.grab_release()
+            dialog.withdraw()
+            self._active_compact_tab = "settings"
+            self._show_active_compact_section()
+            self.compact_header_footer_editor.focus_initial()
+            return
+        self.compact_header_footer_editor.grid_forget()
+        self._position_header_footer_dialog()
+        dialog.deiconify()
+        dialog.lift()
+        dialog.grab_set()
+        dialog.focus_force()
+        self.header_footer_dialog_editor.focus_initial()
+
+    def _close_header_footer_editor(self) -> str:
+        dialog = self._header_footer_dialog
+        if dialog.grab_current() is dialog:
+            dialog.grab_release()
+        dialog.withdraw()
+        self.compact_header_footer_editor.grid_forget()
+        self._header_footer_editor_open = False
+        if self._layout_mode == "compact":
+            self._show_active_compact_section()
+        focus = self._settings_dialog.get("return_focus")
+        try:
+            (focus or self.settings_panel.rows["header_footer"]).focus_set()
+        except tk.TclError:
+            self.root.focus_set()
+        return "break"
+
+    def _save_header_footer_editor(self) -> str:
+        if not self._validate_header_footer_draft():
+            return "break"
+        for key, variable in self.hf_vars.items():
+            draft_value = self._settings_draft_hf_vars[key].get()
+            if variable.get() != draft_value:
+                variable.set(draft_value)
+        self._refresh_accordion_headers()
+        return self._close_header_footer_editor()
+
+    def _cancel_header_footer_editor(self, _event=None) -> str:
+        if not getattr(self, "_header_footer_editor_open", False):
+            return "break"
+        self._header_footer_editor_open = False
+        snapshot = self._settings_dialog.get("snapshot")
+        if snapshot is not None:
+            self._load_settings_draft(snapshot)
+        preview = self._header_footer_editor_preview_snapshot
+        if preview is not None:
+            self._restore_preview_snapshot(preview)
+        return self._close_header_footer_editor()
+
+    def _advanced_editor_labels(self) -> dict:
+        return {
+            "title": self._t("advanced_editor_title"),
+            "description": self._t("advanced_editor_description"),
+            "back": self._t("back_settings"),
+            "date": self._t("render_date"),
+            "date_help": self._t("render_date_automatic_help"),
+            "trusted_html": self._t("trusted_html"),
+            "security": self._t("trusted_html_help"),
+            "cancel": self._t("cancel_settings"),
+            "save": self._t("save_settings"),
+        }
+
+    def _refresh_advanced_editors(self) -> None:
+        if not hasattr(self, "advanced_dialog_editor"):
+            return
+        labels = self._advanced_editor_labels()
+        for editor in (
+            self.advanced_dialog_editor,
+            self.compact_advanced_editor,
+        ):
+            editor.retranslate(labels)
+
+    def _draft_advanced_render_options(self) -> dict:
+        options = dict(self._render_options())
+        options["render_date"] = (
+            self._settings_draft_render_date_var.get().strip() or None
+        )
+        options["trusted_html"] = (
+            self._settings_draft_trusted_html_var.get()
+        )
+        return options
+
+    def _validate_advanced_draft(self) -> bool:
+        try:
+            core.render_profile_for_options(
+                **self._draft_advanced_render_options()
+            )
+        except Exception:
+            self._advanced_error_var.set(
+                self._t("render_date_validation_invalid")
+            )
+            return False
+        self._advanced_error_var.set("")
+        return True
+
+    def _on_advanced_date_changed(self, *unused) -> None:
+        if not getattr(self, "_advanced_editor_open", False):
+            return
+        if not self._validate_advanced_draft():
+            self._invalidate_preview()
+            return
+        self._schedule_preview()
+
+    def _on_advanced_trusted_html_changed(self) -> None:
+        enabled = self._settings_draft_trusted_html_var.get()
+        if enabled and not self._trusted_html_confirmed:
+            confirmed = self.dialogs.ask_trusted_html(
+                (
+                    self.compact_advanced_editor
+                    if self._layout_mode == "compact"
+                    else self._advanced_dialog
+                ),
+                self._t("trusted_html_confirm_title"),
+                self._t("trusted_html_confirm"),
+                self._t("trusted_html_allow"),
+                self._t("cancel_settings"),
+            )
+            if not confirmed:
+                self._settings_draft_trusted_html_var.set(False)
+                editor = (
+                    self.compact_advanced_editor
+                    if self._layout_mode == "compact"
+                    else self.advanced_dialog_editor
+                )
+                editor.trusted_html_switch.focus_set()
+                return
+            self._trusted_html_confirmed = True
+        if self._validate_advanced_draft():
+            self._schedule_preview()
+
+    def _open_advanced_editor(self) -> str:
+        if self.operation != "idle":
+            return "break"
+        if (
+            getattr(self, "_style_editor_open", False)
+            or getattr(self, "_destination_editor_open", False)
+            or getattr(self, "_header_footer_editor_open", False)
+        ):
+            return "break"
+        if self._advanced_editor_open:
+            self._show_advanced_editor_host()
+            return "break"
+        self._settings_dialog["snapshot"] = self._settings_snapshot()
+        self._load_settings_draft(self._settings_dialog["snapshot"])
+        self._advanced_editor_preview_snapshot = self._capture_preview_snapshot()
+        self._settings_dialog["return_focus"] = self.root.focus_get()
+        self._advanced_error_var.set("")
+        self._advanced_editor_open = True
+        self._refresh_advanced_editors()
+        self._show_advanced_editor_host()
+        return "break"
+
+    def _position_advanced_dialog(self) -> None:
+        dialog = self._advanced_dialog
+        width = max(560, min(680, self.root.winfo_width() - 48))
+        height = max(520, min(600, self.root.winfo_height() - 48))
+        x = self.root.winfo_rootx() + max(
+            0, (self.root.winfo_width() - width) // 2
+        )
+        y = self.root.winfo_rooty() + max(
+            0, (self.root.winfo_height() - height) // 2
+        )
+        dialog.geometry("{0}x{1}+{2}+{3}".format(width, height, x, y))
+
+    def _show_advanced_editor_host(self) -> None:
+        if not self._advanced_editor_open:
+            return
+        dialog = self._advanced_dialog
+        if self._layout_mode == "compact":
+            if dialog.grab_current() is dialog:
+                dialog.grab_release()
+            dialog.withdraw()
+            self._active_compact_tab = "settings"
+            self._show_active_compact_section()
+            self.compact_advanced_editor.focus_initial()
+            return
+        self.compact_advanced_editor.grid_forget()
+        self._position_advanced_dialog()
+        dialog.deiconify()
+        dialog.lift()
+        dialog.grab_set()
+        dialog.focus_force()
+        self.advanced_dialog_editor.focus_initial()
+
+    def _close_advanced_editor(self) -> str:
+        dialog = self._advanced_dialog
+        if dialog.grab_current() is dialog:
+            dialog.grab_release()
+        dialog.withdraw()
+        self.compact_advanced_editor.grid_forget()
+        self._advanced_editor_open = False
+        if self._layout_mode == "compact":
+            self._show_active_compact_section()
+        focus = self._settings_dialog.get("return_focus")
+        try:
+            (focus or self.settings_panel.rows["other"]).focus_set()
+        except tk.TclError:
+            self.root.focus_set()
+        return "break"
+
+    def _save_advanced_editor(self) -> str:
+        if not self._validate_advanced_draft():
+            return "break"
+        draft_date = self._settings_draft_render_date_var.get().strip()
+        draft_trusted = self._settings_draft_trusted_html_var.get()
+        if self.render_date_var.get() != draft_date:
+            self.render_date_var.set(draft_date)
+        if self.trusted_html_var.get() != draft_trusted:
+            self.trusted_html_var.set(draft_trusted)
+        self._refresh_accordion_headers()
+        return self._close_advanced_editor()
+
+    def _cancel_advanced_editor(self, _event=None) -> str:
+        if not getattr(self, "_advanced_editor_open", False):
+            return "break"
+        self._advanced_editor_open = False
+        snapshot = self._settings_dialog.get("snapshot")
+        if snapshot is not None:
+            self._load_settings_draft(snapshot)
+        preview = self._advanced_editor_preview_snapshot
+        if preview is not None:
+            self._restore_preview_snapshot(preview)
+        return self._close_advanced_editor()
 
     def _on_render_setting_changed(self, *unused) -> None:
         self._refresh_accordion_headers()
@@ -487,8 +1221,11 @@ class TkInputMixin:
         draft_trusted = self._settings_draft_trusted_html_var.get()
         if draft_trusted and not self._trusted_html_confirmed:
             confirmed = self.dialogs.ask_trusted_html(
+                self._settings_dialog["window"],
                 self._t("trusted_html_confirm_title"),
                 self._t("trusted_html_confirm"),
+                self._t("trusted_html_allow"),
+                self._t("cancel_settings"),
             )
             if not confirmed:
                 self._settings_draft_trusted_html_var.set(False)
@@ -537,15 +1274,7 @@ class TkInputMixin:
         return self._close_settings_editor()
 
     def _reset_header_footer(self) -> None:
-        defaults = {
-            "header_left": "",
-            "header_center": "",
-            "header_right": "",
-            "footer_left": "",
-            "footer_center": "Page {page} / {total}",
-            "footer_right": "",
-        }
-        for key, value in defaults.items():
+        for key, value in self._header_footer_defaults().items():
             self._settings_draft_hf_vars[key].set(value)
 
     def _on_trusted_html_changed(self) -> None:
@@ -554,8 +1283,11 @@ class TkInputMixin:
             return
         if not self._trusted_html_confirmed:
             confirmed = self.dialogs.ask_trusted_html(
+                self._settings_dialog["window"],
                 self._t("trusted_html_confirm_title"),
                 self._t("trusted_html_confirm"),
+                self._t("trusted_html_allow"),
+                self._t("cancel_settings"),
             )
             if not confirmed:
                 self.trusted_html_var.set(False)

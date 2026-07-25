@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Callable, Dict, Mapping, Sequence
+import tkinter as tk
+from typing import Callable, Dict, Mapping, Optional, Sequence
 
 import customtkinter as ctk
 
@@ -20,6 +21,7 @@ class SettingsSummaryRow(ctk.CTkFrame):
         name: str,
         fonts: SystemFontResolver,
         icon,
+        on_activate: Optional[Callable[[], None]] = None,
     ) -> None:
         super().__init__(
             master,
@@ -34,6 +36,15 @@ class SettingsSummaryRow(ctk.CTkFrame):
         self.name = name
         self._fonts = fonts
         self._complete_summary = ""
+        self._on_activate = on_activate
+        self._hovered = False
+        if on_activate is not None:
+            tk.Frame.configure(self, takefocus=True)
+            self.bind("<Return>", self._activate, add="+")
+            self.bind("<space>", self._activate, add="+")
+            self.bind("<Button-1>", self._activate, add="+")
+            self.bind("<FocusIn>", self._show_focus, add="+")
+            self.bind("<FocusOut>", self._hide_focus, add="+")
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(2, weight=1)
         self.icon_label = ctk.CTkLabel(
@@ -80,6 +91,18 @@ class SettingsSummaryRow(ctk.CTkFrame):
             padx=(0, SPACING["xs"]),
         )
         self.summary_tooltip = Tooltip(self.summary_label, "")
+        if on_activate is not None:
+            interactive_widgets = (
+                self,
+                self.icon_label,
+                self.title_label,
+                self.summary_label,
+            )
+            for widget in interactive_widgets:
+                widget.bind("<Enter>", self._show_hover, add="+")
+                widget.bind("<Leave>", self._schedule_hover_clear, add="+")
+            for widget in interactive_widgets[1:]:
+                widget.bind("<Button-1>", self._activate, add="+")
         self.bind("<Configure>", self._refresh_elision, add="+")
         self.summary_label.bind(
             "<Configure>",
@@ -90,6 +113,66 @@ class SettingsSummaryRow(ctk.CTkFrame):
     def set_title_width(self, width: int) -> None:
         """Keep every row's description on the same vertical guide."""
         self.title_label.configure(width=width)
+
+    def _activate(self, _event=None) -> str:
+        return self.invoke()
+
+    def invoke(self) -> str:
+        """Invoke the row's public action from pointer or keyboard input."""
+        if self._on_activate is not None:
+            self._on_activate()
+        return "break"
+
+    def _show_hover(self, _event=None) -> None:
+        self.set_interaction_state("hover")
+
+    def _schedule_hover_clear(self, _event=None) -> None:
+        self.after_idle(self._clear_hover_if_pointer_left)
+
+    def _clear_hover_if_pointer_left(self) -> None:
+        pointer_widget = self.winfo_containing(
+            self.winfo_pointerx(), self.winfo_pointery()
+        )
+        if pointer_widget is not None and self._is_descendant(pointer_widget):
+            return
+        self.set_interaction_state("normal")
+
+    def _is_descendant(self, widget) -> bool:
+        current = widget
+        while current is not None:
+            if current is self:
+                return True
+            current = getattr(current, "master", None)
+        return False
+
+    def _show_focus(self, _event=None) -> None:
+        self.set_focus_visible(True)
+
+    def _hide_focus(self, _event=None) -> None:
+        self.set_focus_visible(False)
+
+    def set_interaction_state(self, state: str) -> None:
+        """Render the row's normal or hover state for public UI probes."""
+        if state not in ("normal", "hover"):
+            raise ValueError("Unknown settings-row state: {0}".format(state))
+        self._hovered = state == "hover"
+        self.winfo_toplevel().configure(
+            cursor="hand2" if self._hovered else ""
+        )
+        self.configure(
+            fg_color=(
+                COLORS["surface_hover"]
+                if self._hovered
+                else COLORS["surface_subtle"]
+            )
+        )
+
+    def set_focus_visible(self, visible: bool) -> None:
+        """Expose the keyboard focus state without changing row content."""
+        self.configure(
+            border_color=COLORS["primary"] if visible else COLORS["border"],
+            border_width=2 if visible else 1,
+        )
 
     def update_copy(self, title: str, summary: str) -> None:
         """Retranslate the row and project its current complete summary."""
@@ -133,6 +216,10 @@ class SettingsSummaryPanel(CardFrame):
         fonts: SystemFontResolver,
         assets: UiAssetRegistry,
         on_edit: Callable[[], None],
+        on_edit_style: Optional[Callable[[], None]] = None,
+        on_edit_destination: Optional[Callable[[], None]] = None,
+        on_edit_header_footer: Optional[Callable[[], None]] = None,
+        on_edit_other: Optional[Callable[[], None]] = None,
     ) -> None:
         super().__init__(master)
         self.grid_columnconfigure(0, weight=1)
@@ -170,12 +257,19 @@ class SettingsSummaryPanel(CardFrame):
             "header_footer": "file-earmark-text",
             "other": "three-dots-vertical",
         }
+        row_actions = {
+            "style": on_edit_style,
+            "destination": on_edit_destination,
+            "header_footer": on_edit_header_footer,
+            "other": on_edit_other,
+        }
         for row_number, name in enumerate(self.ROW_NAMES, start=1):
             row = SettingsSummaryRow(
                 self,
                 name,
                 fonts,
                 assets.image(icons[name], size=16, color="neutral"),
+                on_activate=row_actions.get(name),
             )
             row.grid(
                 row=row_number,

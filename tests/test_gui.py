@@ -529,6 +529,148 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
         app._settings_draft_style_mode_var.set.assert_called_with("theme")
         app._schedule_preview.assert_not_called()
 
+    def test_style_draft_options_are_isolated_and_match_render_boundary(self):
+        class Value:
+            def __init__(self, value):
+                self.value = value
+
+            def get(self):
+                return self.value
+
+            def set(self, value):
+                self.value = value
+
+        app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
+        app.css_path = None
+        app.theme_var = Value("default@1")
+        app.style_mode_var = Value("theme")
+        app.render_date_var = Value("2026-07-25")
+        app.trusted_html_var = Value(False)
+        app.hf_vars = {
+            key: Value(value) for key, value in {
+                "header_left": "{title}",
+                "header_center": "",
+                "header_right": "",
+                "footer_left": "",
+                "footer_center": "Page {page} / {total}",
+                "footer_right": "",
+            }.items()
+        }
+        app._settings_draft_style_mode_var = Value("css")
+        app._settings_draft_theme_var = Value("office@1")
+        app._settings_draft_css_path = "print.css"
+
+        draft = app._draft_style_render_options()
+
+        self.assertIsNone(app.css_path)
+        self.assertEqual(app.theme_var.get(), "default@1")
+        self.assertEqual(draft["css_path"], "print.css")
+        self.assertIsNone(draft["theme"])
+        self.assertEqual(draft["render_date"], "2026-07-25")
+        self.assertEqual(draft["header_footer"].top_left, "{title}")
+
+        app._validate_style_draft = mock.Mock(return_value=True)
+        app._refresh_accordion_headers = mock.Mock()
+        app._close_style_editor = mock.Mock(return_value="break")
+        app._save_style_editor()
+        self.assertEqual(app.css_path, "print.css")
+        self.assertEqual(
+            app._render_options(),
+            draft,
+        )
+
+    def test_invalid_style_draft_is_inline_and_does_not_schedule_preview(self):
+        app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
+        app._style_editor_open = True
+        app._settings_draft_style_mode_var = mock.Mock()
+        app._settings_draft_style_mode_var.get.return_value = "css"
+        app._settings_draft_css_path = None
+        app._style_error_var = mock.Mock()
+        app._t = lambda key, **kwargs: i18n.t(key, "fr", **kwargs)
+        app._invalidate_preview = mock.Mock()
+        app._schedule_preview = mock.Mock()
+
+        app._schedule_style_draft_preview()
+
+        app._style_error_var.set.assert_called_once_with(
+            "Choisissez un fichier CSS pour utiliser le CSS personnalisé."
+        )
+        app._invalidate_preview.assert_called_once_with()
+        app._schedule_preview.assert_not_called()
+
+    def test_style_draft_preview_reuses_450_ms_coalescing(self):
+        app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
+        app._style_editor_open = True
+        app._validate_style_draft = mock.Mock(return_value=True)
+        app.operation = "idle"
+        app.files = [Path("one.md")]
+        app.refresh_preview_button = mock.Mock()
+        app._preview_generation = 4
+        app._preview_after = None
+        app._preview_page_pending = None
+        app._preview_failed_page = None
+        app.root = mock.Mock()
+        app.root.after.side_effect = ("first", "second")
+        app._set_preview_state = mock.Mock()
+
+        app._schedule_style_draft_preview()
+        app._schedule_style_draft_preview()
+
+        self.assertEqual(
+            [call.args[0] for call in app.root.after.call_args_list],
+            [450, 450],
+        )
+        app.root.after_cancel.assert_called_once_with("first")
+        self.assertEqual(app._preview_after, "second")
+
+    def test_style_cancel_restores_exact_previous_preview_and_invalidates_stale(self):
+        app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
+        app.root = mock.Mock()
+        app._preview_generation = 7
+        app._preview_after = "draft-after"
+        app._preview_state = "loading"
+        app._preview_png = b"draft"
+        app._preview_error = "draft error"
+        app._preview_page = 1
+        app._preview_total_pages = 1
+        app._preview_pages = {1: b"draft"}
+        app._preview_page_pending = None
+        app._preview_failed_page = None
+        app._preview_running = True
+        app._preview_active_request = ("document", 7, 1)
+        app._status_key = "status_rendering_preview"
+        app._status_kwargs = {}
+        app._redraw_preview = mock.Mock()
+        app._draw_preview_state = mock.Mock()
+        app._refresh_preview_ui = mock.Mock()
+        app._refresh_generate_button = mock.Mock()
+        app._set_status = mock.Mock()
+        previous = {
+            "png": b"previous",
+            "state": "ready",
+            "error": None,
+            "page": 3,
+            "total_pages": 5,
+            "pages": {3: b"previous"},
+            "page_pending": None,
+            "failed_page": None,
+            "status_key": "status_ready",
+            "status_kwargs": {},
+        }
+
+        app._restore_preview_snapshot(previous)
+
+        self.assertEqual(app._preview_generation, 8)
+        app.root.after_cancel.assert_called_once_with("draft-after")
+        self.assertEqual(app._preview_png, b"previous")
+        self.assertEqual(app._preview_state, "ready")
+        self.assertEqual((app._preview_page, app._preview_total_pages), (3, 5))
+        self.assertEqual(app._preview_pages, {3: b"previous"})
+        self.assertFalse(app._preview_running)
+        self.assertIsNone(app._preview_active_request)
+        app._redraw_preview.assert_called_once_with()
+        app._set_status.assert_called_once_with("status_ready")
+
     def test_header_footer_reset_changes_only_the_six_fields(self):
         app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
         app._settings_draft_hf_vars = {
@@ -557,6 +699,88 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
         app._settings_draft_render_date_var.set.assert_not_called()
         app._settings_draft_trusted_html_var.set.assert_not_called()
 
+    def test_header_footer_draft_matches_render_boundary_and_saves_only_six_fields(self):
+        class Value:
+            def __init__(self, value):
+                self.value = value
+
+            def get(self):
+                return self.value
+
+            def set(self, value):
+                self.value = value
+
+        app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
+        keys = tuple(app._header_footer_defaults())
+        app._settings_draft_hf_vars = {
+            key: Value("Draft {page}" if key == "header_left" else "")
+            for key in keys
+        }
+        app.hf_vars = {key: Value("authoritative") for key in keys}
+        app._render_options = mock.Mock(return_value={
+            "css_path": None,
+            "theme": "default@1",
+            "header_footer": core.HeaderFooterConfig.none(),
+            "render_date": None,
+            "trusted_html": False,
+        })
+        app._validate_header_footer_draft = mock.Mock(return_value=True)
+        app._refresh_accordion_headers = mock.Mock()
+        app._close_header_footer_editor = mock.Mock(return_value="break")
+
+        draft = app._draft_header_footer_render_options()
+        self.assertEqual(draft["header_footer"].top_left, "Draft {page}")
+        self.assertEqual(app.hf_vars["header_left"].get(), "authoritative")
+
+        app._save_header_footer_editor()
+        self.assertEqual(app.hf_vars["header_left"].get(), "Draft {page}")
+        self.assertEqual(app.hf_vars["footer_right"].get(), "")
+
+    def test_header_footer_restore_confirms_only_customized_values(self):
+        class Value:
+            def __init__(self, value):
+                self.value = value
+
+            def get(self):
+                return self.value
+
+            def set(self, value):
+                self.value = value
+
+        app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
+        defaults = app._header_footer_defaults()
+        app._settings_draft_hf_vars = {
+            key: Value(value) for key, value in defaults.items()
+        }
+        app.dialogs = mock.Mock()
+        app._t = lambda key, **kwargs: key
+
+        app._restore_header_footer_defaults()
+        app.dialogs.ask_restore_header_footer.assert_not_called()
+
+        app._settings_draft_hf_vars["header_right"].set("Custom")
+        app.dialogs.ask_restore_header_footer.return_value = False
+        app._restore_header_footer_defaults()
+        self.assertEqual(
+            app._settings_draft_hf_vars["header_right"].get(), "Custom"
+        )
+        app.dialogs.ask_restore_header_footer.return_value = True
+        app._restore_header_footer_defaults()
+        self.assertEqual(
+            {key: value.get() for key, value in app._settings_draft_hf_vars.items()},
+            defaults,
+        )
+
+    def test_header_footer_draft_preview_uses_existing_debounce(self):
+        app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
+        app._header_footer_editor_open = True
+        app._validate_header_footer_draft = mock.Mock(return_value=True)
+        app._schedule_preview = mock.Mock()
+
+        app._on_header_footer_draft_changed()
+
+        app._schedule_preview.assert_called_once_with()
+
     def test_destination_choose_and_reset_preserve_global_batch_value(self):
         app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
         app.dialogs = mock.Mock()
@@ -573,6 +797,50 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
         self.assertIsNone(app.output_dir)
         self.assertIsNone(app._settings_draft_output_dir)
         self.assertEqual(app._refresh_output_entry.call_count, 2)
+
+    def test_destination_draft_save_cancel_and_preview_isolation(self):
+        app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
+        app.output_dir = "C:/Original"
+        app._settings_draft_output_dir = "C:/Données Ω/Exports PDF"
+        app._destination_mode_var = mock.Mock()
+        app._destination_mode_var.get.return_value = "custom"
+        app._destination_error_var = mock.Mock()
+        app._refresh_output_entry = mock.Mock()
+        app._refresh_accordion_headers = mock.Mock()
+        app._close_destination_editor = mock.Mock(return_value="break")
+        app._schedule_preview = mock.Mock()
+        app._validate_destination_draft = mock.Mock(return_value=True)
+
+        app._save_destination_editor()
+
+        self.assertEqual(app.output_dir, "C:/Données Ω/Exports PDF")
+        app._schedule_preview.assert_not_called()
+
+        app._destination_editor_open = True
+        app._settings_dialog = {
+            "snapshot": {
+                "output_dir": "C:/Données Ω/Exports PDF",
+            }
+        }
+        app._load_settings_draft = mock.Mock()
+        app._cancel_destination_editor()
+        app._load_settings_draft.assert_called_once_with(
+            app._settings_dialog["snapshot"]
+        )
+        app._schedule_preview.assert_not_called()
+
+    def test_destination_custom_mode_requires_a_selected_folder_inline(self):
+        app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
+        app._settings_draft_output_dir = None
+        app._destination_mode_var = mock.Mock()
+        app._destination_mode_var.get.return_value = "custom"
+        app._destination_error_var = mock.Mock()
+        app._t = lambda key, **kwargs: i18n.t(key, "fr", **kwargs)
+
+        self.assertFalse(app._validate_destination_draft())
+        app._destination_error_var.set.assert_called_once_with(
+            "Choisissez un dossier pour utiliser une destination unique."
+        )
 
     def test_destination_summary_handles_one_many_and_custom_folder(self):
         app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
@@ -654,6 +922,7 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
         app.trusted_html_var = mock.Mock()
         app.trusted_html_var.get.return_value = True
         app.trusted_html_check = mock.Mock()
+        app._settings_dialog = {"window": mock.sentinel.settings_window}
         app.dialogs = mock.Mock()
         app.dialogs.ask_trusted_html.return_value = False
         app._t = lambda key, **kwargs: key
@@ -671,6 +940,7 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
         app.trusted_html_var = mock.Mock()
         app.trusted_html_var.get.return_value = True
         app.trusted_html_check = mock.Mock()
+        app._settings_dialog = {"window": mock.sentinel.settings_window}
         app.dialogs = mock.Mock()
         app.dialogs.ask_trusted_html.return_value = True
         app._t = lambda key, **kwargs: key
@@ -680,8 +950,11 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
         app._on_trusted_html_changed()
 
         app.dialogs.ask_trusted_html.assert_called_once_with(
+            mock.sentinel.settings_window,
             "trusted_html_confirm_title",
             "trusted_html_confirm",
+            "trusted_html_allow",
+            "cancel_settings",
         )
         self.assertTrue(app._trusted_html_confirmed)
 
@@ -1450,6 +1723,138 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
         self.assertEqual(app.active_file, Path("first.md"))
         app._set_status.assert_called_once_with("files_added_many", count=2)
 
+    def test_advanced_draft_matches_render_boundary_and_saves_only_advanced_values(self):
+        class Value:
+            def __init__(self, value):
+                self.value = value
+
+            def get(self):
+                return self.value
+
+            def set(self, value):
+                self.value = value
+
+        app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
+        app.render_date_var = Value("")
+        app.trusted_html_var = Value(False)
+        app._settings_draft_render_date_var = Value(" 2026-07-25 ")
+        app._settings_draft_trusted_html_var = Value(True)
+        authoritative = {
+            "css_path": None,
+            "theme": "default@1",
+            "header_footer": core.HeaderFooterConfig.none(),
+            "render_date": None,
+            "trusted_html": False,
+        }
+        app._render_options = mock.Mock(return_value=authoritative)
+        app._validate_advanced_draft = mock.Mock(return_value=True)
+        app._refresh_accordion_headers = mock.Mock()
+        app._close_advanced_editor = mock.Mock(return_value="break")
+
+        draft = app._draft_advanced_render_options()
+
+        self.assertEqual(draft["render_date"], "2026-07-25")
+        self.assertTrue(draft["trusted_html"])
+        self.assertIsNone(authoritative["render_date"])
+        self.assertFalse(authoritative["trusted_html"])
+
+        self.assertEqual(app._save_advanced_editor(), "break")
+        self.assertEqual(app.render_date_var.get(), "2026-07-25")
+        self.assertTrue(app.trusted_html_var.get())
+        app._refresh_accordion_headers.assert_called_once_with()
+
+    def test_invalid_advanced_date_is_inline_and_does_not_schedule_preview(self):
+        app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
+        app._advanced_editor_open = True
+        app._settings_draft_render_date_var = mock.Mock()
+        app._settings_draft_render_date_var.get.return_value = "2026-02-31"
+        app._settings_draft_trusted_html_var = mock.Mock()
+        app._settings_draft_trusted_html_var.get.return_value = False
+        app._render_options = mock.Mock(return_value={
+            "css_path": None,
+            "theme": "default@1",
+            "header_footer": core.HeaderFooterConfig.none(),
+            "render_date": None,
+            "trusted_html": False,
+        })
+        app._advanced_error_var = mock.Mock()
+        app._t = lambda key, **kwargs: i18n.t(key, "fr", **kwargs)
+        app._invalidate_preview = mock.Mock()
+        app._schedule_preview = mock.Mock()
+
+        app._on_advanced_date_changed()
+
+        app._advanced_error_var.set.assert_called_once_with(
+            "Saisissez une date valide au format AAAA-MM-JJ ou laissez le champ vide."
+        )
+        app._invalidate_preview.assert_called_once_with()
+        app._schedule_preview.assert_not_called()
+
+    def test_advanced_trusted_html_confirms_first_activation_and_restores_refusal(self):
+        class Value:
+            def __init__(self, value):
+                self.value = value
+
+            def get(self):
+                return self.value
+
+            def set(self, value):
+                self.value = value
+
+        app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
+        app._trusted_html_confirmed = False
+        app._settings_draft_trusted_html_var = Value(True)
+        app.dialogs = mock.Mock()
+        app.dialogs.ask_trusted_html.return_value = False
+        app._t = lambda key, **kwargs: key
+        app._layout_mode = "compact"
+        app.compact_advanced_editor = mock.Mock()
+        app.advanced_dialog_editor = mock.Mock()
+        app._validate_advanced_draft = mock.Mock(return_value=True)
+        app._schedule_preview = mock.Mock()
+
+        app._on_advanced_trusted_html_changed()
+
+        self.assertFalse(app._settings_draft_trusted_html_var.get())
+        self.assertFalse(app._trusted_html_confirmed)
+        app.compact_advanced_editor.trusted_html_switch.focus_set.assert_called_once_with()
+        app._schedule_preview.assert_not_called()
+
+        app._settings_draft_trusted_html_var.set(True)
+        app.dialogs.ask_trusted_html.return_value = True
+        app._on_advanced_trusted_html_changed()
+        app._on_advanced_trusted_html_changed()
+
+        self.assertTrue(app._trusted_html_confirmed)
+        self.assertEqual(app.dialogs.ask_trusted_html.call_count, 2)
+        app.dialogs.ask_trusted_html.assert_called_with(
+            app.compact_advanced_editor,
+            "trusted_html_confirm_title",
+            "trusted_html_confirm",
+            "trusted_html_allow",
+            "cancel_settings",
+        )
+        self.assertEqual(app._schedule_preview.call_count, 2)
+
+    def test_advanced_cancel_restores_authoritative_draft_and_exact_preview(self):
+        app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
+        app._advanced_editor_open = True
+        app._settings_dialog = {"snapshot": {"render_date": "2026-07-20"}}
+        app._advanced_editor_preview_snapshot = {"png": b"previous"}
+        app._load_settings_draft = mock.Mock()
+        app._restore_preview_snapshot = mock.Mock()
+        app._close_advanced_editor = mock.Mock(return_value="break")
+
+        self.assertEqual(app._cancel_advanced_editor(), "break")
+
+        self.assertFalse(app._advanced_editor_open)
+        app._load_settings_draft.assert_called_once_with(
+            {"render_date": "2026-07-20"}
+        )
+        app._restore_preview_snapshot.assert_called_once_with(
+            {"png": b"previous"}
+        )
+
     def test_mixed_file_feedback_uses_natural_count_forms(self):
         app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
         expected = {
@@ -2039,13 +2444,48 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
             default_choice="keep",
             dismiss_choice="cancel",
         )
+        parent = mock.Mock()
         with mock.patch.object(
-            tk_dialogs.messagebox, "askyesno", return_value=False
+            dialogs, "_ask_explicit_choice", return_value="cancel"
         ) as trusted:
-            self.assertFalse(dialogs.ask_trusted_html("Trusted", "Continue?"))
+            self.assertFalse(dialogs.ask_trusted_html(
+                parent, "Trusted", "Continue?", "Allow", "Cancel"
+            ))
         trusted.assert_called_once_with(
+            parent,
             "Trusted",
             "Continue?",
+            (("allow", "Allow"), ("cancel", "Cancel")),
+            default_choice="cancel",
+            dismiss_choice="cancel",
+            center_on_anchor=True,
+        )
+        compact_parent = mock.Mock()
+        compact_parent.winfo_toplevel.return_value = mock.sentinel.owner
+        with mock.patch.object(
+            dialogs, "_ask_explicit_choice", return_value="allow"
+        ) as compact_trusted:
+            self.assertTrue(dialogs.ask_trusted_html(
+                compact_parent, "Trusted", "Continue?", "Allow", "Cancel"
+            ))
+        compact_trusted.assert_called_once_with(
+            compact_parent,
+            "Trusted",
+            "Continue?",
+            (("allow", "Allow"), ("cancel", "Cancel")),
+            default_choice="cancel",
+            dismiss_choice="cancel",
+            center_on_anchor=True,
+        )
+        with mock.patch.object(
+            tk_dialogs.messagebox, "askyesno", return_value=True
+        ) as restore:
+            self.assertTrue(dialogs.ask_restore_header_footer(
+                "Restore", "Replace customized values?"
+            ))
+        restore.assert_called_once_with(
+            "Restore",
+            "Replace customized values?",
             default=tk_dialogs.messagebox.NO,
         )
         with mock.patch.object(tk_dialogs.messagebox, "showinfo") as info:

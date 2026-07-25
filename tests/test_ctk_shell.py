@@ -583,6 +583,10 @@ class TestModernShellWidgets(unittest.TestCase):
         self.assertNotEqual(dialog.winfo_geometry(), "1x1+0+0")
         self.assertEqual(str(dialog.transient()), str(self.root))
         self.assertIs(dialog.grab_current(), dialog)
+        self.assertEqual(application.theme_group.winfo_manager(), "")
+        self.assertEqual(application.output_group.winfo_manager(), "")
+        self.assertEqual(application.advanced_group.winfo_manager(), "")
+        self.assertEqual(application.other_group.winfo_manager(), "pack")
         self.assertEqual(
             str(self.root.tk.call("wm", "stackorder", ".")[-1]),
             str(dialog),
@@ -623,6 +627,7 @@ class TestModernShellWidgets(unittest.TestCase):
         )
 
         application._cancel_settings_editor()
+
         self.root.update()
         self.assertFalse(dialog.winfo_viewable())
         self.assertEqual(
@@ -674,6 +679,358 @@ class TestModernShellWidgets(unittest.TestCase):
             application._settings_draft_trusted_html_var.get()
         )
         application._cancel_settings_editor()
+
+    def test_style_editor_retranslates_preserves_draft_and_moves_to_compact(self):
+        services = mock.Mock()
+        dialogs = mock.Mock()
+        with mock.patch.object(tk_layout, "HAS_DND", False), mock.patch.object(
+            tk_app.i18n,
+            "load_language",
+            return_value="en",
+        ):
+            application = tk_app.LibreMarkPdfApp(
+                self.root,
+                services=services,
+                dialogs=dialogs,
+            )
+        original_theme = application.theme_var.get()
+        original_preview = application._capture_preview_snapshot()
+
+        application._open_style_editor()
+        self.root.update()
+        self.assertTrue(application._style_dialog.winfo_viewable())
+        self.assertIs(
+            application._style_dialog.grab_current(),
+            application._style_dialog,
+        )
+        self.assertTrue(
+            application.style_dialog_editor.theme_radio.cget("takefocus")
+        )
+        application._settings_draft_theme_var.set("remembered@1")
+        application.lang = "fr"
+        application._retranslate()
+        self.root.update()
+        self.assertEqual(
+            application._settings_draft_theme_var.get(), "remembered@1"
+        )
+        self.assertEqual(
+            application.style_dialog_editor.save_button.cget("text"),
+            "Enregistrer",
+        )
+        self.assertEqual(application.theme_var.get(), original_theme)
+
+        self.root.geometry("560x520+0+0")
+        self.root.update()
+        application._responsive_controller.flush()
+        self.root.update()
+        self.assertFalse(application._style_dialog.winfo_viewable())
+        self.assertEqual(application._active_compact_tab, "settings")
+        self.assertEqual(
+            application.compact_style_editor.winfo_manager(), "grid"
+        )
+        self.assertLessEqual(
+            application.compact_style_editor.winfo_width(),
+            application.root.winfo_width(),
+        )
+        self.assertEqual(
+            application.compact_style_editor.save_button.winfo_manager(),
+            "grid",
+        )
+        self.assertEqual(application.body_scroll.winfo_manager(), "")
+        self.assertLessEqual(
+            application.compact_style_editor.actions.winfo_rooty()
+            + application.compact_style_editor.actions.winfo_height(),
+            application.action_bar.winfo_rooty(),
+        )
+
+        application.compact_style_editor.back_button.invoke()
+        self.root.update()
+        self.assertFalse(application._style_editor_open)
+        self.assertEqual(application.theme_var.get(), original_theme)
+        self.assertEqual(
+            application._capture_preview_snapshot(), original_preview
+        )
+
+    def test_destination_editor_preserves_preview_and_moves_to_compact(self):
+        services = mock.Mock()
+        dialogs = mock.Mock()
+        dialogs.choose_output_folder.return_value = "C:/Données Ω/Exports PDF"
+        with mock.patch.object(tk_layout, "HAS_DND", False), mock.patch.object(
+            tk_app.i18n,
+            "load_language",
+            return_value="en",
+        ):
+            application = tk_app.LibreMarkPdfApp(
+                self.root,
+                services=services,
+                dialogs=dialogs,
+            )
+        preview_generation = application._preview_generation
+
+        application.settings_panel.rows["destination"].invoke()
+        self.root.update()
+        self.assertTrue(application._destination_dialog.winfo_viewable())
+        application._destination_mode_var.set("custom")
+        application._on_destination_mode_changed()
+        self.assertIsNone(application.output_dir)
+        self.assertEqual(
+            application._settings_draft_output_dir,
+            "C:/Données Ω/Exports PDF",
+        )
+        self.assertEqual(application._preview_generation, preview_generation)
+
+        application.lang = "fr"
+        application._retranslate()
+        self.assertEqual(
+            application.destination_dialog_editor.save_button.cget("text"),
+            "Enregistrer",
+        )
+        self.root.geometry("560x520+0+0")
+        self.root.update()
+        application._responsive_controller.flush()
+        self.root.update()
+        self.assertFalse(application._destination_dialog.winfo_viewable())
+        self.assertEqual(
+            application.compact_destination_editor.winfo_manager(), "grid"
+        )
+        self.assertLessEqual(
+            application.compact_destination_editor.actions.winfo_rooty()
+            + application.compact_destination_editor.actions.winfo_height(),
+            application.action_bar.winfo_rooty(),
+        )
+
+        application.compact_destination_editor.save_button.invoke()
+        self.root.update()
+        self.assertEqual(
+            application.output_dir, "C:/Données Ω/Exports PDF"
+        )
+        self.assertEqual(application._preview_generation, preview_generation)
+        self.assertFalse(application._destination_editor_open)
+
+    def test_header_footer_editor_retranslates_resets_and_moves_to_compact(self):
+        services = mock.Mock()
+        dialogs = mock.Mock()
+        dialogs.ask_restore_header_footer.return_value = True
+        with mock.patch.object(tk_layout, "HAS_DND", False), mock.patch.object(
+            tk_app.i18n,
+            "load_language",
+            return_value="en",
+        ):
+            application = tk_app.LibreMarkPdfApp(
+                self.root,
+                services=services,
+                dialogs=dialogs,
+            )
+        original = application._settings_snapshot()
+        original_preview = application._capture_preview_snapshot()
+
+        application.settings_panel.rows["header_footer"].invoke()
+        self.root.update()
+        self.assertTrue(application._header_footer_dialog.winfo_viewable())
+        self.assertFalse(
+            application.header_footer_dialog_editor.scrollbar_visible
+        )
+        application._settings_draft_hf_vars["header_left"].set(
+            "Report {title}"
+        )
+        application._restore_header_footer_defaults()
+        dialogs.ask_restore_header_footer.assert_called_once()
+        self.assertEqual(
+            application._settings_draft_hf_vars["footer_center"].get(),
+            "Page {page} / {total}",
+        )
+
+        application._settings_draft_hf_vars["header_left"].set(
+            "Résumé Ω {page}"
+        )
+        application.lang = "fr"
+        application._retranslate()
+        self.assertEqual(
+            application.header_footer_dialog_editor.save_button.cget("text"),
+            "Enregistrer",
+        )
+        self.assertEqual(
+            application._settings_draft_hf_vars["header_left"].get(),
+            "Résumé Ω {page}",
+        )
+
+        self.root.geometry("560x520+0+0")
+        self.root.update()
+        application._responsive_controller.flush()
+        self.root.update()
+        self.assertFalse(application._header_footer_dialog.winfo_viewable())
+        self.assertEqual(
+            application.compact_header_footer_editor.winfo_manager(), "grid"
+        )
+        self.assertTrue(
+            application.compact_header_footer_editor.scrollbar_visible
+        )
+        compact_entries = application.compact_header_footer_editor.entries
+        self.assertEqual(
+            [
+                int(compact_entries[key].master.grid_info()["column"])
+                for key in (
+                    "header_left", "header_center", "header_right",
+                    "footer_left", "footer_center", "footer_right",
+                )
+            ],
+            [0, 1, 2, 0, 1, 2],
+        )
+        self.assertLessEqual(
+            application.compact_header_footer_editor.actions.winfo_rooty()
+            + application.compact_header_footer_editor.actions.winfo_height(),
+            application.action_bar.winfo_rooty(),
+        )
+        application.compact_header_footer_editor.content_surface.canvas.yview_moveto(1)
+        self.root.update()
+        self.assertGreater(
+            application.compact_header_footer_editor.restore_button.winfo_rooty(),
+            application.compact_header_footer_editor.content_surface.winfo_rooty(),
+        )
+
+        application.compact_header_footer_editor.back_button.invoke()
+        self.root.update()
+        self.assertFalse(application._header_footer_editor_open)
+        self.assertEqual(application._settings_snapshot(), original)
+        self.assertEqual(
+            application._capture_preview_snapshot(), original_preview
+        )
+
+    def test_advanced_editor_retranslates_validates_confirms_and_moves_to_compact(self):
+        services = mock.Mock()
+        dialogs = mock.Mock()
+        dialogs.ask_trusted_html.return_value = True
+        with mock.patch.object(tk_layout, "HAS_DND", False), mock.patch.object(
+            tk_app.i18n,
+            "load_language",
+            return_value="en",
+        ):
+            application = tk_app.LibreMarkPdfApp(
+                self.root,
+                services=services,
+                dialogs=dialogs,
+            )
+        original = application._settings_snapshot()
+        original_preview = application._capture_preview_snapshot()
+
+        application.settings_panel.edit_button.invoke()
+        self.root.update()
+        self.assertTrue(application._advanced_dialog.winfo_viewable())
+        self.assertIs(
+            application._advanced_dialog.grab_current(),
+            application._advanced_dialog,
+        )
+        self.assertEqual(
+            application.advanced_dialog_editor.date_label.cget("text"),
+            "Render date (YYYY-MM-DD)",
+        )
+
+        application._settings_draft_render_date_var.set("2026-02-31")
+        self.root.update()
+        self.assertTrue(application._advanced_error_var.get())
+        application._settings_draft_render_date_var.set("2026-07-25")
+        application._settings_draft_trusted_html_var.set(True)
+        application._on_advanced_trusted_html_changed()
+        self.assertTrue(application._trusted_html_confirmed)
+        dialogs.ask_trusted_html.assert_called_once_with(
+            application._advanced_dialog,
+            tk_app.i18n.t("trusted_html_confirm_title", "en"),
+            tk_app.i18n.t("trusted_html_confirm", "en"),
+            tk_app.i18n.t("trusted_html_allow", "en"),
+            tk_app.i18n.t("cancel_settings", "en"),
+        )
+
+        application.lang = "fr"
+        application._retranslate()
+        self.root.update()
+        self.assertEqual(
+            application.advanced_dialog_editor.title_label.cget("text"),
+            "Options avancées",
+        )
+        self.assertEqual(
+            application._settings_draft_render_date_var.get(), "2026-07-25"
+        )
+
+        self.root.geometry("560x520+0+0")
+        self.root.update()
+        application._responsive_controller.flush()
+        self.root.update()
+        self.assertEqual(application._layout_mode, "compact")
+        self.assertEqual(
+            application.compact_advanced_editor.winfo_manager(), "grid"
+        )
+        self.assertLessEqual(
+            application.compact_advanced_editor.actions.winfo_rooty()
+            + application.compact_advanced_editor.actions.winfo_height(),
+            application.action_bar.winfo_rooty(),
+        )
+
+        application.compact_advanced_editor.back_button.invoke()
+        self.root.update()
+        self.assertFalse(application._advanced_editor_open)
+        self.assertEqual(application._settings_snapshot(), original)
+        self.assertEqual(
+            application._capture_preview_snapshot(), original_preview
+        )
+
+    def test_compact_tabs_hide_open_setting_editors_without_closing_drafts(self):
+        services = mock.Mock()
+        dialogs = mock.Mock()
+        with mock.patch.object(tk_layout, "HAS_DND", False), mock.patch.object(
+            tk_app.i18n,
+            "load_language",
+            return_value="en",
+        ):
+            application = tk_app.LibreMarkPdfApp(
+                self.root,
+                services=services,
+                dialogs=dialogs,
+            )
+        self.root.geometry("560x520+0+0")
+        self.root.update()
+        application._responsive_controller.flush()
+        self.root.update()
+
+        scenarios = (
+            (
+                "style",
+                application.compact_style_editor,
+                application._cancel_style_editor,
+            ),
+            (
+                "destination",
+                application.compact_destination_editor,
+                application._cancel_destination_editor,
+            ),
+            (
+                "header_footer",
+                application.compact_header_footer_editor,
+                application._cancel_header_footer_editor,
+            ),
+            (
+                "other",
+                application.compact_advanced_editor,
+                application._cancel_advanced_editor,
+            ),
+        )
+        for row_name, editor, cancel in scenarios:
+            application.settings_panel.rows[row_name].invoke()
+            self.root.update()
+            self.assertEqual(editor.winfo_manager(), "grid")
+            self.assertEqual(application.settings_panel.winfo_manager(), "")
+
+            application.compact_tabs.select("files")
+            self.root.update()
+            self.assertEqual(application.source_group.winfo_manager(), "grid")
+            self.assertEqual(editor.winfo_manager(), "")
+            self.assertEqual(application.settings_panel.winfo_manager(), "")
+
+            application.compact_tabs.select("settings")
+            self.root.update()
+            self.assertEqual(editor.winfo_manager(), "grid")
+            self.assertEqual(application.source_group.winfo_manager(), "")
+            cancel()
+            self.root.update()
 
 
 if __name__ == "__main__":

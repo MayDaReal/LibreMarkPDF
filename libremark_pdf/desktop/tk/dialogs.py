@@ -61,7 +61,28 @@ class TkDialogs:
         )
         return {"replace": True, "keep": False, "cancel": None}[choice]
 
-    def ask_trusted_html(self, title: str, message: str) -> bool:
+    def ask_trusted_html(
+        self,
+        parent: tk.Misc,
+        title: str,
+        message: str,
+        allow_label: str,
+        cancel_label: str,
+    ) -> bool:
+        """Confirm trusted HTML centered on the visible advanced editor host."""
+        choice = self._ask_explicit_choice(
+            parent,
+            title,
+            message,
+            (("allow", allow_label), ("cancel", cancel_label)),
+            default_choice="cancel",
+            dismiss_choice="cancel",
+            center_on_anchor=True,
+        )
+        return choice == "allow"
+
+    def ask_restore_header_footer(self, title: str, message: str) -> bool:
+        """Confirm replacing customized header/footer fields with defaults."""
         return messagebox.askyesno(title, message, default=messagebox.NO)
 
     def ask_close_during_conversion(
@@ -93,13 +114,17 @@ class TkDialogs:
         choices: tuple,
         default_choice: str,
         dismiss_choice: str,
+        center_on_anchor: bool = False,
     ) -> str:
         """Show local labelled choices without relying on platform Yes/No copy."""
         choice = dismiss_choice
-        dialog = tk.Toplevel(root)
+        owner = root.winfo_toplevel()
+        dialog = tk.Toplevel(owner)
         dialog.title(title)
-        dialog.transient(root)
+        dialog.transient(owner)
         dialog.resizable(False, False)
+        if center_on_anchor:
+            dialog.withdraw()
 
         content = ttk.Frame(dialog, padding=16)
         content.pack(fill="both", expand=True)
@@ -138,6 +163,16 @@ class TkDialogs:
         dialog.protocol("WM_DELETE_WINDOW", dismiss)
         dialog.bind("<Escape>", dismiss)
         dialog.bind("<Return>", activate_default)
+        if center_on_anchor:
+            dialog.update_idletasks()
+            width = dialog.winfo_reqwidth()
+            height = dialog.winfo_reqheight()
+            x = root.winfo_rootx() + (root.winfo_width() - width) // 2
+            y = root.winfo_rooty() + (root.winfo_height() - height) // 2
+            x = max(0, min(x, dialog.winfo_screenwidth() - width))
+            y = max(0, min(y, dialog.winfo_screenheight() - height))
+            dialog.geometry("+{0}+{1}".format(x, y))
+            dialog.deiconify()
         dialog.grab_set()
         if default_button is not None:
             default_button.focus_set()

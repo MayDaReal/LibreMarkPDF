@@ -112,12 +112,31 @@ class LibreMarkPdfApp(
         }
         self._settings_draft_render_date_var = tk.StringVar()
         self._settings_draft_trusted_html_var = tk.BooleanVar(value=False)
+        self._style_theme_display_var = tk.StringVar()
+        self._style_css_display_var = tk.StringVar()
+        self._style_error_var = tk.StringVar()
+        self._style_editor_open = False
+        self._style_editor_preview_snapshot = None
+        self._destination_mode_var = tk.StringVar(value="source")
+        self._destination_path_var = tk.StringVar()
+        self._destination_error_var = tk.StringVar()
+        self._destination_editor_open = False
+        self._header_footer_editor_open = False
+        self._header_footer_editor_preview_snapshot = None
+        self._advanced_error_var = tk.StringVar()
+        self._advanced_editor_open = False
+        self._advanced_editor_preview_snapshot = None
         self._operation_controls = []  # type: list
         self._theme_buttons = []  # type: list
         self._automation_widgets = {}  # type: dict[str, tk.Misc]
 
         self.ui_styles = install_ui_styles(self.root)
         self._build_ui()
+        for variable in self._settings_draft_hf_vars.values():
+            variable.trace_add("write", self._on_header_footer_draft_changed)
+        self._settings_draft_render_date_var.trace_add(
+            "write", self._on_advanced_date_changed
+        )
         self._bind_accessibility()
         self._retranslate()
         for variable in list(self.hf_vars.values()) + [
@@ -381,6 +400,10 @@ class LibreMarkPdfApp(
         self.css_label.config(text=self._t("custom_css_label"))
         self.css_button.config(text=self._t("choose_css"))
         self.css_reset_button.config(text=self._t("return_to_theme"))
+        self._refresh_style_editors()
+        self._refresh_destination_editors()
+        self._refresh_header_footer_editors()
+        self._refresh_advanced_editors()
         self.tokens_hint_label.config(text=self._t("tokens_help"))
         self.header_group_label.config(text=self._t("header_label"))
         self.footer_group_label.config(text=self._t("footer_label"))

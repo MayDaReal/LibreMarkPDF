@@ -23,10 +23,14 @@ from ..ctk.theme import (
     install_light_theme,
 )
 from ..ctk.widgets.action_bar import ActionBar
+from ..ctk.widgets.advanced_editor import AdvancedEditorPanel
 from ..ctk.widgets.app_header import AppHeader
 from ..ctk.widgets.compact_tabs import CompactTabBar
+from ..ctk.widgets.destination_editor import DestinationEditorPanel
 from ..ctk.widgets.file_panel import FilesPanel
+from ..ctk.widgets.header_footer_editor import HeaderFooterEditorPanel
 from ..ctk.widgets.settings_summary import SettingsSummaryPanel
+from ..ctk.widgets.style_editor import StyleEditorPanel
 from .components import configure_symbol_button
 from .styles import (
     ICON_BUTTON_STYLE,
@@ -515,6 +519,12 @@ class TkLayoutMixin:
         )
         self.trusted_html_help_label.pack(fill="x", pady=(SPACE_XS, 0))
 
+        # Migrated families retain their legacy widgets only as adapter
+        # consumers; their visible entry points are the dedicated editors.
+        self.theme_group.pack_forget()
+        self.output_group.pack_forget()
+        self.advanced_group.pack_forget()
+
         dialog_actions = ctk.CTkFrame(
             dialog_shell,
             fg_color=COLORS["surface"],
@@ -561,8 +571,94 @@ class TkLayoutMixin:
             summaries=self._settings_summaries(),
             fonts=self.ui_fonts,
             assets=self.ui_assets,
-            on_edit=self._open_settings_editor,
+            on_edit=self._open_advanced_editor,
+            on_edit_style=self._open_style_editor,
+            on_edit_destination=self._open_destination_editor,
+            on_edit_header_footer=self._open_header_footer_editor,
+            on_edit_other=self._open_advanced_editor,
         )
+        style_dialog = tk.Toplevel(self.root)
+        style_dialog.withdraw()
+        style_dialog.transient(self.root)
+        style_dialog.configure(background=COLORS["app_bg"])
+        style_dialog.resizable(True, True)
+        style_dialog.minsize(560, 520)
+        style_dialog.maxsize(720, max(520, self.root.winfo_screenheight()))
+        style_dialog.protocol("WM_DELETE_WINDOW", self._cancel_style_editor)
+        style_dialog.bind("<Escape>", self._cancel_style_editor)
+        self.style_dialog_editor = self._build_style_editor(
+            style_dialog, show_back=False
+        )
+        self.style_dialog_editor.pack(fill="both", expand=True)
+        self.compact_style_editor = self._build_style_editor(
+            self.workspace, show_back=True
+        )
+        self._style_dialog = style_dialog
+        destination_dialog = tk.Toplevel(self.root)
+        destination_dialog.withdraw()
+        destination_dialog.transient(self.root)
+        destination_dialog.configure(background=COLORS["app_bg"])
+        destination_dialog.resizable(True, True)
+        destination_dialog.minsize(560, 520)
+        destination_dialog.maxsize(
+            720, max(520, self.root.winfo_screenheight())
+        )
+        destination_dialog.protocol(
+            "WM_DELETE_WINDOW", self._cancel_destination_editor
+        )
+        destination_dialog.bind("<Escape>", self._cancel_destination_editor)
+        self.destination_dialog_editor = self._build_destination_editor(
+            destination_dialog, show_back=False
+        )
+        self.destination_dialog_editor.pack(fill="both", expand=True)
+        self.compact_destination_editor = self._build_destination_editor(
+            self.workspace, show_back=True
+        )
+        self._destination_dialog = destination_dialog
+        header_footer_dialog = tk.Toplevel(self.root)
+        header_footer_dialog.withdraw()
+        header_footer_dialog.transient(self.root)
+        header_footer_dialog.configure(background=COLORS["app_bg"])
+        header_footer_dialog.resizable(True, True)
+        header_footer_dialog.minsize(560, 520)
+        header_footer_dialog.maxsize(
+            720, max(520, self.root.winfo_screenheight())
+        )
+        header_footer_dialog.protocol(
+            "WM_DELETE_WINDOW", self._cancel_header_footer_editor
+        )
+        header_footer_dialog.bind(
+            "<Escape>", self._cancel_header_footer_editor
+        )
+        self.header_footer_dialog_editor = self._build_header_footer_editor(
+            header_footer_dialog, show_back=False
+        )
+        self.header_footer_dialog_editor.pack(fill="both", expand=True)
+        self.compact_header_footer_editor = self._build_header_footer_editor(
+            self.workspace, show_back=True
+        )
+        self._header_footer_dialog = header_footer_dialog
+        advanced_dialog = tk.Toplevel(self.root)
+        advanced_dialog.withdraw()
+        advanced_dialog.transient(self.root)
+        advanced_dialog.configure(background=COLORS["app_bg"])
+        advanced_dialog.resizable(True, True)
+        advanced_dialog.minsize(560, 520)
+        advanced_dialog.maxsize(
+            720, max(520, self.root.winfo_screenheight())
+        )
+        advanced_dialog.protocol(
+            "WM_DELETE_WINDOW", self._cancel_advanced_editor
+        )
+        advanced_dialog.bind("<Escape>", self._cancel_advanced_editor)
+        self.advanced_dialog_editor = self._build_advanced_editor(
+            advanced_dialog, show_back=False
+        )
+        self.advanced_dialog_editor.pack(fill="both", expand=True)
+        self.compact_advanced_editor = self._build_advanced_editor(
+            self.workspace, show_back=True
+        )
+        self._advanced_dialog = advanced_dialog
         for action in (
             "style.toggle",
             "destination.toggle",
@@ -572,7 +668,15 @@ class TkLayoutMixin:
         ):
             self._register_automation_widget(
                 action,
-                self.settings_panel.edit_button,
+                (
+                    self.settings_panel.rows["style"]
+                    if action == "style.toggle"
+                    else self.settings_panel.rows["destination"]
+                    if action == "destination.toggle"
+                    else self.settings_panel.rows["header_footer"]
+                    if action == "header_footer.toggle"
+                    else self.settings_panel.rows["other"]
+                ),
             )
 
         self.preview_group = ttk.LabelFrame(self.workspace, padding=SECTION_PADDING)
@@ -768,10 +872,15 @@ class TkLayoutMixin:
 
     def _sync_body_window_size(self, width: int, height: int) -> None:
         window_height = 0
-        if self._layout_mode == "compact" and self._active_compact_tab in (
-            "files",
-            "preview",
-        ):
+        fills_viewport = self._active_compact_tab in ("files", "preview") or (
+            self._active_compact_tab == "settings"
+            and (
+                getattr(self, "_style_editor_open", False)
+                or getattr(self, "_destination_editor_open", False)
+                or getattr(self, "_header_footer_editor_open", False)
+            )
+        )
+        if self._layout_mode == "compact" and fills_viewport:
             window_height = max(1, height)
         self.body_canvas.itemconfigure(
             self._body_window,
@@ -800,9 +909,44 @@ class TkLayoutMixin:
         return {
             "files": self.source_group,
             "preview": self.preview_group,
-            "settings": self.settings_panel,
+            "settings": (
+                getattr(self, "compact_style_editor", self.settings_panel)
+                if getattr(self, "_style_editor_open", False)
+                else getattr(
+                    self, "compact_destination_editor", self.settings_panel
+                )
+                if getattr(self, "_destination_editor_open", False)
+                else getattr(
+                    self, "compact_header_footer_editor", self.settings_panel
+                )
+                if getattr(self, "_header_footer_editor_open", False)
+                else getattr(
+                    self, "compact_advanced_editor", self.settings_panel
+                )
+                if getattr(self, "_advanced_editor_open", False)
+                else self.settings_panel
+            ),
             "results": self.results_frame,
         }
+
+    def _all_compact_sections(self) -> tuple:
+        """Return every reusable compact panel, including inactive editors."""
+        sections = [
+            self.source_group,
+            self.preview_group,
+            self.settings_panel,
+            self.results_frame,
+        ]
+        for name in (
+            "compact_style_editor",
+            "compact_destination_editor",
+            "compact_header_footer_editor",
+            "compact_advanced_editor",
+        ):
+            editor = getattr(self, name, None)
+            if editor is not None:
+                sections.append(editor)
+        return tuple(sections)
 
     def _select_compact_tab(self, name: str) -> str:
         """Remember and display one compact tab without changing business state."""
@@ -817,7 +961,8 @@ class TkLayoutMixin:
     def _show_active_compact_section(self, move_focus: bool = False) -> None:
         sections = self._compact_sections()
         focus = self.root.focus_get()
-        for section in sections.values():
+        all_sections = self._all_compact_sections()
+        for section in all_sections:
             section.grid_forget()
         active = sections[self._active_compact_tab]
         active.grid(row=0, column=0, sticky="nsew")
@@ -831,7 +976,7 @@ class TkLayoutMixin:
         self.body_canvas.after_idle(self._refresh_compact_viewport)
         focus_was_in_hidden_section = any(
             section is not active and self._is_descendant(focus, section)
-            for section in sections.values()
+            for section in all_sections
         )
         if move_focus or focus_was_in_hidden_section:
             self.compact_tabs.focus_active()
@@ -851,12 +996,7 @@ class TkLayoutMixin:
         mode = responsive_mode(width)
         layout_changed = mode != self._layout_mode
         if layout_changed:
-            sections = (
-                self.source_group,
-                self.preview_group,
-                self.settings_panel,
-                self.results_frame,
-            )
+            sections = self._all_compact_sections()
             for section in sections:
                 section.grid_forget()
             for row in range(len(sections)):
@@ -923,6 +1063,14 @@ class TkLayoutMixin:
             self._layout_legacy_setting_rows()
             self._layout_preview_header()
             self._layout_mode = mode
+            if getattr(self, "_style_editor_open", False):
+                self._show_style_editor_host()
+            elif getattr(self, "_destination_editor_open", False):
+                self._show_destination_editor_host()
+            elif getattr(self, "_header_footer_editor_open", False):
+                self._show_header_footer_editor_host()
+            elif getattr(self, "_advanced_editor_open", False):
+                self._show_advanced_editor_host()
             self._sync_body_window_size(
                 self.body_canvas.winfo_width(),
                 self.body_canvas.winfo_height(),
@@ -1061,6 +1209,66 @@ class TkLayoutMixin:
         self.active_preview_label.pack(fill="x")
         self.preview_controls.pack(anchor="e", pady=(SPACE_XS, 0))
 
+    def _build_style_editor(self, master, show_back: bool) -> StyleEditorPanel:
+        return StyleEditorPanel(
+            master,
+            fonts=self.ui_fonts,
+            style_mode_var=self._settings_draft_style_mode_var,
+            theme_display_var=self._style_theme_display_var,
+            css_display_var=self._style_css_display_var,
+            error_var=self._style_error_var,
+            on_mode_changed=self._on_style_mode_changed,
+            on_theme_changed=self._select_style_theme,
+            on_choose_css=self._choose_css,
+            on_save=self._save_style_editor,
+            on_cancel=self._cancel_style_editor,
+            show_back=show_back,
+        )
+
+    def _build_destination_editor(
+        self, master, show_back: bool
+    ) -> DestinationEditorPanel:
+        return DestinationEditorPanel(
+            master,
+            fonts=self.ui_fonts,
+            mode_var=self._destination_mode_var,
+            path_var=self._destination_path_var,
+            error_var=self._destination_error_var,
+            on_mode_changed=self._on_destination_mode_changed,
+            on_choose_folder=self._choose_destination_folder,
+            on_save=self._save_destination_editor,
+            on_cancel=self._cancel_destination_editor,
+            show_back=show_back,
+        )
+
+    def _build_header_footer_editor(
+        self, master, show_back: bool
+    ) -> HeaderFooterEditorPanel:
+        return HeaderFooterEditorPanel(
+            master,
+            fonts=self.ui_fonts,
+            field_vars=self._settings_draft_hf_vars,
+            on_restore_defaults=self._restore_header_footer_defaults,
+            on_save=self._save_header_footer_editor,
+            on_cancel=self._cancel_header_footer_editor,
+            show_back=show_back,
+        )
+
+    def _build_advanced_editor(
+        self, master, show_back: bool
+    ) -> AdvancedEditorPanel:
+        return AdvancedEditorPanel(
+            master,
+            fonts=self.ui_fonts,
+            render_date_var=self._settings_draft_render_date_var,
+            trusted_html_var=self._settings_draft_trusted_html_var,
+            error_var=self._advanced_error_var,
+            on_trusted_html_changed=self._on_advanced_trusted_html_changed,
+            on_save=self._save_advanced_editor,
+            on_cancel=self._cancel_advanced_editor,
+            show_back=show_back,
+        )
+
     def _register_automation_widget(self, action: str, widget: tk.Misc) -> None:
         """Expose a stable semantic control for automated desktop checks."""
         if action not in AUTOMATION_ACTIONS:
@@ -1078,7 +1286,7 @@ class TkLayoutMixin:
         self.root.bind_all("<Control-o>", lambda event: self._browse_files())
         self.root.bind_all("<Control-r>", lambda event: self._refresh_preview())
         self.root.bind_all("<Control-g>", lambda event: self._on_generate_clicked())
-        self.root.bind_all("<Escape>", lambda event: self._cancel_conversion())
+        self.root.bind_all("<Escape>", self._handle_escape)
         self.root.bind_all("<Control-plus>", lambda event: self._change_zoom(1))
         self.root.bind_all("<Control-equal>", lambda event: self._change_zoom(1))
         self.root.bind_all("<Control-minus>", lambda event: self._change_zoom(-1))
@@ -1097,4 +1305,16 @@ class TkLayoutMixin:
             self._t("keyboard_shortcuts_action"),
             self._t("keyboard_shortcuts_body"),
         )
+        return "break"
+
+    def _handle_escape(self, _event=None) -> str:
+        if getattr(self, "_style_editor_open", False):
+            return self._cancel_style_editor()
+        if getattr(self, "_destination_editor_open", False):
+            return self._cancel_destination_editor()
+        if getattr(self, "_header_footer_editor_open", False):
+            return self._cancel_header_footer_editor()
+        if getattr(self, "_advanced_editor_open", False):
+            return self._cancel_advanced_editor()
+        self._cancel_conversion()
         return "break"

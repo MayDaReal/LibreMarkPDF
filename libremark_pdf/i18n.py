@@ -151,7 +151,48 @@ STRINGS = {
         "edit_settings": "Edit",
         "apply_settings": "Apply",
         "cancel_settings": "Cancel",
+        "save_settings": "Save",
+        "back_settings": "Back",
+        "style_editor_title": "PDF style",
+        "style_editor_description": (
+            "Choose one local theme or a custom CSS file for this session."
+        ),
+        "style_theme_technical": "Theme identifier: {reference}",
+        "css_empty_state": "No CSS file selected",
+        "css_validation_required": "Choose a CSS file to use Custom CSS.",
+        "css_validation_invalid": (
+            "This CSS cannot be used. Choose another local CSS file."
+        ),
+        "destination_editor_title": "Destination",
+        "destination_editor_description": (
+            "Choose where generated PDFs are saved. This does not change the preview."
+        ),
+        "destination_source_option": "Same folder as each source file",
+        "destination_custom_option": "Single folder",
+        "destination_choose_folder": "Browse",
+        "destination_no_folder_selected": "No folder selected",
+        "destination_validation_required": (
+            "Choose a folder to use a single destination."
+        ),
+        "header_footer_editor_title": "Headers and footers",
+        "header_footer_editor_description": (
+            "Add optional text to six positions. An empty field displays nothing."
+        ),
+        "header_footer_tokens_label": "Insert a variable",
+        "header_footer_token_help": (
+            "{titre} or {title}: document title · {date}: render date · "
+            "{page}: current page · {total}: total pages"
+        ),
+        "restore_header_footer_title": "Restore header and footer defaults?",
+        "restore_header_footer_question": (
+            "Customized header or footer values will be replaced. "
+            "Other PDF settings will not change."
+        ),
         "advanced_options_heading": "Advanced options",
+        "advanced_editor_title": "Advanced options",
+        "advanced_editor_description": (
+            "Choose the render date and whether trusted static HTML is allowed."
+        ),
         "settings_default_theme": "Default theme",
         "settings_css_summary": "Custom CSS · {path}",
         "settings_none": "None",
@@ -184,6 +225,12 @@ STRINGS = {
         "reset_header_footer": "Restore defaults",
         "render_date_label": "Date (YYYY-MM-DD)",
         "render_date": "Render date (YYYY-MM-DD)",
+        "render_date_automatic_help": (
+            "Leave this field empty to use the current date automatically."
+        ),
+        "render_date_validation_invalid": (
+            "Enter a valid date in YYYY-MM-DD format, or leave the field empty."
+        ),
         "trusted_html_label": "Allow trusted static HTML",
         "trusted_html": "Allow trusted static HTML",
         "trusted_html_help": (
@@ -191,6 +238,7 @@ STRINGS = {
             "active content remain blocked."
         ),
         "trusted_html_confirm_title": "Allow trusted HTML?",
+        "trusted_html_allow": "Allow",
         "trusted_html_confirm": (
             "This changes how raw HTML in the Markdown is interpreted. "
             "Continue only if you trust the file."
@@ -463,7 +511,57 @@ STRINGS = {
         "edit_settings": "Modifier",
         "apply_settings": "Appliquer",
         "cancel_settings": "Annuler",
+        "save_settings": "Enregistrer",
+        "back_settings": "Retour",
+        "style_editor_title": "Style PDF",
+        "style_editor_description": (
+            "Choisissez un thème local ou un fichier CSS personnalisé pour "
+            "cette session."
+        ),
+        "style_theme_technical": "Identifiant du thème : {reference}",
+        "css_empty_state": "Aucun fichier CSS sélectionné",
+        "css_validation_required": (
+            "Choisissez un fichier CSS pour utiliser le CSS personnalisé."
+        ),
+        "css_validation_invalid": (
+            "Ce CSS ne peut pas être utilisé. Choisissez un autre fichier CSS local."
+        ),
+        "destination_editor_title": "Destination",
+        "destination_editor_description": (
+            "Choisissez où enregistrer les PDF générés. Cela ne modifie pas l’aperçu."
+        ),
+        "destination_source_option": (
+            "Même dossier que chaque fichier source"
+        ),
+        "destination_custom_option": "Dossier unique",
+        "destination_choose_folder": "Parcourir",
+        "destination_no_folder_selected": "Aucun dossier sélectionné",
+        "destination_validation_required": (
+            "Choisissez un dossier pour utiliser une destination unique."
+        ),
+        "header_footer_editor_title": "En-têtes et pieds de page",
+        "header_footer_editor_description": (
+            "Ajoutez du texte facultatif à six positions. Un champ vide "
+            "n’affiche aucun contenu."
+        ),
+        "header_footer_tokens_label": "Insérer une variable",
+        "header_footer_token_help": (
+            "{titre} ou {title} : titre du document · {date} : date du rendu · "
+            "{page} : page courante · {total} : nombre total de pages"
+        ),
+        "restore_header_footer_title": (
+            "Rétablir les en-têtes et pieds de page par défaut ?"
+        ),
+        "restore_header_footer_question": (
+            "Les valeurs personnalisées des en-têtes ou pieds de page seront "
+            "remplacées. Les autres réglages PDF ne changeront pas."
+        ),
         "advanced_options_heading": "Options avancées",
+        "advanced_editor_title": "Options avancées",
+        "advanced_editor_description": (
+            "Choisissez la date de rendu et si le HTML statique de confiance "
+            "est autorisé."
+        ),
         "settings_default_theme": "Thème par défaut",
         "settings_css_summary": "CSS personnalisé · {path}",
         "settings_none": "Aucun",
@@ -498,6 +596,12 @@ STRINGS = {
         "reset_header_footer": "Rétablir les valeurs par défaut",
         "render_date_label": "Date (AAAA-MM-JJ)",
         "render_date": "Date de rendu (AAAA-MM-JJ)",
+        "render_date_automatic_help": (
+            "Laissez ce champ vide pour utiliser automatiquement la date du jour."
+        ),
+        "render_date_validation_invalid": (
+            "Saisissez une date valide au format AAAA-MM-JJ ou laissez le champ vide."
+        ),
         "trusted_html_label": "Autoriser le HTML statique de confiance",
         "trusted_html": "Autoriser le HTML statique de confiance",
         "trusted_html_help": (
@@ -505,6 +609,7 @@ STRINGS = {
             "ressources distantes et contenus actifs restent bloqués."
         ),
         "trusted_html_confirm_title": "Autoriser le HTML de confiance ?",
+        "trusted_html_allow": "Autoriser",
         "trusted_html_confirm": (
             "Cette option modifie l’interprétation du HTML brut dans le "
             "Markdown. Continuez uniquement si le fichier est fiable."

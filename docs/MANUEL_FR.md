@@ -52,17 +52,43 @@ automatiquement une version pyenv `3.9.x` déjà installée.
 3. Les quatre lignes **Réglages** résument toujours le style PDF, la
    destination, les en-têtes et pieds de page et les options avancées actifs.
    Les valeurs longues restent sur une ligne et leur valeur complète est
-   disponible dans une infobulle. Sélectionnez l’unique action **Modifier** à
-   côté du titre Réglages pour ouvrir un dialogue commun aux quatre familles ;
-   **Appliquer** conserve tous les changements, tandis que **Annuler** ou Échap
-   restaure les réglages présents à l’ouverture. Dans **Style PDF**,
-   choisissez un thème local validé, ou sélectionnez **CSS personnalisé** puis
-   **Choisir un CSS**. Ces choix sont
-   incompatibles ; **Revenir au thème sélectionné** retire le CSS personnel
-   sans oublier le thème choisi pour cette session.
-4. Facultatif : modifiez **En-têtes et pieds de page** et changez les positions
-   Gauche, Centre et Droite explicitement libellées. **Rétablir les valeurs par
-   défaut** ne modifie que ces six champs et restaure le pied central par défaut.
+   disponible dans une infobulle. Sélectionnez la ligne **Style PDF** pour
+   ouvrir son éditeur dédié. Choisissez un thème local validé, ou sélectionnez
+   **CSS personnalisé** puis **Choisir un CSS**. Ces choix sont exclusifs, mais
+   choisir un CSS n’oublie pas le thème sélectionné. Le brouillon actualise
+   l’aperçu après 450 ms ; **Enregistrer** l’applique à la session, tandis que
+   **Annuler**, Échap, la fermeture ou **Retour** en mode compact restaurent le
+   style et l’aperçu précédents. Sélectionnez la ligne **Destination** pour
+   ouvrir son éditeur dédié. Choisissez **Même dossier que chaque fichier
+   source** ou **Dossier unique**, puis utilisez **Parcourir** pour sélectionner
+   un chemin. Le chemin personnalisé complet reste sélectionnable et copiable ;
+   les caractères Unicode et les espaces sont conservés. Le brouillon de
+   destination n’actualise ni ne remplace jamais l’aperçu. **Enregistrer**
+   applique la destination à la session ; **Annuler**, Échap, la fermeture ou
+   **Retour** en mode compact la restaurent exactement. Sélectionnez **En-têtes
+   et pieds de page** pour modifier les positions Gauche, Centre et Droite
+   explicitement libellées. Un champ vide n’affiche rien. Sélectionnez
+   `{titre}`, `{title}`, `{date}`, `{page}` ou `{total}` pour insérer la variable
+   à la position du curseur dans le champ actif. Les changements du brouillon
+   actualisent l’aperçu après 450 ms. **Rétablir les valeurs par défaut** demande
+   confirmation uniquement si des valeurs personnalisées existent, ne modifie
+   que ces six champs et restaure `Page {page} / {total}` dans le pied central.
+   Enregistrer et Annuler suivent les mêmes règles de session et de restauration
+   de l’aperçu que Style PDF. En mode compact, chaque éditeur dédié occupe
+   l’onglet Réglages et garde Enregistrer visible. Les champs d’en-tête et de
+   pied conservent leurs trois colonnes ; une barre de défilement verticale
+   interne apparaît uniquement lorsque la hauteur restante ne permet pas
+   d’afficher les variables et l’action de réinitialisation. Sélectionnez
+   **Options avancées**, ou l’action **Modifier** à côté du titre Réglages, pour
+   ouvrir son éditeur dédié. Laissez la date de rendu vide pour utiliser
+   automatiquement la date du jour, ou saisissez une valeur `AAAA-MM-JJ`
+   valide. Une date incorrecte est signalée en ligne. L’activation du HTML
+   statique de confiance demande confirmation la première fois de la session ;
+   un refus laisse l’interrupteur désactivé. Les scripts, ressources distantes
+   et contenus actifs restent bloqués. Le brouillon avancé actualise l’aperçu
+   après 450 ms ; Enregistrer et Annuler suivent les mêmes règles exactes de
+   session et de restauration de l’aperçu.
+4. Facultatif : modifiez **En-têtes et pieds de page** comme décrit ci-dessus.
 5. L’aperçu du fichier actif est actualisé après un court délai
    lorsqu’un réglage compatible change. L’ancienne image reste visible pendant
    la mise à jour et les états vide, mise à jour et indisponible sont indiqués
@@ -77,11 +103,10 @@ automatiquement une version pyenv `3.9.x` déjà installée.
    déplace la page. Les barres de défilement n’apparaissent que si nécessaire.
    Une erreur d’aperçu peut être relancée ou copiée et n’empêche pas de tenter
    une génération PDF valide.
-6. Facultatif : modifiez **Destination** et choisissez un dossier de sortie.
+6. Facultatif : modifiez **Destination** et choisissez **Dossier unique**.
    Sinon, chaque PDF est créé à côté de sa source Markdown.
    **Options avancées** contient la date de rendu et le HTML statique de
-   confiance. Son activation demande une confirmation lors de sa première
-   utilisation dans chaque session de l’application.
+   confiance comme décrit ci-dessus.
 7. Sélectionnez **Générer le PDF** pour un fichier, ou **Générer n PDF**
    pour un lot. Le libellé suit le nombre de fichiers sans abréviation de
    pluriel.

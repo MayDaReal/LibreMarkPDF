@@ -20,7 +20,8 @@ agent contract in [`SKILL.md`](SKILL.md).
   CSS file;
 - four summarized desktop setting sections for style, destination, six
   header/footer positions, date, and trusted static HTML, with complete
-  tooltips for long values and one on-demand unified editor;
+  tooltips for long values; all four sections have responsive draft editors
+  with session Save/Cancel semantics;
 - compact navigation at 759 px and below with persistent Files, Preview,
   Settings, and Results tabs, one visible content panel, and a fixed
   full-width generate/progress area;
@@ -208,7 +209,7 @@ See [`AGENTS.md`](AGENTS.md) for contribution rules and
 Default conversion treats raw HTML as literal Markdown text, validates and
 embeds approved local images, blocks active/network-capable HTML and CSS, and
 does not replace existing output without `--overwrite`. Trusted HTML is
-available through **Other advanced options** in the desktop
+available through **Advanced options** in the desktop
 interface after a first-use confirmation, and through the CLI
 `--trusted-html` option. Both allow only the documented static HTML subset;
 scripts, event handlers, frames, resource loaders, and network or `file:` URLs
