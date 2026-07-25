@@ -222,6 +222,26 @@ class TestModernUiAssets(unittest.TestCase):
 
 
 class TestComponentGallery(unittest.TestCase):
+    def test_tooltip_uses_the_monitor_work_area_with_virtual_offsets(self):
+        from libremark_pdf.desktop.ctk import components
+
+        self.assertEqual(
+            components._tooltip_position(
+                (-1800, 970, 240, 30),
+                (420, 80),
+                (-1920, 0, 1920, 1040),
+            ),
+            (-1800, 886),
+        )
+        self.assertEqual(
+            components._tooltip_position(
+                (1850, 100, 100, 30),
+                (300, 80),
+                (0, 0, 1920, 1040),
+            ),
+            (1620, 134),
+        )
+
     def test_atomic_component_catalog_is_complete(self):
         self.assertEqual(set(ATOMIC_COMPONENTS), {
             "CardFrame",

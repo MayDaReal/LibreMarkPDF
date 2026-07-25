@@ -39,11 +39,17 @@ install CPython 3.9 with pyenv first; the Linux bootstrap detects an installed
    this width is retained only for the current session. Long parent paths are
    elided in the middle while their complete value remains available from the
    tooltip and **Copy path** action.
-3. Optional: expand **PDF style** and select a validated local theme, or select
-   **Custom CSS** and **Choose CSS**. These choices are mutually exclusive;
+3. The four **Settings** rows always summarize the active PDF style,
+   destination, headers and footers, and advanced options. Long values remain
+   on one line and their complete value is available in a tooltip. Select the
+   single **Edit** action beside the Settings heading to open one dialog for
+   all four families; **Apply** keeps all changes and **Cancel** or Escape
+   restores the settings present when it opened. In **PDF style**,
+   select a validated local theme, or select **Custom CSS** and **Choose CSS**.
+   These choices are mutually exclusive;
    **Use the selected theme** removes the custom CSS without forgetting the theme
    selected for this session.
-4. Optional: expand **Headers and footers** and edit the explicitly labelled
+4. Optional: edit **Headers and footers** and change the explicitly labelled
    Left, Center, and Right positions. **Restore defaults** changes only
    these six fields and restores the default center footer.
 5. The active file's preview is refreshed after a short delay when a
@@ -59,9 +65,9 @@ install CPython 3.9 with pyenv first; the Linux bootstrap detects an installed
    the pointer, and middle-button drag pans the page. Scrollbars appear only
    when needed. A preview error can be retried or copied and does not prevent a
    valid PDF generation attempt.
-6. Optional: expand **Destination** and select an output folder. Otherwise,
+6. Optional: edit **Destination** and select an output folder. Otherwise,
    each PDF is written beside its Markdown source.
-   **Other advanced options** contains the render date and trusted static HTML.
+   **Advanced options** contains the render date and trusted static HTML.
    Enabling trusted HTML requires confirmation the first time in each
    application session.
 7. Select **Generate PDF** for one file, or **Generate n PDFs** for a

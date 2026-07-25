@@ -11,6 +11,77 @@ import customtkinter as ctk
 from .theme import COLORS, RADII, SIZES, SPACING, SystemFontResolver
 
 
+def _monitor_work_area(widget: tk.Misc):
+    """Return the work area containing a widget, including virtual offsets."""
+    if os.name == "nt":
+        try:
+            import ctypes
+            from ctypes import wintypes
+
+            class MonitorInfo(ctypes.Structure):
+                _fields_ = (
+                    ("cbSize", wintypes.DWORD),
+                    ("rcMonitor", wintypes.RECT),
+                    ("rcWork", wintypes.RECT),
+                    ("dwFlags", wintypes.DWORD),
+                )
+
+            monitor_from_window = ctypes.windll.user32.MonitorFromWindow
+            monitor_from_window.argtypes = (
+                wintypes.HWND,
+                wintypes.DWORD,
+            )
+            monitor_from_window.restype = wintypes.HANDLE
+            get_monitor_info = ctypes.windll.user32.GetMonitorInfoW
+            get_monitor_info.argtypes = (
+                wintypes.HANDLE,
+                ctypes.POINTER(MonitorInfo),
+            )
+            get_monitor_info.restype = wintypes.BOOL
+            monitor = monitor_from_window(widget.winfo_id(), 2)
+            information = MonitorInfo()
+            information.cbSize = ctypes.sizeof(MonitorInfo)
+            if monitor and get_monitor_info(
+                monitor,
+                ctypes.byref(information),
+            ):
+                rectangle = information.rcWork
+                return (
+                    rectangle.left,
+                    rectangle.top,
+                    rectangle.right - rectangle.left,
+                    rectangle.bottom - rectangle.top,
+                )
+        except (AttributeError, OSError, ctypes.ArgumentError, tk.TclError):
+            pass
+    return (
+        0,
+        0,
+        widget.winfo_screenwidth(),
+        widget.winfo_screenheight(),
+    )
+
+
+def _tooltip_position(
+    widget_bounds,
+    tooltip_size,
+    work_area,
+):
+    """Place a tooltip below its widget and inside one monitor work area."""
+    widget_x, widget_y, widget_width, widget_height = widget_bounds
+    width, height = tooltip_size
+    screen_x, screen_y, screen_width, screen_height = work_area
+    desired_x = widget_x
+    desired_y = widget_y + widget_height + SPACING["xs"]
+    screen_right = screen_x + screen_width
+    screen_bottom = screen_y + screen_height
+    x = max(screen_x, min(desired_x, screen_right - width))
+    if desired_y + height > screen_bottom:
+        desired_y = widget_y - height - SPACING["xs"]
+    y = max(screen_y, min(desired_y, screen_bottom - height))
+    return x, y
+
+
 class FocusRing:
     """Apply a visible two-pixel focus border through public widget APIs."""
 
@@ -124,18 +195,16 @@ class Tooltip:
         window.update_idletasks()
         width = window.winfo_reqwidth()
         height = window.winfo_reqheight()
-        desired_x = self.widget.winfo_rootx()
-        desired_y = (
-            self.widget.winfo_rooty()
-            + self.widget.winfo_height()
-            + SPACING["xs"]
+        x, y = _tooltip_position(
+            (
+                self.widget.winfo_rootx(),
+                self.widget.winfo_rooty(),
+                self.widget.winfo_width(),
+                self.widget.winfo_height(),
+            ),
+            (width, height),
+            _monitor_work_area(self.widget),
         )
-        screen_width = self.widget.winfo_screenwidth()
-        screen_height = self.widget.winfo_screenheight()
-        x = max(0, min(desired_x, screen_width - width))
-        if desired_y + height > screen_height:
-            desired_y = self.widget.winfo_rooty() - height - SPACING["xs"]
-        y = max(0, min(desired_y, screen_height - height))
         window.wm_geometry("+{0}+{1}".format(x, y))
         self._window = window
 

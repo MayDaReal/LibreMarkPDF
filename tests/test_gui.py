@@ -10,7 +10,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from libremark_pdf import __version__, core, desktop_services, gui
+from libremark_pdf import __version__, core, desktop_services, gui, i18n
 from libremark_pdf.desktop import services
 from libremark_pdf.desktop.tk import app as tk_app
 from libremark_pdf.desktop.tk import components as tk_components
@@ -328,20 +328,8 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
         app._left_panel_width = tk_layout.LEFT_PANEL_TARGET_WIDTH
         app.source_group = mock.Mock()
         app.preview_group = mock.Mock()
-        app.theme_group = mock.Mock()
-        app.output_group = mock.Mock()
-        app.advanced_group = mock.Mock()
-        app.other_group = mock.Mock()
+        app.settings_panel = mock.Mock()
         app.results_frame = mock.Mock()
-        app.header_footer_entry_rows = [
-            [mock.Mock(), mock.Mock(), mock.Mock()],
-            [mock.Mock(), mock.Mock(), mock.Mock()],
-        ]
-        app.header_footer_field_rows = [
-            [mock.Mock(), mock.Mock(), mock.Mock()],
-            [mock.Mock(), mock.Mock(), mock.Mock()],
-        ]
-        app._enforce_compact_accordions = mock.Mock()
         app._layout_legacy_setting_rows = mock.Mock()
         app._layout_preview_header = mock.Mock()
         app.body = mock.Mock()
@@ -355,7 +343,7 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
         widgets = (
             app.source_group,
             app.preview_group,
-            app.advanced_group,
+            app.settings_panel,
             app.preview_canvas,
             app.status_label,
         )
@@ -375,12 +363,6 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
             sticky="nsew",
             pady=(0, tk_styles.SECTION_GAP),
         )
-        for fields in app.header_footer_field_rows:
-            for field in fields:
-                field.pack.assert_called_with(
-                    fill="x",
-                    pady=(0, tk_styles.SPACE_XS),
-                )
         for widget in (
             app.body,
             app.drop_canvas,
@@ -404,7 +386,7 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
             (
                 app.source_group,
                 app.preview_group,
-                app.advanced_group,
+                app.settings_panel,
                 app.preview_canvas,
                 app.status_label,
             ),
@@ -422,7 +404,7 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
         app.preview_group.grid.assert_called_with(
             row=0,
             column=2,
-            rowspan=6,
+            rowspan=3,
             sticky="nsew",
         )
     def test_primary_action_and_progress_are_outside_scrolling_content(self):
@@ -517,33 +499,38 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
         app.dialogs.choose_css_file.return_value = "styles/print.css"
         app._t = lambda key, **kwargs: key
         app.css_path = None
-        app.style_mode_var = mock.Mock()
+        app._settings_draft_css_path = None
+        app._settings_draft_style_mode_var = mock.Mock()
         app._refresh_css_entry = mock.Mock()
         app._render_theme_cards = mock.Mock()
         app._schedule_preview = mock.Mock()
 
         app._choose_css()
 
-        self.assertEqual(app.css_path, "styles/print.css")
-        app.style_mode_var.set.assert_called_with("css")
+        self.assertIsNone(app.css_path)
+        self.assertEqual(
+            app._settings_draft_css_path,
+            "styles/print.css",
+        )
+        app._settings_draft_style_mode_var.set.assert_called_with("css")
 
         app._reset_css()
 
-        self.assertIsNone(app.css_path)
-        app.style_mode_var.set.assert_called_with("theme")
-        self.assertEqual(app._schedule_preview.call_count, 2)
+        self.assertIsNone(app._settings_draft_css_path)
+        app._settings_draft_style_mode_var.set.assert_called_with("theme")
+        app._schedule_preview.assert_not_called()
 
     def test_header_footer_reset_changes_only_the_six_fields(self):
         app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
-        app.hf_vars = {
+        app._settings_draft_hf_vars = {
             key: mock.Mock()
             for key in (
                 "header_left", "header_center", "header_right",
                 "footer_left", "footer_center", "footer_right",
             )
         }
-        app.render_date_var = mock.Mock()
-        app.trusted_html_var = mock.Mock()
+        app._settings_draft_render_date_var = mock.Mock()
+        app._settings_draft_trusted_html_var = mock.Mock()
         app._refresh_accordion_headers = mock.Mock()
 
         app._reset_header_footer()
@@ -557,9 +544,9 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
             "footer_right": "",
         }
         for key, value in expected.items():
-            app.hf_vars[key].set.assert_called_once_with(value)
-        app.render_date_var.set.assert_not_called()
-        app.trusted_html_var.set.assert_not_called()
+            app._settings_draft_hf_vars[key].set.assert_called_once_with(value)
+        app._settings_draft_render_date_var.set.assert_not_called()
+        app._settings_draft_trusted_html_var.set.assert_not_called()
 
     def test_destination_choose_and_reset_preserve_global_batch_value(self):
         app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
@@ -567,12 +554,15 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
         app.dialogs.choose_output_folder.return_value = "exports"
         app._t = lambda key, **kwargs: key
         app.output_dir = None
+        app._settings_draft_output_dir = None
         app._refresh_output_entry = mock.Mock()
 
         app._choose_output_dir()
-        self.assertEqual(app.output_dir, "exports")
+        self.assertIsNone(app.output_dir)
+        self.assertEqual(app._settings_draft_output_dir, "exports")
         app._reset_output_dir()
         self.assertIsNone(app.output_dir)
+        self.assertIsNone(app._settings_draft_output_dir)
         self.assertEqual(app._refresh_output_entry.call_count, 2)
 
     def test_destination_summary_handles_one_many_and_custom_folder(self):
@@ -584,7 +574,70 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
         app.files.append(Path("two.md"))
         self.assertEqual(app._destination_summary(), "source_destination_many")
         app.output_dir = str(Path("C:/exports/private/project"))
-        self.assertEqual(app._destination_summary(), "project")
+        self.assertEqual(
+            app._destination_summary(),
+            str(Path("C:/exports/private/project")),
+        )
+
+    def test_settings_summaries_cover_default_none_custom_date_and_html(self):
+        class Value:
+            def __init__(self, value):
+                self.value = value
+
+            def get(self):
+                return self.value
+
+        app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
+        app.lang = "en"
+        app._t = lambda key, **kwargs: i18n.t(key, "en", **kwargs)
+        app.css_path = None
+        app.theme_var = Value("default@1")
+        app.output_dir = None
+        app.files = []
+        defaults = {
+            "header_left": "",
+            "header_center": "",
+            "header_right": "",
+            "footer_left": "",
+            "footer_center": "Page {page} / {total}",
+            "footer_right": "",
+        }
+        app.hf_vars = {
+            key: Value(value) for key, value in defaults.items()
+        }
+        app.render_date_var = Value("")
+        app.trusted_html_var = Value(False)
+
+        self.assertEqual(app._style_summary(), "Default theme")
+        self.assertNotIn("default@1", app._style_summary())
+        self.assertEqual(
+            app._header_footer_summary(),
+            "Center footer: Page {page} / {total}",
+        )
+        self.assertEqual(
+            app._other_options_summary(),
+            "Automatic date · Safe HTML",
+        )
+
+        for variable in app.hf_vars.values():
+            variable.value = ""
+        self.assertEqual(app._header_footer_summary(), "None")
+        app.hf_vars["header_left"].value = "{title}"
+        self.assertEqual(
+            app._header_footer_summary(),
+            "Left header: {title}",
+        )
+        app.render_date_var.value = "2026-07-25"
+        app.trusted_html_var.value = True
+        self.assertEqual(
+            app._other_options_summary(),
+            "Date: 2026-07-25 · Trusted HTML enabled",
+        )
+        app.css_path = "C:/Projet avec espaces/élégant.css"
+        self.assertEqual(
+            app._style_summary(),
+            "Custom CSS · C:/Projet avec espaces/élégant.css",
+        )
 
     def test_trusted_html_decline_restores_value_and_keyboard_focus(self):
         app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
@@ -622,41 +675,6 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
             "trusted_html_confirm",
         )
         self.assertTrue(app._trusted_html_confirmed)
-
-    def test_compact_accordion_opening_closes_the_previous_section(self):
-        class State:
-            def __init__(self, value):
-                self.value = value
-
-            def get(self):
-                return self.value
-
-            def set(self, value):
-                self.value = value
-
-        app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
-        app._viewport_height = 520
-        app.accordion_open = {
-            "style": State(True),
-            "destination": State(False),
-            "header_footer": State(False),
-            "other": State(False),
-        }
-        app._accordion_sections = {
-            name: (mock.Mock(), mock.Mock())
-            for name in app.accordion_open
-        }
-        app._refresh_accordion_headers = mock.Mock()
-
-        app._toggle_accordion("destination")
-
-        self.assertFalse(app.accordion_open["style"].get())
-        self.assertTrue(app.accordion_open["destination"].get())
-        app._accordion_sections["style"][1].pack_forget.assert_called_once_with()
-        app._accordion_sections["destination"][1].pack.assert_called_once_with(
-            fill="x",
-            pady=(tk_styles.SPACE_SM, 0),
-        )
 
     def test_generation_passes_a_snapshot_of_files_and_options_to_service(self):
         app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)

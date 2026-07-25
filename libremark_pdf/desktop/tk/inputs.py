@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import tkinter as tk
 from pathlib import Path
 from tkinter import ttk
 from typing import Iterable, Optional, Union
@@ -219,28 +220,29 @@ class TkInputMixin:
             [(self._t("css_filter_name"), "*.css")],
         )
         if path:
-            self.css_path = path
-            self.style_mode_var.set("css")
+            self._settings_draft_css_path = path
+            self._settings_draft_style_mode_var.set("css")
             self._refresh_css_entry()
             self._render_theme_cards()
-            self._schedule_preview()
 
     def _activate_css_mode(self) -> None:
-        if self.css_path:
+        if self._settings_draft_css_path:
             return
         self._choose_css()
-        if not self.css_path:
-            self.style_mode_var.set("theme")
+        if not self._settings_draft_css_path:
+            self._settings_draft_style_mode_var.set("theme")
 
     def _reset_css(self) -> None:
-        self.css_path = None
-        self.style_mode_var.set("theme")
+        self._settings_draft_css_path = None
+        self._settings_draft_style_mode_var.set("theme")
         self._refresh_css_entry()
         self._render_theme_cards()
-        self._schedule_preview()
 
     def _refresh_css_entry(self) -> None:
-        value = self.css_path or self._t("css_from_theme_value")
+        value = (
+            self._settings_draft_css_path
+            or self._t("css_from_theme_value")
+        )
         self.css_entry.config(state="normal")
         self.css_entry.delete(0, "end")
         self.css_entry.insert(0, value)
@@ -250,12 +252,11 @@ class TkInputMixin:
     def _select_theme(self, reference: str) -> None:
         if self.operation != "idle":
             return
-        self.theme_var.set(reference)
-        self.css_path = None
-        self.style_mode_var.set("theme")
+        self._settings_draft_theme_var.set(reference)
+        self._settings_draft_css_path = None
+        self._settings_draft_style_mode_var.set("theme")
         self._refresh_css_entry()
         self._render_theme_cards()
-        self._schedule_preview()
 
     def _render_theme_cards(self) -> None:
         for child in self.theme_cards.winfo_children():
@@ -268,18 +269,16 @@ class TkInputMixin:
             themes = [core.show_theme(core.DEFAULT_THEME_ID)]
             self._set_status("status_theme_error", error=str(exc))
         for info in themes:
-            self._theme_summaries[info.reference] = "{0} ({1})".format(
-                info.names[self.lang], info.reference
-            )
+            self._theme_summaries[info.reference] = info.names[self.lang]
             card = ttk.Radiobutton(
                 self.theme_cards,
                 text="{0} ({1})".format(info.names[self.lang], info.reference),
                 value=info.reference,
-                variable=self.theme_var,
+                variable=self._settings_draft_theme_var,
                 command=lambda ref=info.reference: self._select_theme(ref),
             )
             card.pack(side="left", padx=(0, 8), pady=2)
-            if self.css_path:
+            if self._settings_draft_css_path:
                 card.config(state="disabled")
             self._theme_buttons.append(card)
         if self.operation != "idle":
@@ -292,61 +291,22 @@ class TkInputMixin:
             self._t("choose_output_folder_title")
         )
         if path:
-            self.output_dir = path
+            self._settings_draft_output_dir = path
             self._refresh_output_entry()
 
     def _reset_output_dir(self) -> None:
-        self.output_dir = None
+        self._settings_draft_output_dir = None
         self._refresh_output_entry()
 
     def _refresh_output_entry(self) -> None:
-        value = self.output_dir or self._t("output_default_value")
+        value = (
+            self._settings_draft_output_dir
+            or self._t("output_default_value")
+        )
         self.output_entry.config(state="normal")
         self.output_entry.delete(0, "end")
         self.output_entry.insert(0, value)
         self.output_entry.config(state="readonly")
-        self._refresh_accordion_headers()
-
-    def _toggle_accordion(self, name: str) -> None:
-        state = self.accordion_open[name]
-        opening = not state.get()
-        if opening and getattr(self, "_viewport_height", 720) < 640:
-            for other_name, other_state in self.accordion_open.items():
-                if other_name != name and other_state.get():
-                    other_state.set(False)
-                    self._accordion_sections[other_name][1].pack_forget()
-        state.set(opening)
-        content = self._accordion_sections[name][1]
-        if opening:
-            content.pack(fill="x", pady=(SPACE_SM, 0))
-        else:
-            content.pack_forget()
-        self._refresh_accordion_headers()
-
-    def _enforce_compact_accordions(self) -> None:
-        if (
-            getattr(self, "_viewport_height", 720) >= 640
-            or not hasattr(self, "_accordion_sections")
-        ):
-            return
-        open_names = [
-            name for name, state in self.accordion_open.items() if state.get()
-        ]
-        if len(open_names) <= 1:
-            return
-        focus = self.root.focus_get()
-        keep = open_names[0]
-        if focus is not None:
-            focus_path = str(focus)
-            for name in open_names:
-                toggle, content = self._accordion_sections[name]
-                if focus is toggle or focus_path.startswith(str(content)):
-                    keep = name
-                    break
-        for name in open_names:
-            if name != keep:
-                self.accordion_open[name].set(False)
-                self._accordion_sections[name][1].pack_forget()
         self._refresh_accordion_headers()
 
     def _on_render_setting_changed(self, *unused) -> None:
@@ -355,8 +315,10 @@ class TkInputMixin:
 
     def _style_summary(self) -> str:
         if self.css_path:
-            return "CSS · {0}".format(Path(self.css_path).name)
+            return self._t("settings_css_summary", path=self.css_path)
         reference = self.theme_var.get()
+        if reference == core.DEFAULT_THEME_ID:
+            return self._t("settings_default_theme")
         return getattr(self, "_theme_summaries", {}).get(reference, reference)
 
     def _header_footer_summary(self) -> str:
@@ -364,21 +326,18 @@ class TkInputMixin:
             key: variable.get()
             for key, variable in self.hf_vars.items()
         }
-        defaults = {
-            "header_left": "",
-            "header_center": "",
-            "header_right": "",
-            "footer_left": "",
-            "footer_center": "Page {page} / {total}",
-            "footer_right": "",
-        }
-        return self._t(
-            "settings_default" if values == defaults else "settings_custom"
-        )
+        items = [
+            self._t("{0}_summary".format(key), value=value)
+            for key, value in values.items()
+            if value
+        ]
+        if not items:
+            return self._t("settings_none")
+        return " · ".join(items)
 
     def _destination_summary(self) -> str:
         if self.output_dir:
-            return Path(self.output_dir).name or self.output_dir
+            return self.output_dir
         return self._t(
             (
                 "source_destination_one"
@@ -388,40 +347,194 @@ class TkInputMixin:
         )
 
     def _other_options_summary(self) -> str:
-        if self.trusted_html_var.get():
-            return self._t("other_trusted_summary")
         render_date = self.render_date_var.get().strip()
+        trusted = self.trusted_html_var.get()
+        if render_date and trusted:
+            return self._t("other_date_trusted_summary", date=render_date)
+        if trusted:
+            return self._t("other_trusted_summary")
         if render_date:
             return self._t("other_date_summary", date=render_date)
-        return self._t("settings_default")
+        return self._t("other_automatic_summary")
 
-    def _refresh_accordion_headers(self) -> None:
-        if not hasattr(self, "_accordion_sections"):
-            return
-        summaries = {
+    def _settings_summaries(self) -> dict:
+        return {
             "style": self._style_summary(),
             "destination": self._destination_summary(),
             "header_footer": self._header_footer_summary(),
             "other": self._other_options_summary(),
         }
-        titles = {
+
+    def _settings_summary_labels(self) -> dict:
+        return {
+            "settings_heading": self._t("settings_heading"),
             "style": self._t("style_heading"),
             "destination": self._t("destination_heading"),
             "header_footer": self._t("header_footer_heading"),
-            "other": self._t("other_advanced_heading"),
+            "other": self._t("advanced_options_heading"),
+            "edit": self._t("edit_settings"),
         }
-        for name, (toggle, _content) in self._accordion_sections.items():
-            toggle.config(
-                text=self._t(
-                    (
-                        "accordion_expanded"
-                        if self.accordion_open[name].get()
-                        else "accordion_collapsed"
-                    ),
-                    title=titles[name],
-                    summary=summaries[name],
-                )
+
+    def _refresh_accordion_headers(self) -> None:
+        panel = getattr(self, "settings_panel", None)
+        if panel is not None:
+            panel.retranslate(
+                self._settings_summary_labels(),
+                self._settings_summaries(),
             )
+
+    def _settings_snapshot(self) -> dict:
+        return {
+            "css_path": self.css_path,
+            "style_mode": self.style_mode_var.get(),
+            "theme": self.theme_var.get(),
+            "output_dir": self.output_dir,
+            "header_footer": {
+                key: variable.get() for key, variable in self.hf_vars.items()
+            },
+            "render_date": self.render_date_var.get(),
+            "trusted_html": self.trusted_html_var.get(),
+        }
+
+    def _load_settings_draft(self, settings: dict) -> None:
+        """Populate the temporary dialog draft from authoritative settings."""
+        self._settings_draft_css_path = settings["css_path"]
+        self._settings_draft_output_dir = settings["output_dir"]
+        self._settings_draft_style_mode_var.set(settings["style_mode"])
+        self._settings_draft_theme_var.set(settings["theme"])
+        for key, value in settings["header_footer"].items():
+            self._settings_draft_hf_vars[key].set(value)
+        self._settings_draft_render_date_var.set(settings["render_date"])
+        self._settings_draft_trusted_html_var.set(settings["trusted_html"])
+        self._refresh_css_entry()
+        self._refresh_output_entry()
+        self._render_theme_cards()
+
+    def _open_settings_editor(self) -> str:
+        if self.operation != "idle":
+            return "break"
+        details = self._settings_dialog
+        dialog = details["window"]
+        if dialog.state() != "withdrawn":
+            dialog.lift()
+            self._activate_settings_editor()
+            return "break"
+        details["snapshot"] = self._settings_snapshot()
+        self._load_settings_draft(details["snapshot"])
+        details["return_focus"] = self.root.focus_get()
+        width = max(
+            560,
+            min(680, self.root.winfo_screenwidth() - 80),
+        )
+        height = min(
+            700,
+            max(520, self.root.winfo_screenheight() - 80),
+        )
+        x = self.root.winfo_rootx() + max(
+            0, (self.root.winfo_width() - width) // 2
+        )
+        y = self.root.winfo_rooty() + max(
+            0, (self.root.winfo_height() - height) // 2
+        )
+        dialog.geometry("{0}x{1}+{2}+{3}".format(width, height, x, y))
+        self._layout_settings_dialog(width)
+        details["activation_attempts"] = 0
+        details["opening"] = True
+        dialog.deiconify()
+        dialog.lift()
+        dialog.update_idletasks()
+        self._activate_settings_editor()
+        return "break"
+
+    def _activate_settings_editor(self) -> None:
+        """Make the dialog visible before it can own keyboard and pointer input."""
+        details = self._settings_dialog
+        dialog = details["window"]
+        if not details.get("opening", False):
+            return
+        if dialog.state() == "withdrawn":
+            dialog.deiconify()
+        dialog.lift()
+        if not dialog.winfo_viewable():
+            attempts = details.get("activation_attempts", 0) + 1
+            details["activation_attempts"] = attempts
+            if attempts <= 5:
+                dialog.after_idle(self._activate_settings_editor)
+            return
+        dialog.focus_force()
+        dialog.grab_set()
+        self.theme_mode_radio.focus_set()
+
+    def _close_settings_editor(self) -> str:
+        details = self._settings_dialog
+        dialog = details["window"]
+        details["opening"] = False
+        if dialog.grab_current() is dialog:
+            dialog.grab_release()
+        dialog.withdraw()
+        focus = details.get("return_focus")
+        if focus is not None:
+            try:
+                focus.focus_set()
+            except tk.TclError:
+                self.root.focus_set()
+        else:
+            self.root.focus_set()
+        return "break"
+
+    def _apply_settings_editor(self) -> str:
+        details = self._settings_dialog
+        draft_trusted = self._settings_draft_trusted_html_var.get()
+        if draft_trusted and not self._trusted_html_confirmed:
+            confirmed = self.dialogs.ask_trusted_html(
+                self._t("trusted_html_confirm_title"),
+                self._t("trusted_html_confirm"),
+            )
+            if not confirmed:
+                self._settings_draft_trusted_html_var.set(False)
+                self.trusted_html_check.focus_set()
+                return "break"
+            self._trusted_html_confirmed = True
+
+        before = self._settings_snapshot()
+        self.css_path = self._settings_draft_css_path
+        self.output_dir = self._settings_draft_output_dir
+        draft_style_mode = self._settings_draft_style_mode_var.get()
+        draft_theme = self._settings_draft_theme_var.get()
+        if self.style_mode_var.get() != draft_style_mode:
+            self.style_mode_var.set(draft_style_mode)
+        if self.theme_var.get() != draft_theme:
+            self.theme_var.set(draft_theme)
+        for key, variable in self.hf_vars.items():
+            draft_value = self._settings_draft_hf_vars[key].get()
+            if variable.get() != draft_value:
+                variable.set(draft_value)
+        draft_date = self._settings_draft_render_date_var.get()
+        if self.render_date_var.get() != draft_date:
+            self.render_date_var.set(draft_date)
+        if self.trusted_html_var.get() != draft_trusted:
+            self.trusted_html_var.set(draft_trusted)
+        self._refresh_css_entry()
+        self._refresh_output_entry()
+        self._render_theme_cards()
+        self._refresh_accordion_headers()
+        after = self._settings_snapshot()
+        if any(
+            before[key] != after[key]
+            for key in (
+                "css_path",
+                "style_mode",
+                "theme",
+                "header_footer",
+                "render_date",
+                "trusted_html",
+            )
+        ):
+            self._schedule_preview()
+        return self._close_settings_editor()
+
+    def _cancel_settings_editor(self, _event=None) -> str:
+        return self._close_settings_editor()
 
     def _reset_header_footer(self) -> None:
         defaults = {
@@ -433,8 +546,7 @@ class TkInputMixin:
             "footer_right": "",
         }
         for key, value in defaults.items():
-            self.hf_vars[key].set(value)
-        self._refresh_accordion_headers()
+            self._settings_draft_hf_vars[key].set(value)
 
     def _on_trusted_html_changed(self) -> None:
         if not self.trusted_html_var.get():

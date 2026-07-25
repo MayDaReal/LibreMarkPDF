@@ -19,7 +19,8 @@ agent contract in [`SKILL.md`](SKILL.md).
 - versioned local themes, the compatible `default@1` style, or a user-supplied
   CSS file;
 - four summarized desktop setting sections for style, destination, six
-  header/footer positions, date, and trusted static HTML;
+  header/footer positions, date, and trusted static HTML, with complete
+  tooltips for long values and one on-demand unified editor;
 - English and French desktop interface;
 - a fixed modern header with native Help and language menus, plus compact
   in-window version access with local, copyable technical identities;

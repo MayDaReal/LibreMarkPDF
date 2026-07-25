@@ -212,6 +212,24 @@ class TestModernFilesPanel(unittest.TestCase):
             inactive.name_label.cget("font").measure(paths[1].name),
         )
 
+    def test_selected_row_stacks_active_and_conversion_badges(self):
+        path = Path("folder/MarketAtlas_bootstrapV3.md")
+        self.root.geometry("420x300")
+        self.panel.set_files([path], active=path)
+        self.panel.set_conversion_states({path: "cancelled"})
+        self.root.update()
+        row = self.panel.rows[path]
+
+        self.assertEqual(row.name_label.cget("text"), path.name)
+        self.assertEqual(row.active_badge.winfo_manager(), "grid")
+        self.assertEqual(row.conversion_badge.winfo_manager(), "grid")
+        self.assertEqual(row.active_badge.grid_info()["column"], 0)
+        self.assertEqual(row.conversion_badge.grid_info()["column"], 0)
+        self.assertNotEqual(
+            row.active_badge.grid_info()["row"],
+            row.conversion_badge.grid_info()["row"],
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

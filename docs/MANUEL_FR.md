@@ -43,11 +43,18 @@ automatiquement une version pyenv `3.9.x` déjà installée.
    360 à 440 px ; cette valeur est conservée uniquement pendant la session.
    Les chemins parents longs sont élidés au milieu, tandis que leur valeur
    complète reste accessible dans l’infobulle et par **Copier le chemin**.
-3. Facultatif : ouvrez **Style PDF** et choisissez un thème local validé, ou
-   sélectionnez **CSS personnalisé** puis **Choisir un CSS**. Ces choix sont
+3. Les quatre lignes **Réglages** résument toujours le style PDF, la
+   destination, les en-têtes et pieds de page et les options avancées actifs.
+   Les valeurs longues restent sur une ligne et leur valeur complète est
+   disponible dans une infobulle. Sélectionnez l’unique action **Modifier** à
+   côté du titre Réglages pour ouvrir un dialogue commun aux quatre familles ;
+   **Appliquer** conserve tous les changements, tandis que **Annuler** ou Échap
+   restaure les réglages présents à l’ouverture. Dans **Style PDF**,
+   choisissez un thème local validé, ou sélectionnez **CSS personnalisé** puis
+   **Choisir un CSS**. Ces choix sont
    incompatibles ; **Revenir au thème sélectionné** retire le CSS personnel
    sans oublier le thème choisi pour cette session.
-4. Facultatif : ouvrez **En-têtes et pieds de page** et modifiez les positions
+4. Facultatif : modifiez **En-têtes et pieds de page** et changez les positions
    Gauche, Centre et Droite explicitement libellées. **Rétablir les valeurs par
    défaut** ne modifie que ces six champs et restaure le pied central par défaut.
 5. L’aperçu du fichier actif est actualisé après un court délai
@@ -64,9 +71,9 @@ automatiquement une version pyenv `3.9.x` déjà installée.
    déplace la page. Les barres de défilement n’apparaissent que si nécessaire.
    Une erreur d’aperçu peut être relancée ou copiée et n’empêche pas de tenter
    une génération PDF valide.
-6. Facultatif : ouvrez **Destination** et choisissez un dossier de sortie.
+6. Facultatif : modifiez **Destination** et choisissez un dossier de sortie.
    Sinon, chaque PDF est créé à côté de sa source Markdown.
-   **Autres options avancées** contient la date de rendu et le HTML statique de
+   **Options avancées** contient la date de rendu et le HTML statique de
    confiance. Son activation demande une confirmation lors de sa première
    utilisation dans chaque session de l’application.
 7. Sélectionnez **Générer le PDF** pour un fichier, ou **Générer n PDF**

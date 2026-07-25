@@ -109,6 +109,7 @@ class FileRow(CardFrame):
         self.path_tooltip = Tooltip(self.path_label, self._path_text)
 
         self.badges = ctk.CTkFrame(self, fg_color="transparent")
+        self.badges.grid_columnconfigure(0, weight=1)
         self.active_badge = StatusBadge(
             self.badges,
             text=self._labels["active_preview_badge"],
@@ -248,19 +249,31 @@ class FileRow(CardFrame):
                 COLORS["primary"] if selected else COLORS["border"]
             ),
         )
-        if selected:
-            self.active_badge.grid(row=0, column=0, padx=(0, SPACING["xs"]))
-        else:
-            self.active_badge.grid_forget()
-        self._update_badges_visibility()
+        self._update_badges_layout()
 
-    def _update_badges_visibility(self) -> None:
+    def _update_badges_layout(self) -> None:
+        self.active_badge.grid_forget()
+        if self.conversion_badge is not None:
+            self.conversion_badge.grid_forget()
+
+        row = 0
+        if self._selected:
+            self.active_badge.grid(row=row, column=0, sticky="ew")
+            row += 1
+        if self.conversion_badge is not None:
+            self.conversion_badge.grid(row=row, column=0, sticky="ew")
+
         if self._selected or self._conversion_status is not None:
+            vertical_padding = (
+                SPACING["xs"]
+                if self._selected and self._conversion_status is not None
+                else SPACING["sm"]
+            )
             self.badges.grid(
                 row=0,
                 column=2,
                 padx=(SPACING["sm"], 0),
-                pady=SPACING["sm"],
+                pady=vertical_padding,
             )
         else:
             self.badges.grid_forget()
@@ -283,15 +296,14 @@ class FileRow(CardFrame):
             self.conversion_badge.destroy()
             self.conversion_badge = None
         if status is None:
-            self._update_badges_visibility()
+            self._update_badges_layout()
             return
         self.conversion_badge = StatusBadge(
             self.badges,
             text=self._labels["conversion_{0}".format(status)],
             tone=_STATUS_TONES[status],
         )
-        self.conversion_badge.grid(row=0, column=1)
-        self._update_badges_visibility()
+        self._update_badges_layout()
 
     def retranslate(self, labels: Mapping[str, str]) -> None:
         """Refresh visible and accessible copy without replacing the row."""

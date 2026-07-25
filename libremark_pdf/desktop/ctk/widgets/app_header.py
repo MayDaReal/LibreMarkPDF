@@ -54,6 +54,7 @@ class WindowChrome:
         self.maximize_button = None
         self._normal_geometry = None  # type: Optional[Tuple[int, int, int, int]]
         self._drag_origin = None  # type: Optional[Tuple[int, int]]
+        self._maximized_drag_ratio = None  # type: Optional[float]
         self._resize_origin = None
         self._pending_resize_geometry = None
         self._resize_after_id = None  # type: Optional[str]
@@ -73,6 +74,7 @@ class WindowChrome:
         """Make a non-interactive title-bar surface draggable."""
         widget.bind("<ButtonPress-1>", self._start_drag, add="+")
         widget.bind("<B1-Motion>", self._drag, add="+")
+        widget.bind("<ButtonRelease-1>", self._stop_drag, add="+")
         widget.bind("<Double-Button-1>", self.toggle_maximize, add="+")
 
     def _enable_custom_chrome(self) -> None:
@@ -471,6 +473,7 @@ class WindowChrome:
     def maximize(self) -> None:
         """Fill the desktop work area without covering the Windows taskbar."""
         self.root.update_idletasks()
+        self._maximized_drag_ratio = None
         self._normal_geometry = (
             self.root.winfo_width(),
             self.root.winfo_height(),
@@ -484,6 +487,7 @@ class WindowChrome:
 
     def restore(self) -> None:
         """Restore the last normal window rectangle."""
+        self._maximized_drag_ratio = None
         if self._normal_geometry is not None:
             width, height, x, y = self._normal_geometry
             self._set_window_rectangle(width, height, x, y)
@@ -496,23 +500,36 @@ class WindowChrome:
 
     def _start_drag(self, event) -> None:
         if self._maximized:
-            pointer_ratio = event.x_root / max(1, self.root.winfo_width())
-            self.restore()
-            width = self.root.winfo_width()
-            x = int(event.x_root - width * pointer_ratio)
-            y = max(0, event.y_root - SIZES["header"] // 2)
-            self._set_window_rectangle(
-                width,
-                self.root.winfo_height(),
-                x,
-                y,
+            local_pointer_x = event.x_root - self.root.winfo_x()
+            self._maximized_drag_ratio = max(
+                0.0,
+                min(
+                    1.0,
+                    local_pointer_x / max(1, self.root.winfo_width()),
+                ),
             )
+            self._drag_origin = None
+            return
+        self._maximized_drag_ratio = None
         self._drag_origin = (
             event.x_root - self.root.winfo_x(),
             event.y_root - self.root.winfo_y(),
         )
 
     def _drag(self, event) -> None:
+        if self._maximized and self._maximized_drag_ratio is not None:
+            pointer_ratio = self._maximized_drag_ratio
+            normal_geometry = self._normal_geometry
+            _work_x, work_y, _work_width, _work_height = self._work_area()
+            self.restore()
+            if normal_geometry is None:
+                return
+            width, height, _normal_x, _normal_y = normal_geometry
+            x = int(event.x_root - width * pointer_ratio)
+            y = max(work_y, event.y_root - SIZES["header"] // 2)
+            self._set_window_rectangle(width, height, x, y)
+            self._drag_origin = (event.x_root - x, event.y_root - y)
+            return
         if self._drag_origin is None:
             return
         offset_x, offset_y = self._drag_origin
@@ -522,6 +539,10 @@ class WindowChrome:
             event.x_root - offset_x,
             event.y_root - offset_y,
         )
+
+    def _stop_drag(self, _event=None) -> None:
+        self._drag_origin = None
+        self._maximized_drag_ratio = None
 
     def _update_maximize_glyph(self) -> None:
         if self.maximize_button is not None:

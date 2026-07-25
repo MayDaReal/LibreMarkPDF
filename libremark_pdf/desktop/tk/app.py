@@ -83,12 +83,6 @@ class LibreMarkPdfApp(
         self._preview_png = None  # type: Optional[bytes]
         self.preview_photo = None
         self.zoom_percent = tk.IntVar(value=100)
-        self.accordion_open = {
-            "style": tk.BooleanVar(value=True),
-            "destination": tk.BooleanVar(value=False),
-            "header_footer": tk.BooleanVar(value=False),
-            "other": tk.BooleanVar(value=False),
-        }
         self.style_mode_var = tk.StringVar(value="theme")
         self._trusted_html_confirmed = False
         self.trusted_html_var = tk.BooleanVar(value=False)
@@ -103,6 +97,20 @@ class LibreMarkPdfApp(
             "footer_center": tk.StringVar(value="Page {page} / {total}"),
             "footer_right": tk.StringVar(),
         }
+        # The unified settings dialog edits a temporary draft. Authoritative
+        # render state changes only when the user selects Apply.
+        self._settings_draft_css_path = self.css_path
+        self._settings_draft_output_dir = self.output_dir
+        self._settings_draft_style_mode_var = tk.StringVar(value="theme")
+        self._settings_draft_theme_var = tk.StringVar(
+            value=core.DEFAULT_THEME_ID
+        )
+        self._settings_draft_hf_vars = {
+            key: tk.StringVar(value=variable.get())
+            for key, variable in self.hf_vars.items()
+        }
+        self._settings_draft_render_date_var = tk.StringVar()
+        self._settings_draft_trusted_html_var = tk.BooleanVar(value=False)
         self._operation_controls = []  # type: list
         self._theme_buttons = []  # type: list
         self._automation_widgets = {}  # type: dict[str, tk.Misc]
@@ -372,6 +380,20 @@ class LibreMarkPdfApp(
         self.render_date_label.config(text=self._t("render_date"))
         self.trusted_html_check.config(text=self._t("trusted_html"))
         self.trusted_html_help_label.config(text=self._t("trusted_html_help"))
+        settings_labels = self._settings_summary_labels()
+        self._settings_dialog["window"].title(
+            self._t("settings_dialog_title")
+        )
+        self._settings_dialog["title"].configure(
+            text=self._t("settings_dialog_title")
+        )
+        self._settings_dialog["description"].configure(
+            text=self._t("settings_dialog_description")
+        )
+        for name, title in self._settings_dialog["section_titles"].items():
+            title.configure(text=settings_labels[name])
+        self._settings_dialog["apply"].config(text=self._t("apply_settings"))
+        self._settings_dialog["cancel"].config(text=self._t("cancel_settings"))
         self.preview_group.config(text=self._t("preview_heading"))
         self._update_preview_translations()
         self.output_button.config(text=self._t("change_destination"))

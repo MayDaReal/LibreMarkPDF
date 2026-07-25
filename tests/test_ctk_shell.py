@@ -166,6 +166,52 @@ class TestWindowChromeContract(unittest.TestCase):
         )
         chrome.root.geometry.assert_not_called()
 
+    def test_double_click_restore_does_not_start_a_maximized_drag(self):
+        chrome = WindowChrome.__new__(WindowChrome)
+        chrome.root = mock.Mock()
+        chrome.root.winfo_x.return_value = 1920
+        chrome.root.winfo_width.return_value = 1920
+        chrome._maximized = True
+        chrome._maximized_drag_ratio = None
+        chrome._drag_origin = None
+        chrome.restore = mock.Mock()
+        event = mock.Mock(x_root=2500, y_root=20)
+
+        chrome._start_drag(event)
+
+        chrome.restore.assert_not_called()
+        self.assertAlmostEqual(
+            chrome._maximized_drag_ratio,
+            (2500 - 1920) / 1920,
+        )
+        chrome.toggle_maximize()
+        chrome.restore.assert_called_once_with()
+
+    def test_drag_from_maximized_uses_coordinates_local_to_current_monitor(self):
+        chrome = WindowChrome.__new__(WindowChrome)
+        chrome.root = mock.Mock()
+        chrome.root.winfo_x.return_value = 1920
+        chrome.root.winfo_width.return_value = 1920
+        chrome._maximized = True
+        chrome._normal_geometry = (900, 700, 2100, 80)
+        chrome._maximized_drag_ratio = None
+        chrome._drag_origin = None
+        chrome._work_area = mock.Mock(return_value=(1920, 0, 1920, 1040))
+        chrome._set_window_rectangle = mock.Mock()
+        chrome._update_maximize_glyph = mock.Mock()
+
+        chrome._start_drag(mock.Mock(x_root=2500, y_root=20))
+        chrome._drag(mock.Mock(x_root=2520, y_root=40))
+
+        self.assertFalse(chrome._maximized)
+        self.assertEqual(
+            chrome._set_window_rectangle.call_args_list,
+            [
+                mock.call(900, 700, 2100, 80),
+                mock.call(900, 700, 2248, 12),
+            ],
+        )
+
 
 class TestModernShellWidgets(unittest.TestCase):
     @classmethod
@@ -187,8 +233,13 @@ class TestModernShellWidgets(unittest.TestCase):
         self.fonts = SystemFontResolver(self.root)
 
     def tearDown(self):
+        for identifier in self.root.tk.call("after", "info"):
+            self.root.after_cancel(identifier)
+        self.root.unbind("<Configure>")
         for child in self.root.winfo_children():
             child.destroy()
+        for identifier in self.root.tk.call("after", "info"):
+            self.root.after_cancel(identifier)
 
     def test_action_bar_is_fixed_and_primary_button_is_geometrically_centered(self):
         shell = AppShell(self.root)
@@ -340,6 +391,125 @@ class TestModernShellWidgets(unittest.TestCase):
         services.run_preview_worker.assert_not_called()
         services.run_conversion_job.assert_not_called()
         services.open_path.assert_not_called()
+
+    def test_unified_settings_dialog_retranslates_and_applies_or_cancels_all(self):
+        services = mock.Mock()
+        dialogs = mock.Mock()
+        with mock.patch.object(tk_layout, "HAS_DND", False), mock.patch.object(
+            tk_app.i18n,
+            "load_language",
+            return_value="en",
+        ):
+            application = tk_app.LibreMarkPdfApp(
+                self.root,
+                services=services,
+                dialogs=dialogs,
+            )
+        row_identities = {
+            name: id(row)
+            for name, row in application.settings_panel.rows.items()
+        }
+        original = application.hf_vars["header_left"].get()
+        original_output = application.output_dir
+
+        application._open_settings_editor()
+        self.root.update()
+        dialog = application._settings_dialog["window"]
+        self.assertTrue(dialog.winfo_viewable())
+        self.assertNotEqual(dialog.winfo_geometry(), "1x1+0+0")
+        self.assertEqual(str(dialog.transient()), str(self.root))
+        self.assertIs(dialog.grab_current(), dialog)
+        self.assertEqual(
+            str(self.root.tk.call("wm", "stackorder", ".")[-1]),
+            str(dialog),
+        )
+
+        original_summary = application.settings_panel.rows[
+            "header_footer"
+        ].summary_tooltip.text
+        application._settings_draft_hf_vars["header_left"].set(
+            "Résumé Ω avec espaces"
+        )
+        application._settings_draft_output_dir = (
+            "C:/Projet avec espaces/sortie"
+        )
+        application._refresh_output_entry()
+        self.root.update()
+        self.assertEqual(
+            application.settings_panel.rows[
+                "header_footer"
+            ].summary_tooltip.text,
+            original_summary,
+        )
+        self.assertEqual(application.output_dir, original_output)
+        application.lang = "fr"
+        application._retranslate()
+        self.root.update()
+        self.assertEqual(
+            {
+                name: id(row)
+                for name, row in application.settings_panel.rows.items()
+            },
+            row_identities,
+        )
+        self.assertEqual(dialog.title(), "Réglages PDF")
+        self.assertEqual(
+            application._settings_dialog["apply"].cget("text"),
+            "Appliquer",
+        )
+
+        application._cancel_settings_editor()
+        self.root.update()
+        self.assertFalse(dialog.winfo_viewable())
+        self.assertEqual(
+            application.hf_vars["header_left"].get(),
+            original,
+        )
+        self.assertEqual(application.output_dir, original_output)
+
+        application._open_settings_editor()
+        application._settings_draft_output_dir = (
+            "C:/Projet avec espaces/sortie"
+        )
+        application._settings_draft_hf_vars["header_left"].set(
+            "Résumé Ω avec espaces"
+        )
+        application._refresh_output_entry()
+        application._apply_settings_editor()
+        self.root.update()
+        self.assertFalse(dialog.winfo_viewable())
+        self.assertEqual(
+            application.output_dir,
+            "C:/Projet avec espaces/sortie",
+        )
+        self.assertEqual(
+            application.hf_vars["header_left"].get(),
+            "Résumé Ω avec espaces",
+        )
+        self.assertEqual(
+            application.settings_panel.rows[
+                "destination"
+            ].summary_tooltip.text,
+            "C:/Projet avec espaces/sortie",
+        )
+        self.assertIn(
+            "En-tête gauche : Résumé Ω avec espaces",
+            application.settings_panel.rows[
+                "header_footer"
+            ].summary_tooltip.text,
+        )
+
+        application._open_settings_editor()
+        application._settings_draft_trusted_html_var.set(True)
+        dialogs.ask_trusted_html.return_value = False
+        application._apply_settings_editor()
+        self.root.update()
+        self.assertTrue(dialog.winfo_viewable())
+        self.assertFalse(application.trusted_html_var.get())
+        self.assertFalse(
+            application._settings_draft_trusted_html_var.get()
+        )
+        application._cancel_settings_editor()
 
 
 if __name__ == "__main__":
