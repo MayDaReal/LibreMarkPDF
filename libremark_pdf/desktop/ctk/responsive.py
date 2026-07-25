@@ -36,6 +36,7 @@ class DebouncedLayoutController:
         self.delay_ms = delay_ms
         self._after_id = None  # type: Optional[str]
         self._pending_size = None  # type: Optional[tuple[int, int]]
+        self._last_applied_size = None  # type: Optional[tuple[int, int]]
 
     @property
     def pending(self) -> bool:
@@ -44,7 +45,12 @@ class DebouncedLayoutController:
 
     def schedule(self, width: int, height: int) -> None:
         """Replace any pending layout request with the latest window size."""
-        self._pending_size = (width, height)
+        size = (width, height)
+        if size == self._pending_size:
+            return
+        if self._after_id is None and size == self._last_applied_size:
+            return
+        self._pending_size = size
         if self._after_id is not None:
             self.root.after_cancel(self._after_id)
         self._after_id = self.root.after(self.delay_ms, self.flush)
@@ -56,6 +62,7 @@ class DebouncedLayoutController:
         self._pending_size = None
         if size is not None:
             self.apply_layout(*size)
+            self._last_applied_size = size
 
     def cancel(self) -> None:
         """Cancel pending work during application shutdown."""

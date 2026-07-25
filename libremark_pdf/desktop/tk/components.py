@@ -7,29 +7,6 @@ from tkinter import ttk
 from typing import Optional
 
 
-REMOVE_ICON_XBM = """
-#define remove_width 16
-#define remove_height 16
-static unsigned char remove_bits[] = {
-   0x00, 0x00, 0x02, 0x40, 0x06, 0x60, 0x0c, 0x30,
-   0x18, 0x18, 0x30, 0x0c, 0x60, 0x06, 0xc0, 0x03,
-   0xc0, 0x03, 0x60, 0x06, 0x30, 0x0c, 0x18, 0x18,
-   0x0c, 0x30, 0x06, 0x60, 0x02, 0x40, 0x00, 0x00};
-"""
-
-
-class UiIconRegistry:
-    """Own local UI images for the lifetime of a Tk application."""
-
-    def __init__(self, root: tk.Misc) -> None:
-        foreground = ttk.Style(root).lookup("TButton", "foreground") or "black"
-        self.remove = tk.BitmapImage(
-            master=root,
-            data=REMOVE_ICON_XBM,
-            foreground=foreground,
-        )
-
-
 class Tooltip:
     """Show localized help for a widget on pointer hover or keyboard focus."""
 
@@ -73,25 +50,6 @@ class Tooltip:
         if self._window is not None:
             self._window.destroy()
             self._window = None
-
-
-def configure_icon_button(
-    button: ttk.Button,
-    image: tk.BitmapImage,
-    accessible_name: str,
-) -> Tooltip:
-    """Configure an image-only button while retaining localized Tk text."""
-    button.configure(
-        text=accessible_name,
-        image=image,
-        compound="none",
-        takefocus=True,
-        width=2,
-    )
-    button.accessible_name = accessible_name
-    tooltip = Tooltip(button, accessible_name)
-    button.tooltip = tooltip
-    return tooltip
 
 
 def configure_symbol_button(

@@ -105,6 +105,42 @@ class TestTranslations(unittest.TestCase):
                 self.assertIn(values[2], i18n.t("diagnostics_consent", lang))
                 self.assertNotIn("http", i18n.t("support_not_configured", lang))
 
+    def test_modern_file_list_actions_and_feedback_are_bilingual(self):
+        expected = {
+            "en": (
+                "Active preview",
+                "Show in source folder",
+                "2 files added",
+                "1 duplicate",
+                "1 unsupported type",
+            ),
+            "fr": (
+                "Aperçu actif",
+                "Afficher dans le dossier source",
+                "2 fichiers ajoutés",
+                "1 doublon",
+                "1 type non pris en charge",
+            ),
+        }
+        for lang, values in expected.items():
+            with self.subTest(lang=lang):
+                self.assertEqual(
+                    i18n.t("active_preview_badge", lang), values[0]
+                )
+                self.assertEqual(i18n.t("reveal_source", lang), values[1])
+                self.assertEqual(
+                    i18n.t("file_feedback_added_many", lang, count=2),
+                    values[2],
+                )
+                self.assertEqual(
+                    i18n.t("file_feedback_duplicate_one", lang),
+                    values[3],
+                )
+                self.assertEqual(
+                    i18n.t("file_feedback_unsupported_one", lang),
+                    values[4],
+                )
+
 
 if __name__ == "__main__":
     unittest.main()

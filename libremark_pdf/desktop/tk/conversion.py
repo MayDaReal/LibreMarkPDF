@@ -120,6 +120,20 @@ class TkConversionMixin:
         self.cancel_button.config(
             state="normal" if operation == "generate" else "disabled"
         )
+        files_panel = getattr(self, "files_panel", None)
+        if files_panel is not None:
+            files_panel.set_interaction_enabled(
+                mutation_enabled=False,
+                selection_enabled=False,
+                reason=self._t("file_mutation_disabled"),
+            )
+        if operation == "generate":
+            self._file_conversion_states = {
+                path: "pending" for path in self.files
+            }
+            if self.files:
+                self._file_conversion_states[self.files[0]] = "running"
+            self._refresh_file_conversion_states()
 
     def _finish_operation(self) -> None:
         self.operation = "idle"
@@ -138,6 +152,12 @@ class TkConversionMixin:
         self.output_entry.config(state="readonly")
         self.cancel_button.config(state="disabled")
         self._render_theme_cards()
+        files_panel = getattr(self, "files_panel", None)
+        if files_panel is not None:
+            files_panel.set_interaction_enabled(
+                mutation_enabled=True,
+                selection_enabled=True,
+            )
         self._update_zoom_controls()
         self._update_page_controls()
         self._refresh_generate_button()
@@ -147,6 +167,10 @@ class TkConversionMixin:
         failed = [item for item in results if item["status"] == "error"]
         cancelled = [item for item in results if item["status"] == "cancelled"]
         self._render_results(results)
+        self._file_conversion_states = {
+            Path(item["input"]): item["status"] for item in results
+        }
+        self._refresh_file_conversion_states()
         self._set_status(
             "status_done_summary",
             ok=len(ok),
@@ -160,6 +184,13 @@ class TkConversionMixin:
     ) -> None:
         self.progress_var.set(index)
         self._conversion_results.append(result)
+        if not hasattr(self, "_file_conversion_states"):
+            self._file_conversion_states = {}
+        self._file_conversion_states[Path(result["input"])] = result["status"]
+        files = getattr(self, "files", [])
+        if index < len(files):
+            self._file_conversion_states[files[index]] = "running"
+        self._refresh_file_conversion_states()
         self._render_results(self._conversion_results)
         if self._cancel_event.is_set():
             self._set_status("status_cancelling")
@@ -173,12 +204,29 @@ class TkConversionMixin:
 
     def _handle_generate_failed(self, error: str) -> None:
         self._global_conversion_error = error
+        self._file_conversion_states = {
+            path: (
+                "error" if status == "running" else "cancelled"
+                if status == "pending" else status
+            )
+            for path, status in getattr(
+                self, "_file_conversion_states", {}
+            ).items()
+        }
+        self._refresh_file_conversion_states()
         self._render_results(
             self._conversion_results,
             global_error=error,
         )
         self._set_status("status_generation_error", error=error)
         self.results_summary_label.focus_set()
+
+    def _refresh_file_conversion_states(self) -> None:
+        files_panel = getattr(self, "files_panel", None)
+        if files_panel is not None:
+            files_panel.set_conversion_states(
+                getattr(self, "_file_conversion_states", {})
+            )
 
     def _clear_results(self) -> None:
         self._conversion_results = []

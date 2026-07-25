@@ -28,7 +28,17 @@ install CPython 3.9 with pyenv first; the Linux bootstrap detects an installed
    Valid files keep their addition order. A mixed selection still adds valid
    files and reports exact added, duplicate, and unsupported counts in the
    status area. Select any file row to make it the active preview file without
-   changing the batch order.
+   changing the batch order. The active row is identified by an **Active
+   preview** badge; every other row remains part of the batch. Use the row
+   **Actions** menu to show the source folder, copy the path, or remove the
+   file. With a row focused, use Up/Down to move, Enter or Space to activate
+   its preview, Delete to remove it, and Menu or Shift+F10 to open its actions.
+   Add and remove actions are unavailable during conversion, with the reason
+   shown in the file panel. In the large two-column layout, drag the separator
+   between the left panel and preview to set the left panel from 360 to 440 px;
+   this width is retained only for the current session. Long parent paths are
+   elided in the middle while their complete value remains available from the
+   tooltip and **Copy path** action.
 3. Optional: expand **PDF style** and select a validated local theme, or select
    **Custom CSS** and **Choose CSS**. These choices are mutually exclusive;
    **Use the selected theme** removes the custom CSS without forgetting the theme
@@ -54,7 +64,7 @@ install CPython 3.9 with pyenv first; the Linux bootstrap detects an installed
    **Other advanced options** contains the render date and trusted static HTML.
    Enabling trusted HTML requires confirmation the first time in each
    application session.
-7. Select **⚙ Generate PDF** for one file, or **⚙ Generate n PDFs** for a
+7. Select **Generate PDF** for one file, or **Generate n PDFs** for a
    batch. The label follows the file count without abbreviated plural forms.
 
 The application presents output collisions and existing PDFs before conversion.

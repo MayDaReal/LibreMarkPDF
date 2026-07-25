@@ -20,10 +20,9 @@ from ..ctk.theme import (
 )
 from ..ctk.widgets.action_bar import ActionBar
 from ..ctk.widgets.app_header import AppHeader
-from .components import UiIconRegistry, configure_symbol_button
+from ..ctk.widgets.file_panel import FilesPanel
+from .components import configure_symbol_button
 from .styles import (
-    DROP_ZONE_HEIGHT,
-    FILE_LIST_HEIGHT,
     ICON_BUTTON_STYLE,
     OUTER_PADDING,
     PREVIEW_HEIGHT,
@@ -60,6 +59,10 @@ INITIAL_WINDOW_WIDTH = 1180
 INITIAL_WINDOW_HEIGHT = 760
 MINIMUM_WINDOW_WIDTH = 560
 MINIMUM_WINDOW_HEIGHT = 520
+LEFT_PANEL_TARGET_WIDTH = 390
+LEFT_PANEL_MIN_WIDTH = 360
+LEFT_PANEL_MAX_WIDTH = 440
+PREVIEW_MIN_WIDTH = 560
 
 
 def initial_window_size(root: tk.Misc) -> tuple[int, int]:
@@ -116,7 +119,6 @@ class TkLayoutMixin:
         self.root.minsize(MINIMUM_WINDOW_WIDTH, MINIMUM_WINDOW_HEIGHT)
         self._layout_mode = None
         self._dnd_files_type = DND_FILES
-        self.ui_icons = UiIconRegistry(self.root)
         self.ui_fonts = SystemFontResolver(self.root)
         self.ui_assets = UiAssetRegistry(self.root)
         # CTk frames proxy their master's configure method. Calling Tk's base
@@ -210,70 +212,79 @@ class TkLayoutMixin:
 
         self.workspace = ttk.Frame(self.body)
         self.workspace.pack(fill="both", expand=True)
-
-        self.source_group = ttk.LabelFrame(self.workspace, padding=SECTION_PADDING)
-        self.drop_canvas = tk.Canvas(
-            self.source_group,
-            height=DROP_ZONE_HEIGHT,
-            bg=self.ui_styles.drop_background,
-            highlightbackground=self.ui_styles.drop_border,
-            highlightthickness=1,
+        self._left_panel_width = LEFT_PANEL_TARGET_WIDTH
+        self._left_resize_origin = None
+        self.workspace_splitter = ttk.Frame(
+            self.workspace,
+            width=SECTION_GAP,
+            cursor="size_we",
             takefocus=True,
         )
-        self.drop_canvas.pack(fill="x")
-        self.drop_canvas.bind("<Configure>", self._redraw_drop_zone)
-        self.drop_canvas.bind("<Button-1>", lambda event: self._browse_files())
-        self.drop_canvas.bind("<Return>", lambda event: self._browse_files())
-        self.drop_canvas.bind("<space>", lambda event: self._browse_files())
-        source_actions = ttk.Frame(self.source_group)
-        source_actions.pack(fill="x", pady=(SPACE_SM, SPACE_XS))
-        self.browse_button = ttk.Button(source_actions, command=self._browse_files)
-        self.browse_button.pack(side="left")
-        self.file_count_label = ttk.Label(source_actions)
-        self.file_count_label.pack(side="left", padx=SPACE_SM)
-        self.clear_files_button = ttk.Button(
-            source_actions, command=self._clear_files
+        self.workspace_splitter.grid_propagate(False)
+        splitter_line = ttk.Separator(
+            self.workspace_splitter,
+            orient="vertical",
         )
-        self.clear_files_button.pack(side="right")
+        splitter_line.place(relx=0.5, rely=0, relheight=1, anchor="n")
+        for splitter_widget in (self.workspace_splitter, splitter_line):
+            splitter_widget.bind(
+                "<ButtonPress-1>",
+                self._start_left_panel_resize,
+                add="+",
+            )
+            splitter_widget.bind(
+                "<B1-Motion>",
+                self._resize_left_panel,
+                add="+",
+            )
+        self.workspace_splitter.bind(
+            "<Left>",
+            lambda _event: self._adjust_left_panel_width(-10),
+            add="+",
+        )
+        self.workspace_splitter.bind(
+            "<Right>",
+            lambda _event: self._adjust_left_panel_width(10),
+            add="+",
+        )
+        self.workspace_splitter.bind(
+            "<Home>",
+            lambda _event: self._set_left_panel_width(
+                LEFT_PANEL_MIN_WIDTH
+            ),
+            add="+",
+        )
+        self.workspace_splitter.bind(
+            "<End>",
+            lambda _event: self._set_left_panel_width(
+                LEFT_PANEL_MAX_WIDTH
+            ),
+            add="+",
+        )
+
+        self.files_panel = FilesPanel(
+            self.workspace,
+            labels=self._file_panel_labels(),
+            fonts=self.ui_fonts,
+            assets=self.ui_assets,
+            has_drag_and_drop=HAS_DND,
+            on_add=self._browse_files,
+            on_select=self._select_file,
+            on_show_source=self._show_source_file,
+            on_copy_path=self._copy_source_path,
+            on_remove=self._remove_file,
+            on_clear=self._clear_files,
+        )
+        self.source_group = self.files_panel
+        self.browse_button = self.files_panel.add_button
+        self.file_count_label = self.files_panel.count_label
+        self.clear_files_button = self.files_panel.panel_menu_button
+        self.drop_canvas = self.files_panel.empty_state
+        self.file_canvas = self.files_panel.list_view
         self._register_automation_widget("files.add", self.browse_button)
         self._register_automation_widget("files.clear", self.clear_files_button)
-
-        self.file_box = ttk.Frame(self.source_group)
-        self.file_box.pack(fill="x")
-        self.file_canvas = tk.Canvas(
-            self.file_box,
-            height=FILE_LIST_HEIGHT,
-            highlightthickness=0,
-            takefocus=True,
-        )
-        file_scroll = ttk.Scrollbar(
-            self.file_box, orient="vertical", command=self.file_canvas.yview
-        )
-        self.file_canvas.configure(yscrollcommand=file_scroll.set)
-        file_scroll.pack(side="right", fill="y")
-        self.file_canvas.pack(side="left", fill="x", expand=True)
-        self.file_list_frame = ttk.Frame(self.file_canvas)
-        self._file_window = self.file_canvas.create_window(
-            (0, 0), window=self.file_list_frame, anchor="nw"
-        )
-        self.file_list_frame.bind(
-            "<Configure>",
-            lambda event: self.file_canvas.configure(
-                scrollregion=self.file_canvas.bbox("all")
-            ),
-        )
-        self.file_canvas.bind(
-            "<Configure>",
-            lambda event: self.file_canvas.itemconfigure(
-                self._file_window, width=event.width
-            ),
-        )
         if HAS_DND:
-            for drop_target in (
-                self.drop_canvas,
-                self.browse_button,
-                self.file_canvas,
-            ):
+            for drop_target in self.files_panel.drop_targets:
                 self._register_drop_target(drop_target)
 
         self._accordion_sections = {}
@@ -621,7 +632,8 @@ class TkLayoutMixin:
         self._viewport_height = height
         self._enforce_compact_accordions()
         mode = responsive_mode(width)
-        if mode != self._layout_mode:
+        layout_changed = mode != self._layout_mode
+        if layout_changed:
             sections = (
                 self.source_group,
                 self.preview_group,
@@ -638,6 +650,8 @@ class TkLayoutMixin:
             if mode == "compact":
                 self.workspace.columnconfigure(0, weight=1, minsize=0)
                 self.workspace.columnconfigure(1, weight=0, minsize=0)
+                self.workspace.columnconfigure(2, weight=0, minsize=0)
+                self.workspace_splitter.grid_remove()
                 for row, section in enumerate(sections):
                     section.grid(
                         row=row,
@@ -646,13 +660,22 @@ class TkLayoutMixin:
                         pady=(0, SECTION_GAP),
                     )
             else:
-                left_minimum = 390 if mode == "large" else 340
-                right_minimum = 480 if mode == "large" else 320
+                left_minimum = (
+                    self._left_panel_width if mode == "large" else 340
+                )
+                right_minimum = (
+                    PREVIEW_MIN_WIDTH if mode == "large" else 320
+                )
                 self.workspace.columnconfigure(
                     0, weight=0, minsize=left_minimum
                 )
                 self.workspace.columnconfigure(
-                    1, weight=1, minsize=right_minimum
+                    1,
+                    weight=0,
+                    minsize=SECTION_GAP if mode == "large" else 0,
+                )
+                self.workspace.columnconfigure(
+                    2, weight=1, minsize=right_minimum
                 )
                 left_sections = (
                     self.source_group,
@@ -667,13 +690,22 @@ class TkLayoutMixin:
                         row=row,
                         column=0,
                         sticky="nsew",
-                        padx=(0, SECTION_GAP),
+                        padx=(0, 0 if mode == "large" else SECTION_GAP),
                         pady=(0, SECTION_GAP),
                     )
                 self.workspace.rowconfigure(len(left_sections) - 1, weight=1)
+                if mode == "large":
+                    self.workspace_splitter.grid(
+                        row=0,
+                        column=1,
+                        rowspan=len(left_sections),
+                        sticky="ns",
+                    )
+                else:
+                    self.workspace_splitter.grid_remove()
                 self.preview_group.grid(
                     row=0,
-                    column=1,
+                    column=2,
                     rowspan=len(left_sections),
                     sticky="nsew",
                 )
@@ -693,27 +725,63 @@ class TkLayoutMixin:
             self._layout_preview_header()
             self._layout_mode = mode
 
-        outer_padding = SECTION_GAP if mode == "compact" else OUTER_PADDING
-        preview_height = {
-            "compact": 240,
-            "medium": 280,
-            "large": 320,
-        }[mode]
-        legacy_panel_width = {
-            "compact": 1,
-            "medium": 300,
-            "large": 340,
-        }[mode]
-        self.body.configure(
-            padding=(outer_padding, SPACE_XS, outer_padding, OUTER_PADDING)
-        )
-        self.drop_canvas.configure(width=legacy_panel_width)
-        self.file_canvas.configure(width=legacy_panel_width)
-        self.preview_canvas.configure(height=preview_height)
+        if layout_changed:
+            outer_padding = SPACE_SM
+            preview_height = {
+                "compact": 240,
+                "medium": 280,
+                "large": 320,
+            }[mode]
+            legacy_panel_width = {
+                "compact": 1,
+                "medium": 300,
+                "large": 340,
+            }[mode]
+            self.body.configure(
+                padding=(outer_padding, SPACE_SM, outer_padding, SPACE_XS)
+            )
+            files_panel = getattr(self, "files_panel", None)
+            if files_panel is not None:
+                files_panel.configure(width=legacy_panel_width)
+            else:
+                self.drop_canvas.configure(width=legacy_panel_width)
+                self.file_canvas.configure(width=legacy_panel_width)
+            self.preview_canvas.configure(height=preview_height)
+            self.app_header.set_layout_mode(mode)
         self.status_label.configure(
             wraplength=max(160, width // 2),
         )
-        self.app_header.set_layout_mode(mode)
+
+    def _start_left_panel_resize(self, event) -> str:
+        if self._layout_mode != "large":
+            return "break"
+        self.workspace_splitter.focus_set()
+        self._left_resize_origin = (event.x_root, self._left_panel_width)
+        return "break"
+
+    def _resize_left_panel(self, event) -> str:
+        if self._left_resize_origin is None or self._layout_mode != "large":
+            return "break"
+        pointer_x, initial_width = self._left_resize_origin
+        self._set_left_panel_width(
+            initial_width + event.x_root - pointer_x
+        )
+        return "break"
+
+    def _adjust_left_panel_width(self, delta: int) -> str:
+        if self._layout_mode == "large":
+            self._set_left_panel_width(self._left_panel_width + delta)
+        return "break"
+
+    def _set_left_panel_width(self, width: int) -> str:
+        width = max(
+            LEFT_PANEL_MIN_WIDTH,
+            min(LEFT_PANEL_MAX_WIDTH, int(width)),
+        )
+        self._left_panel_width = width
+        if self._layout_mode == "large":
+            self.workspace.columnconfigure(0, minsize=width)
+        return "break"
 
     def _layout_legacy_setting_rows(self) -> None:
         """Keep temporary legacy editors usable inside the bounded left pane."""

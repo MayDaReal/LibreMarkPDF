@@ -47,7 +47,8 @@ class LibreMarkPdfApp(
         self.files = []  # type: list[Path]
         self.active_file = None  # type: Optional[Path]
         self._drop_zone_state = "empty"
-        self._file_operation_controls = []  # type: list
+        self._file_feedback_after = None
+        self._file_conversion_states = {}  # type: dict[Path, Optional[str]]
         self.css_path = None  # type: Optional[str]
         self.output_dir = None  # type: Optional[str]
         self.operation = "idle"
@@ -82,7 +83,6 @@ class LibreMarkPdfApp(
         self._preview_png = None  # type: Optional[bytes]
         self.preview_photo = None
         self.zoom_percent = tk.IntVar(value=100)
-        self.active_file_var = tk.StringVar()
         self.accordion_open = {
             "style": tk.BooleanVar(value=True),
             "destination": tk.BooleanVar(value=False),
@@ -131,6 +131,31 @@ class LibreMarkPdfApp(
     def _t(self, key: str, **kwargs) -> str:
         return i18n.t(key, self.lang, **kwargs)
 
+    def _file_panel_labels(self) -> dict:
+        keys = (
+            "files_heading",
+            "file_count_one",
+            "file_count_many",
+            "add_files",
+            "drop_or_browse",
+            "browse_without_dnd",
+            "drop_active",
+            "unsupported_drop",
+            "active_preview_badge",
+            "file_menu_a11y",
+            "files_menu_a11y",
+            "reveal_source",
+            "copy_path",
+            "remove_from_batch",
+            "all_remove_action",
+            "conversion_pending",
+            "conversion_running",
+            "conversion_ok",
+            "conversion_error",
+            "conversion_cancelled",
+        )
+        return {key: self._t(key) for key in keys}
+
     def _tp(
         self,
         one_key: str,
@@ -153,6 +178,14 @@ class LibreMarkPdfApp(
             raise ValueError("Unknown desktop automation action: {0}".format(action))
 
     def _set_status(self, key: str, **kwargs) -> None:
+        feedback_after = getattr(self, "_file_feedback_after", None)
+        if feedback_after is not None and key not in (
+            "files_add_summary",
+            "files_added_one",
+            "files_added_many",
+        ):
+            self.root.after_cancel(feedback_after)
+            self._file_feedback_after = None
         self._status_key = key
         self._status_kwargs = kwargs
         self.status_label.config(
@@ -320,11 +353,8 @@ class LibreMarkPdfApp(
             language=self.lang,
         )
         self._update_language_accessibility()
-        self.source_group.config(text=self._t("files_heading"))
         self._drop_zone_text = self._t(drop_zone_text_key(HAS_DND))
-        self._redraw_drop_zone()
-        self.browse_button.config(text=self._t("add_files"))
-        self.clear_files_button.config(text=self._t("clear_files"))
+        self.files_panel.retranslate(self._file_panel_labels())
         self.theme_mode_radio.config(text=self._t("local_theme"))
         self.css_mode_radio.config(text=self._t("custom_css"))
         self.css_label.config(text=self._t("custom_css_label"))
@@ -457,6 +487,9 @@ class LibreMarkPdfApp(
             if self._poll_after is not None:
                 self.root.after_cancel(self._poll_after)
                 self._poll_after = None
+            if getattr(self, "_file_feedback_after", None) is not None:
+                self.root.after_cancel(self._file_feedback_after)
+                self._file_feedback_after = None
             self.root.destroy()
             return
         if self.operation == "generate":

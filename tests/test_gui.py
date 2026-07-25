@@ -324,6 +324,8 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
         app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
         app._layout_mode = None
         app.workspace = mock.Mock()
+        app.workspace_splitter = mock.Mock()
+        app._left_panel_width = tk_layout.LEFT_PANEL_TARGET_WIDTH
         app.source_group = mock.Mock()
         app.preview_group = mock.Mock()
         app.theme_group = mock.Mock()
@@ -359,6 +361,14 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
         )
 
         app._apply_responsive_layout(560, 520)
+        app.body.configure.assert_called_with(
+            padding=(
+                tk_styles.SPACE_SM,
+                tk_styles.SPACE_SM,
+                tk_styles.SPACE_SM,
+                tk_styles.SPACE_XS,
+            )
+        )
         app.preview_group.grid.assert_called_with(
             row=1,
             column=0,
@@ -371,6 +381,22 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
                     fill="x",
                     pady=(0, tk_styles.SPACE_XS),
                 )
+        for widget in (
+            app.body,
+            app.drop_canvas,
+            app.file_canvas,
+            app.preview_canvas,
+            app.app_header,
+            app.workspace_splitter,
+        ):
+            widget.reset_mock()
+        app._apply_responsive_layout(600, 520)
+        app.body.configure.assert_not_called()
+        app.drop_canvas.configure.assert_not_called()
+        app.file_canvas.configure.assert_not_called()
+        app.preview_canvas.configure.assert_not_called()
+        app.app_header.set_layout_mode.assert_not_called()
+        app.workspace_splitter.grid.assert_not_called()
         app._apply_responsive_layout(1100, 700)
 
         self.assertEqual(
@@ -390,16 +416,15 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
             row=0,
             column=0,
             sticky="nsew",
-            padx=(0, tk_styles.SECTION_GAP),
+            padx=(0, 0),
             pady=(0, tk_styles.SECTION_GAP),
         )
         app.preview_group.grid.assert_called_with(
             row=0,
-            column=1,
+            column=2,
             rowspan=6,
             sticky="nsew",
         )
-
     def test_primary_action_and_progress_are_outside_scrolling_content(self):
         source = inspect.getsource(tk_layout.TkLayoutMixin._build_ui)
         self.assertIn("self.app_shell = AppShell(self.root)", source)
@@ -1162,6 +1187,17 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
             "manual_open_error",
         )
 
+    def test_user_guides_do_not_reintroduce_the_legacy_generate_gear(self):
+        for relative_path in (
+            "README.md",
+            "docs/MANUAL_EN.md",
+            "docs/MANUEL_FR.md",
+        ):
+            text = (ROOT / relative_path).read_text(encoding="utf-8")
+            self.assertNotIn("⚙", text, relative_path)
+            self.assertNotIn("gear", text.lower(), relative_path)
+            self.assertNotIn("engrenage", text.lower(), relative_path)
+
     def test_problem_report_uses_optional_diagnostics_and_never_passes_paths_to_report(self):
         app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
         app.root = mock.Mock()
@@ -1300,7 +1336,6 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
             [
                 tk_styles.TITLE_LABEL_STYLE,
                 tk_styles.PRIMARY_BUTTON_STYLE,
-                tk_styles.ACTIVE_FILE_ROW_STYLE,
                 tk_styles.ICON_BUTTON_STYLE,
                 tk_styles.LINK_BUTTON_STYLE,
                 tk_styles.STATUS_LABEL_STYLE,
@@ -1391,13 +1426,10 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
     def test_mixed_file_feedback_uses_natural_count_forms(self):
         app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
         expected = {
-            "en": (
-                "2 files added. 1 item ignored: already in the list "
-                "2 items ignored: only .md and .markdown files are supported"
-            ),
+            "en": "2 files added · 1 duplicate · 2 unsupported types",
             "fr": (
-                "2 fichiers ajoutés. 1 élément ignoré : déjà présent dans la liste "
-                "2 éléments ignorés : seuls les fichiers .md et .markdown sont acceptés"
+                "2 fichiers ajoutés · 1 doublon · "
+                "2 types non pris en charge"
             ),
         }
         for language, message in expected.items():
@@ -1469,32 +1501,6 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
 
         app.operation = "generate"
         self.assertEqual(app._on_drop_enter(supported), "refuse_drop")
-
-    def test_icon_button_retains_localized_name_tooltip_and_focus(self):
-        button = mock.Mock()
-        image = object()
-        tooltip = mock.Mock()
-        with mock.patch.object(
-            tk_components,
-            "Tooltip",
-            return_value=tooltip,
-        ) as tooltip_type:
-            result = tk_components.configure_icon_button(
-                button,
-                image,
-                "Remove report.md",
-            )
-
-        button.configure.assert_called_once_with(
-            text="Remove report.md",
-            image=image,
-            compound="none",
-            takefocus=True,
-            width=2,
-        )
-        self.assertEqual(button.accessible_name, "Remove report.md")
-        tooltip_type.assert_called_once_with(button, "Remove report.md")
-        self.assertIs(result, tooltip)
 
     def test_symbol_button_retains_visible_symbol_and_localized_name(self):
         button = mock.Mock()
@@ -1950,6 +1956,21 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
         output = Path("/tmp/report.pdf")
         app._open_result(output)
         app.services.open_path.assert_called_once_with(output)
+
+    def test_file_row_show_and_copy_actions_use_public_desktop_boundaries(self):
+        app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
+        app.services = mock.Mock()
+        app.dialogs = mock.Mock()
+        app.root = mock.Mock()
+        app._t = lambda key, **kwargs: key
+        source = Path("folder/report.md")
+
+        app._show_source_file(source)
+        app._copy_source_path(source)
+
+        app.services.open_path.assert_called_once_with(source.parent)
+        app.root.clipboard_clear.assert_called_once_with()
+        app.root.clipboard_append.assert_called_once_with(str(source))
 
     def test_open_path_error_uses_the_injected_dialog(self):
         app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)

@@ -31,7 +31,18 @@ automatiquement une version pyenv `3.9.x` déjà installée.
    ajoute quand même les fichiers valides et indique dans la zone d’état les
    nombres exacts d’ajouts, de doublons et d’éléments non pris en charge.
    Sélectionnez une ligne pour choisir le fichier d’aperçu actif sans modifier
-   l’ordre du lot.
+   l’ordre du lot. La ligne active porte le badge **Aperçu actif** ; toutes les
+   autres lignes restent incluses dans le lot. Le menu **Actions** de chaque
+   ligne permet d’afficher le dossier source, de copier le chemin ou de retirer
+   le fichier. Lorsqu’une ligne a le focus, utilisez Haut/Bas pour vous
+   déplacer, Entrée ou Espace pour activer son aperçu, Suppr pour la retirer,
+   et Menu ou Maj+F10 pour ouvrir ses actions. L’ajout et le retrait sont
+   indisponibles pendant la conversion, et le panneau Fichiers en indique la
+   raison. Dans la disposition large à deux colonnes, faites glisser le
+   séparateur entre le panneau gauche et l’aperçu pour régler sa largeur de
+   360 à 440 px ; cette valeur est conservée uniquement pendant la session.
+   Les chemins parents longs sont élidés au milieu, tandis que leur valeur
+   complète reste accessible dans l’infobulle et par **Copier le chemin**.
 3. Facultatif : ouvrez **Style PDF** et choisissez un thème local validé, ou
    sélectionnez **CSS personnalisé** puis **Choisir un CSS**. Ces choix sont
    incompatibles ; **Revenir au thème sélectionné** retire le CSS personnel
@@ -58,7 +69,7 @@ automatiquement une version pyenv `3.9.x` déjà installée.
    **Autres options avancées** contient la date de rendu et le HTML statique de
    confiance. Son activation demande une confirmation lors de sa première
    utilisation dans chaque session de l’application.
-7. Sélectionnez **⚙ Générer le PDF** pour un fichier, ou **⚙ Générer n PDF**
+7. Sélectionnez **Générer le PDF** pour un fichier, ou **Générer n PDF**
    pour un lot. Le libellé suit le nombre de fichiers sans abréviation de
    pluriel.
 

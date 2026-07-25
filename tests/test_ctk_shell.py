@@ -14,7 +14,7 @@ from libremark_pdf.desktop.ctk.responsive import (
 )
 from libremark_pdf.desktop.ctk.theme import SystemFontResolver
 from libremark_pdf.desktop.ctk.widgets.action_bar import ActionBar
-from libremark_pdf.desktop.ctk.widgets.app_header import AppHeader
+from libremark_pdf.desktop.ctk.widgets.app_header import AppHeader, WindowChrome
 from libremark_pdf.desktop.tk import app as tk_app
 from libremark_pdf.desktop.tk import layout as tk_layout
 
@@ -70,6 +70,102 @@ class TestResponsiveShellContract(unittest.TestCase):
         self.assertEqual(root.callbacks, {})
         applied.assert_not_called()
 
+    def test_unchanged_window_size_does_not_repeat_layout_after_a_move(self):
+        root = ScheduledRoot()
+        applied = mock.Mock()
+        controller = DebouncedLayoutController(root, applied)
+        controller.schedule(820, 780)
+        _delay, callback = root.callbacks.pop("after-1")
+        callback()
+
+        controller.schedule(820, 780)
+
+        applied.assert_called_once_with(820, 780)
+        self.assertEqual(root.callbacks, {})
+
+
+class TestWindowChromeContract(unittest.TestCase):
+    def test_taskbar_registration_refreshes_the_borderless_window_once(self):
+        chrome = WindowChrome.__new__(WindowChrome)
+        chrome.root = mock.Mock()
+        chrome._taskbar_registered = False
+
+        chrome._schedule_windows_taskbar_refresh()
+        chrome._schedule_windows_taskbar_refresh()
+
+        chrome.root.withdraw.assert_called_once_with()
+        chrome.root.after.assert_called_once_with(
+            10,
+            chrome._restore_windows_taskbar_window,
+        )
+
+    def test_taskbar_style_is_reapplied_after_the_native_window_is_restored(self):
+        chrome = WindowChrome.__new__(WindowChrome)
+        chrome.root = mock.Mock()
+        chrome._raise_resize_surfaces = mock.Mock()
+        chrome._configure_windows_taskbar = mock.Mock()
+
+        chrome._restore_windows_taskbar_window()
+
+        chrome.root.deiconify.assert_called_once_with()
+        chrome.root.after_idle.assert_called_once_with(
+            chrome._configure_windows_taskbar
+        )
+
+    def test_resize_updates_are_frame_limited_and_rebased(self):
+        chrome = WindowChrome.__new__(WindowChrome)
+        chrome.root = mock.Mock()
+        chrome.root.minsize.return_value = (560, 520)
+        chrome.root.after.return_value = "resize-after"
+        chrome._resize_origin = ("e", 100, 100, 700, 600, 20, 30)
+        chrome._pending_resize_geometry = None
+        chrome._resize_after_id = None
+        first = mock.Mock(x_root=110, y_root=100)
+        second = mock.Mock(x_root=114, y_root=100)
+
+        chrome._resize(first)
+        chrome._resize(second)
+
+        self.assertEqual(
+            chrome._pending_resize_geometry,
+            (714, 600, 20, 30),
+        )
+        chrome.root.after.assert_called_once_with(
+            16,
+            chrome._apply_pending_resize,
+        )
+
+    def test_maximize_uses_the_work_area_for_the_current_monitor(self):
+        chrome = WindowChrome.__new__(WindowChrome)
+        chrome.root = mock.Mock()
+        chrome.root.winfo_width.return_value = 900
+        chrome.root.winfo_height.return_value = 700
+        chrome.root.winfo_x.return_value = 2100
+        chrome.root.winfo_y.return_value = 80
+        chrome._work_area = mock.Mock(return_value=(1920, 0, 1920, 1040))
+        chrome._update_maximize_glyph = mock.Mock()
+
+        chrome.maximize()
+
+        chrome.root.geometry.assert_called_once_with("1920x1040+1920+0")
+        self.assertEqual(chrome._normal_geometry, (900, 700, 2100, 80))
+        self.assertTrue(chrome._maximized)
+
+    def test_absolute_window_rectangle_preserves_negative_monitor_coordinates(self):
+        chrome = WindowChrome.__new__(WindowChrome)
+        chrome.root = mock.Mock()
+        chrome._move_window_on_windows = mock.Mock(return_value=True)
+
+        chrome._set_window_rectangle(900, 700, -1920, 40)
+
+        chrome._move_window_on_windows.assert_called_once_with(
+            900,
+            700,
+            -1920,
+            40,
+        )
+        chrome.root.geometry.assert_not_called()
+
 
 class TestModernShellWidgets(unittest.TestCase):
     @classmethod
@@ -82,6 +178,8 @@ class TestModernShellWidgets(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         if hasattr(cls, "root"):
+            for identifier in cls.root.tk.call("after", "info"):
+                cls.root.after_cancel(identifier)
             cls.root.destroy()
 
     def setUp(self):
@@ -221,6 +319,24 @@ class TestModernShellWidgets(unittest.TestCase):
         self.assertEqual(application._layout_mode, "large")
         self.assertEqual(application.workspace.grid_bbox(0, 0)[2], 390)
         self.assertEqual(application.body_scroll.winfo_manager(), "")
+        self.assertEqual(
+            application.workspace_splitter.winfo_manager(),
+            "grid",
+        )
+        application._set_left_panel_width(440)
+        self.root.update()
+        self.assertEqual(application.workspace.grid_bbox(0, 0)[2], 440)
+        application._set_left_panel_width(999)
+        self.assertEqual(application._left_panel_width, 440)
+        application._set_left_panel_width(1)
+        self.assertEqual(application._left_panel_width, 360)
+        application._render_file_list()
+        self.root.update()
+        populated_width = application.workspace.grid_bbox(0, 0)[2]
+        application._clear_files()
+        self.root.update()
+        empty_width = application.workspace.grid_bbox(0, 0)[2]
+        self.assertEqual((populated_width, empty_width), (360, 360))
         services.run_preview_worker.assert_not_called()
         services.run_conversion_job.assert_not_called()
         services.open_path.assert_not_called()

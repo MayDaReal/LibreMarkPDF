@@ -106,6 +106,12 @@ STRINGS = {
         "files_added_one": "1 file added.",
         "files_added_many": "{count} files added.",
         "files_add_summary": "{summary}",
+        "file_feedback_added_one": "1 file added",
+        "file_feedback_added_many": "{count} files added",
+        "file_feedback_duplicate_one": "1 duplicate",
+        "file_feedback_duplicate_many": "{count} duplicates",
+        "file_feedback_unsupported_one": "1 unsupported type",
+        "file_feedback_unsupported_many": "{count} unsupported types",
         "files_ignored_one": "1 item ignored: {reason}",
         "files_ignored_many": "{count} items ignored: {reason}",
         "duplicate_reason": "already in the list",
@@ -113,6 +119,21 @@ STRINGS = {
         "remove_file_a11y": "Remove {name}",
         "clear_files": "Clear list",
         "remove_file": "Remove",
+        "active_preview_badge": "Active preview",
+        "file_menu_a11y": "Actions for {name}",
+        "files_menu_a11y": "File list actions",
+        "reveal_source": "Show in source folder",
+        "copy_path": "Copy path",
+        "remove_from_batch": "Remove from list",
+        "all_remove_action": "Remove all",
+        "file_mutation_disabled": (
+            "File list changes are unavailable during conversion."
+        ),
+        "conversion_pending": "Pending",
+        "conversion_running": "In progress",
+        "conversion_ok": "Succeeded",
+        "conversion_error": "Failed",
+        "conversion_cancelled": "Cancelled",
         "themes_label": "Themes",
         "style_heading": "PDF style",
         "local_theme": "Local theme",
@@ -181,6 +202,7 @@ STRINGS = {
             "Add files: Ctrl+O\nRefresh preview: Ctrl+R\n"
             "Generate: Ctrl+G\nZoom in/out: Ctrl++ / Ctrl+-\n"
             "Reset zoom: Ctrl+0\nPreview page (focused): Left / Right\n"
+            "File row: Up / Down / Enter / Space / Delete / Shift+F10\n"
             "Cancel active batch: Esc"
         ),
         "output_label": "Output",
@@ -369,6 +391,14 @@ STRINGS = {
         "files_added_one": "1 fichier ajouté.",
         "files_added_many": "{count} fichiers ajoutés.",
         "files_add_summary": "{summary}",
+        "file_feedback_added_one": "1 fichier ajouté",
+        "file_feedback_added_many": "{count} fichiers ajoutés",
+        "file_feedback_duplicate_one": "1 doublon",
+        "file_feedback_duplicate_many": "{count} doublons",
+        "file_feedback_unsupported_one": "1 type non pris en charge",
+        "file_feedback_unsupported_many": (
+            "{count} types non pris en charge"
+        ),
         "files_ignored_one": "1 élément ignoré : {reason}",
         "files_ignored_many": "{count} éléments ignorés : {reason}",
         "duplicate_reason": "déjà présent dans la liste",
@@ -376,6 +406,22 @@ STRINGS = {
         "remove_file_a11y": "Retirer {name}",
         "clear_files": "Vider la liste",
         "remove_file": "Retirer",
+        "active_preview_badge": "Aperçu actif",
+        "file_menu_a11y": "Actions pour {name}",
+        "files_menu_a11y": "Actions de la liste de fichiers",
+        "reveal_source": "Afficher dans le dossier source",
+        "copy_path": "Copier le chemin",
+        "remove_from_batch": "Retirer de la liste",
+        "all_remove_action": "Tout retirer",
+        "file_mutation_disabled": (
+            "Les modifications de la liste sont indisponibles pendant la "
+            "conversion."
+        ),
+        "conversion_pending": "En attente",
+        "conversion_running": "En cours",
+        "conversion_ok": "Réussi",
+        "conversion_error": "Échec",
+        "conversion_cancelled": "Annulé",
         "themes_label": "Thèmes",
         "style_heading": "Style PDF",
         "local_theme": "Thème local",
@@ -447,6 +493,7 @@ STRINGS = {
             "Générer : Ctrl+G\nZoom avant/arrière : Ctrl++ / Ctrl+-\n"
             "Réinitialiser le zoom : Ctrl+0\n"
             "Page d’aperçu (avec focus) : Gauche / Droite\n"
+            "Ligne de fichier : Haut / Bas / Entrée / Espace / Suppr / Maj+F10\n"
             "Annuler le lot actif : Échap"
         ),
         "output_label": "Sortie",

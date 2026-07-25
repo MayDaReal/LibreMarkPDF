@@ -47,6 +47,7 @@ class WindowChrome:
 
     _RESIZE_BORDER = SIZES["window_resize_border"]
     _RESIZE_CORNER = 10
+    _RESIZE_FRAME_MS = 16
 
     def __init__(self, root: tk.Misc) -> None:
         self.root = root
@@ -58,6 +59,7 @@ class WindowChrome:
         self._resize_after_id = None  # type: Optional[str]
         self._maximized = False
         self._restore_override_after_map = False
+        self._taskbar_registered = False
         self._resize_surfaces = []
         self.root.bind("<Map>", self._on_root_map, add="+")
         self._create_resize_surfaces()
@@ -75,7 +77,100 @@ class WindowChrome:
 
     def _enable_custom_chrome(self) -> None:
         self.root.overrideredirect(True)
+        self._configure_windows_taskbar()
         self._raise_resize_surfaces()
+
+    def _window_handle(self) -> Optional[int]:
+        if os.name == "nt":
+            try:
+                import ctypes
+                from ctypes import wintypes
+
+                get_parent = ctypes.windll.user32.GetParent
+                get_parent.argtypes = (wintypes.HWND,)
+                get_parent.restype = wintypes.HWND
+                child = int(self.root.winfo_id())
+                return int(get_parent(child) or child)
+            except (
+                AttributeError,
+                OSError,
+                TypeError,
+                ValueError,
+                ctypes.ArgumentError,
+                tk.TclError,
+            ):
+                pass
+        try:
+            return int(str(self.root.frame()), 0)
+        except (AttributeError, TypeError, ValueError, tk.TclError):
+            try:
+                return int(self.root.winfo_id())
+            except (AttributeError, TypeError, ValueError, tk.TclError):
+                return None
+
+    def _configure_windows_taskbar(self) -> None:
+        if os.name != "nt":
+            return
+        handle = self._window_handle()
+        if handle is None:
+            return
+        try:
+            import ctypes
+            from ctypes import wintypes
+
+            user32 = ctypes.windll.user32
+            get_window_long = user32.GetWindowLongW
+            get_window_long.argtypes = (wintypes.HWND, ctypes.c_int)
+            get_window_long.restype = ctypes.c_long
+            set_window_long = user32.SetWindowLongW
+            set_window_long.argtypes = (
+                wintypes.HWND,
+                ctypes.c_int,
+                ctypes.c_long,
+            )
+            set_window_long.restype = ctypes.c_long
+            set_window_position = user32.SetWindowPos
+            set_window_position.argtypes = (
+                wintypes.HWND,
+                wintypes.HWND,
+                ctypes.c_int,
+                ctypes.c_int,
+                ctypes.c_int,
+                ctypes.c_int,
+                wintypes.UINT,
+            )
+            set_window_position.restype = wintypes.BOOL
+            extended_style = get_window_long(handle, -20)
+            extended_style &= ~0x00000080  # WS_EX_TOOLWINDOW
+            extended_style |= 0x00040000  # WS_EX_APPWINDOW
+            set_window_long(handle, -20, extended_style)
+            set_window_position(
+                handle,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0x0001 | 0x0002 | 0x0004 | 0x0010 | 0x0020,
+            )
+            self._schedule_windows_taskbar_refresh()
+        except (AttributeError, OSError, ctypes.ArgumentError):
+            return
+
+    def _schedule_windows_taskbar_refresh(self) -> None:
+        if self._taskbar_registered:
+            return
+        self._taskbar_registered = True
+        self.root.withdraw()
+        self.root.after(10, self._restore_windows_taskbar_window)
+
+    def _restore_windows_taskbar_window(self) -> None:
+        try:
+            self.root.deiconify()
+            self._raise_resize_surfaces()
+            self.root.after_idle(self._configure_windows_taskbar)
+        except tk.TclError:
+            return
 
     def _create_resize_surfaces(self) -> None:
         border = self._RESIZE_BORDER
@@ -273,8 +368,18 @@ class WindowChrome:
             height = max(minimum_height, height + delta_y)
 
         self._pending_resize_geometry = (width, height, x, y)
+        self._resize_origin = (
+            edge,
+            event.x_root,
+            event.y_root,
+            width,
+            height,
+            x,
+            y,
+        )
         if self._resize_after_id is None:
-            self._resize_after_id = self.root.after_idle(
+            self._resize_after_id = self.root.after(
+                self._RESIZE_FRAME_MS,
                 self._apply_pending_resize,
             )
         return "break"
@@ -297,9 +402,50 @@ class WindowChrome:
         if geometry is None:
             return
         width, height, x, y = geometry
+        self._set_window_rectangle(width, height, x, y)
+
+    def _set_window_rectangle(
+        self,
+        width: int,
+        height: int,
+        x: int,
+        y: int,
+    ) -> None:
+        if self._move_window_on_windows(width, height, x, y):
+            return
         self.root.geometry(
             "{0}x{1}{2:+d}{3:+d}".format(width, height, x, y)
         )
+
+    def _move_window_on_windows(
+        self,
+        width: int,
+        height: int,
+        x: int,
+        y: int,
+    ) -> bool:
+        if os.name != "nt":
+            return False
+        handle = self._window_handle()
+        if handle is None:
+            return False
+        try:
+            import ctypes
+            from ctypes import wintypes
+
+            move_window = ctypes.windll.user32.MoveWindow
+            move_window.argtypes = (
+                wintypes.HWND,
+                ctypes.c_int,
+                ctypes.c_int,
+                ctypes.c_int,
+                ctypes.c_int,
+                wintypes.BOOL,
+            )
+            move_window.restype = wintypes.BOOL
+            return bool(move_window(handle, x, y, width, height, True))
+        except (AttributeError, OSError, ctypes.ArgumentError):
+            return False
 
     def minimize(self) -> None:
         """Minimize while retaining a taskbar-restorable root."""
@@ -332,9 +478,7 @@ class WindowChrome:
             self.root.winfo_y(),
         )
         x, y, width, height = self._work_area()
-        self.root.geometry(
-            "{0}x{1}+{2}+{3}".format(width, height, x, y)
-        )
+        self._set_window_rectangle(width, height, x, y)
         self._maximized = True
         self._update_maximize_glyph()
 
@@ -342,9 +486,7 @@ class WindowChrome:
         """Restore the last normal window rectangle."""
         if self._normal_geometry is not None:
             width, height, x, y = self._normal_geometry
-            self.root.geometry(
-                "{0}x{1}+{2}+{3}".format(width, height, x, y)
-            )
+            self._set_window_rectangle(width, height, x, y)
         self._maximized = False
         self._update_maximize_glyph()
 
@@ -359,7 +501,12 @@ class WindowChrome:
             width = self.root.winfo_width()
             x = int(event.x_root - width * pointer_ratio)
             y = max(0, event.y_root - SIZES["header"] // 2)
-            self.root.geometry("+{0}+{1}".format(x, y))
+            self._set_window_rectangle(
+                width,
+                self.root.winfo_height(),
+                x,
+                y,
+            )
         self._drag_origin = (
             event.x_root - self.root.winfo_x(),
             event.y_root - self.root.winfo_y(),
@@ -369,11 +516,11 @@ class WindowChrome:
         if self._drag_origin is None:
             return
         offset_x, offset_y = self._drag_origin
-        self.root.geometry(
-            "+{0}+{1}".format(
-                event.x_root - offset_x,
-                event.y_root - offset_y,
-            )
+        self._set_window_rectangle(
+            self.root.winfo_width(),
+            self.root.winfo_height(),
+            event.x_root - offset_x,
+            event.y_root - offset_y,
         )
 
     def _update_maximize_glyph(self) -> None:
@@ -392,17 +539,47 @@ class WindowChrome:
                 import ctypes
                 from ctypes import wintypes
 
-                rectangle = wintypes.RECT()
-                if ctypes.windll.user32.SystemParametersInfoW(
-                    0x0030, 0, ctypes.byref(rectangle), 0
+                class MonitorInfo(ctypes.Structure):
+                    _fields_ = (
+                        ("cbSize", wintypes.DWORD),
+                        ("rcMonitor", wintypes.RECT),
+                        ("rcWork", wintypes.RECT),
+                        ("dwFlags", wintypes.DWORD),
+                    )
+
+                handle = self._window_handle()
+                monitor_from_window = (
+                    ctypes.windll.user32.MonitorFromWindow
+                )
+                monitor_from_window.argtypes = (
+                    wintypes.HWND,
+                    wintypes.DWORD,
+                )
+                monitor_from_window.restype = wintypes.HANDLE
+                get_monitor_info = ctypes.windll.user32.GetMonitorInfoW
+                get_monitor_info.argtypes = (
+                    wintypes.HANDLE,
+                    ctypes.POINTER(MonitorInfo),
+                )
+                get_monitor_info.restype = wintypes.BOOL
+                monitor = monitor_from_window(
+                    handle or 0,
+                    2,
+                )
+                information = MonitorInfo()
+                information.cbSize = ctypes.sizeof(MonitorInfo)
+                if monitor and get_monitor_info(
+                    monitor,
+                    ctypes.byref(information),
                 ):
+                    rectangle = information.rcWork
                     return (
                         rectangle.left,
                         rectangle.top,
                         rectangle.right - rectangle.left,
                         rectangle.bottom - rectangle.top,
                     )
-            except (AttributeError, OSError):
+            except (AttributeError, OSError, ctypes.ArgumentError):
                 pass
         return (
             0,

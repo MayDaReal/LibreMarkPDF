@@ -11,8 +11,9 @@ agent contract in [`SKILL.md`](SKILL.md).
 ## Features
 
 - batch conversion from `.md` and `.markdown` files;
-- adaptive file selection with optional drag-and-drop, explicit ignored-item
-  feedback, and an independently selectable preview file;
+- modern file cards with optional drag-and-drop, exact mixed-add feedback,
+  keyboard navigation, row menus, and an independently identified active
+  preview file;
 - responsive multipage preview with explicit empty, updating, ready, and error
   states, an active-file label, 50–200% zoom, scrolling, and panning;
 - versioned local themes, the compatible `default@1` style, or a user-supplied

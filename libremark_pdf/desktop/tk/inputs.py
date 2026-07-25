@@ -7,12 +7,7 @@ from tkinter import ttk
 from typing import Iterable, Optional, Union
 
 from ... import core
-from .components import configure_icon_button
 from .styles import (
-    ACTIVE_FILE_ROW_STYLE,
-    FILE_LIST_HEIGHT,
-    FILE_ROW_HEIGHT,
-    ICON_BUTTON_STYLE,
     SPACE_SM,
 )
 
@@ -21,32 +16,9 @@ class TkInputMixin:
     """Translate Tk input state into shared-core options."""
 
     def _redraw_drop_zone(self, event=None) -> None:
-        self.drop_canvas.delete("all")
-        width = self.drop_canvas.winfo_width() or 500
         state = getattr(self, "_drop_zone_state", "empty")
-        text = {
-            "active": self._t("drop_active"),
-            "unsupported": self._t("unsupported_drop"),
-        }.get(state, self._drop_zone_text)
-        self.drop_canvas.configure(
-            highlightthickness=2 if state in ("active", "unsupported") else 1
-        )
-        if hasattr(self, "browse_button"):
-            self.browse_button.config(
-                text={
-                    "active": self._t("drop_active"),
-                    "unsupported": self._t("unsupported_drop"),
-                }.get(state, self._t("add_files"))
-            )
-        self.drop_canvas.create_text(
-            width // 2,
-            48,
-            text=text,
-            fill=self.ui_styles.drop_border,
-            font="TkDefaultFont",
-            width=max(120, width - 32),
-            justify="center",
-        )
+        if hasattr(self, "files_panel"):
+            self.files_panel.set_drop_state(state)
 
     def _drop_paths(self, event) -> tuple:
         return tuple(self.root.tk.splitlist(event.data))
@@ -125,6 +97,8 @@ class TkInputMixin:
             self._set_status("files_added_one")
         elif added:
             self._set_status("files_added_many", count=len(added))
+        if added or duplicates or unsupported:
+            self._schedule_file_feedback_clear()
 
     def _format_files_add_summary(
         self, added: int, duplicates: int, unsupported: int
@@ -132,20 +106,45 @@ class TkInputMixin:
         messages = []
         if added:
             messages.append(
-                self._tp("files_added_one", "files_added_many", added)
+                self._tp(
+                    "file_feedback_added_one",
+                    "file_feedback_added_many",
+                    added,
+                )
             )
-        for count, reason_key in (
-            (duplicates, "duplicate_reason"),
-            (unsupported, "unsupported_reason"),
+        for count, one_key, many_key in (
+            (
+                duplicates,
+                "file_feedback_duplicate_one",
+                "file_feedback_duplicate_many",
+            ),
+            (
+                unsupported,
+                "file_feedback_unsupported_one",
+                "file_feedback_unsupported_many",
+            ),
         ):
             if count:
-                messages.append(self._tp(
-                    "files_ignored_one",
-                    "files_ignored_many",
-                    count,
-                    reason=self._t(reason_key),
-                ))
-        return " ".join(messages)
+                messages.append(self._tp(one_key, many_key, count))
+        return " · ".join(messages)
+
+    def _schedule_file_feedback_clear(self) -> None:
+        if not hasattr(self, "root"):
+            return
+        previous = getattr(self, "_file_feedback_after", None)
+        if previous is not None:
+            self.root.after_cancel(previous)
+
+        def clear_feedback() -> None:
+            self._file_feedback_after = None
+            if self._status_key in (
+                "files_add_summary",
+                "files_added_one",
+                "files_added_many",
+            ):
+                self._set_status("status_ready")
+
+        self._file_feedback_after = self.root.after(6000, clear_feedback)
 
     def _select_file(self, path: Path) -> None:
         if self.operation != "idle" or path not in self.files:
@@ -153,6 +152,19 @@ class TkInputMixin:
         self.active_file = path
         self._render_file_list(focus_path=path)
         self._schedule_preview()
+
+    def _show_source_file(self, path: Path) -> None:
+        try:
+            self.services.open_path(path.parent)
+        except Exception as exc:
+            self.dialogs.show_error(
+                self._t("error_title"),
+                self._t("open_error", error=str(exc)),
+            )
+
+    def _copy_source_path(self, path: Path) -> None:
+        self.root.clipboard_clear()
+        self.root.clipboard_append(str(path))
 
     def _remove_file(self, path: Path) -> None:
         if self.operation != "idle":
@@ -163,12 +175,18 @@ class TkInputMixin:
             return
         was_active = path == self.active_file
         self.files = [item for item in self.files if item != path]
+        focus_path = (
+            self.files[min(removed_index, len(self.files) - 1)]
+            if self.files
+            else None
+        )
         if was_active:
             if self.files:
                 self.active_file = self.files[min(removed_index, len(self.files) - 1)]
             else:
                 self.active_file = None
-        self._render_file_list(focus_path=self.active_file)
+        getattr(self, "_file_conversion_states", {}).pop(path, None)
+        self._render_file_list(focus_path=focus_path)
         self._refresh_generate_button()
         if self.files:
             self._schedule_preview()
@@ -179,92 +197,20 @@ class TkInputMixin:
         if self.operation == "idle":
             self.files = []
             self.active_file = None
+            self._file_conversion_states = {}
             self._render_file_list()
             self._refresh_generate_button()
             self._invalidate_preview(clear_image=True)
 
     def _render_file_list(self, focus_path: Optional[Path] = None) -> None:
-        for widget in self._file_operation_controls:
-            if widget in self._operation_controls:
-                self._operation_controls.remove(widget)
-        self._file_operation_controls = []
-        for child in self.file_list_frame.winfo_children():
-            child.destroy()
-        count = len(self.files)
-        self.file_count_label.config(
-            text=self._tp("file_count_one", "file_count_many", count)
+        self.files_panel.set_files(
+            self.files,
+            active=self.active_file,
+            focus_path=focus_path,
         )
-        if count:
-            self.drop_canvas.pack_forget()
-            self.file_box.pack(fill="x")
-            self.clear_files_button.pack(side="right")
-        else:
-            self.file_box.pack_forget()
-            self.clear_files_button.pack_forget()
-            self.drop_canvas.pack(fill="x", before=self.browse_button.master)
-        list_height = min(
-            FILE_LIST_HEIGHT * 2,
-            max(FILE_ROW_HEIGHT, count * FILE_ROW_HEIGHT),
+        self.files_panel.set_conversion_states(
+            getattr(self, "_file_conversion_states", {})
         )
-        self.file_canvas.configure(height=list_height)
-        self._file_row_buttons = {}
-        self.active_file_var.set(
-            str(self.active_file) if self.active_file is not None else ""
-        )
-        for path in self.files:
-            row = ttk.Frame(
-                self.file_list_frame,
-                padding=(4, 2),
-                height=FILE_ROW_HEIGHT,
-            )
-            row.pack(fill="x")
-            row.pack_propagate(False)
-            selector = ttk.Radiobutton(
-                row,
-                text=path.name,
-                value=str(path),
-                variable=self.active_file_var,
-                command=lambda selected=path: self._select_file(selected),
-                style=(
-                    ACTIVE_FILE_ROW_STYLE
-                    if path == self.active_file
-                    else "TRadiobutton"
-                ),
-            )
-            selector.pack(side="left", fill="x", expand=True)
-            selector.bind(
-                "<Return>",
-                lambda event, selected=path: self._select_file(selected),
-            )
-            selector.bind(
-                "<Delete>",
-                lambda event, selected=path: self._remove_file(selected),
-            )
-            parent = ttk.Label(row, text=str(path.parent), anchor="w")
-            parent.pack(
-                side="left", fill="x", expand=True
-            )
-            for target in (row, parent):
-                target.bind(
-                    "<Button-1>",
-                    lambda event, selected=path: self._select_file(selected),
-                )
-            button = ttk.Button(
-                row,
-                command=lambda selected=path: self._remove_file(selected),
-                style=ICON_BUTTON_STYLE,
-            )
-            accessible_name = self._t("remove_file_a11y", name=path.name)
-            configure_icon_button(button, self.ui_icons.remove, accessible_name)
-            button.pack(side="right")
-            self._file_row_buttons[path] = selector
-            self._file_operation_controls.extend((selector, button))
-        self._operation_controls.extend(self._file_operation_controls)
-        if self.operation != "idle":
-            for widget in self._file_operation_controls:
-                widget.config(state="disabled")
-        if focus_path in self._file_row_buttons:
-            self._file_row_buttons[focus_path].focus_set()
         self._refresh_accordion_headers()
 
     def _choose_css(self) -> None:

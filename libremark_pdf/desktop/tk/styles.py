@@ -16,15 +16,11 @@ SPACE_LG = 16
 SECTION_PADDING = SPACE_SM
 SECTION_GAP = SPACE_MD
 OUTER_PADDING = SPACE_LG
-DROP_ZONE_HEIGHT = 96
-FILE_LIST_HEIGHT = 96
-FILE_ROW_HEIGHT = 44
 PREVIEW_HEIGHT = 330
 STATUS_WRAP_LENGTH = 720
 
 TITLE_LABEL_STYLE = "App.Title.TLabel"
 PRIMARY_BUTTON_STYLE = "App.Primary.TButton"
-ACTIVE_FILE_ROW_STYLE = "App.ActiveFile.TRadiobutton"
 ICON_BUTTON_STYLE = "App.Icon.TButton"
 LINK_BUTTON_STYLE = "App.Link.TButton"
 STATUS_LABEL_STYLE = "App.Status.TLabel"
@@ -79,11 +75,6 @@ def install_ui_styles(root: tk.Misc) -> UiStyleResources:
     style.configure(
         PRIMARY_BUTTON_STYLE,
         padding=(SPACE_MD, SPACE_MD),
-    )
-    style.configure(
-        ACTIVE_FILE_ROW_STYLE,
-        font=emphasis_font,
-        anchor="w",
     )
     style.configure(
         ICON_BUTTON_STYLE,
