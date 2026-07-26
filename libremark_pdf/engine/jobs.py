@@ -25,6 +25,14 @@ def _diagnostic_code(exc: BaseException) -> str:
     return _error_code(exc)
 
 
+def _path_key(path: _PathInput) -> str:
+    candidate = Path(path)
+    try:
+        return str(candidate.resolve())
+    except OSError:
+        return str(candidate.absolute())
+
+
 def convert_markdown_text_to_pdf(
     markdown_text: str,
     output_path: _PathInput,
@@ -131,18 +139,19 @@ def plan_batch_outputs(
     input_paths: Sequence[_PathInput],
     output_dir: Optional[_PathInput] = None,
     overwrite: bool = False,
+    overwrite_targets: Optional[Sequence[_PathInput]] = None,
 ) -> list:
     """Preflight batch paths without launching a browser or writing output."""
+    selected_overwrites = {
+        _path_key(path) for path in (overwrite_targets or ())
+    }
     provisional = []
     duplicate_targets = set()
     seen_targets = set()
     for raw_path in input_paths:
         input_path = Path(raw_path)
         target = Path(output_dir) / (input_path.stem + ".pdf") if output_dir else input_path.with_suffix(".pdf")
-        try:
-            key = str(target.resolve())
-        except OSError:
-            key = str(target.absolute())
+        key = _path_key(target)
         if key in seen_targets:
             duplicate_targets.add(key)
         seen_targets.add(key)
@@ -161,7 +170,7 @@ def plan_batch_outputs(
                 same_path = input_path.absolute() == target.absolute()
             if same_path:
                 message = "INPUT_OUTPUT_COLLISION: input and output paths are identical"
-            elif target.exists() and not overwrite:
+            elif target.exists() and not (overwrite or key in selected_overwrites):
                 message = "OUTPUT_EXISTS: refusing to overwrite: {0}".format(target)
         plans.append(BatchPlan(input_path, target, message))
     return plans
@@ -181,15 +190,25 @@ def convert_batch(
     progress_callback: Optional[Callable[[int, int, dict], None]] = None,
     cancel_current_event: Optional[Any] = None,
     stage_callback: Optional[Callable[[int, int, Path, str], None]] = None,
+    overwrite_targets: Optional[Sequence[_PathInput]] = None,
 ) -> list[dict[str, Optional[str]]]:
-    """Convert every input independently and return one result per input."""
+    """Convert every input independently and return one result per input.
+
+    ``overwrite_targets`` permits only the named batch destinations in addition
+    to the all-or-nothing ``overwrite`` switch.
+    """
     try:
         resolved_date = document.resolve_render_date(render_date)
         date_error = None
     except ConversionError as exc:
         resolved_date = render_date
         date_error = str(exc)
-    planned = plan_batch_outputs(input_paths, output_dir, overwrite)
+    selected_overwrites = {
+        _path_key(path) for path in (overwrite_targets or ())
+    }
+    planned = plan_batch_outputs(
+        input_paths, output_dir, overwrite, overwrite_targets
+    )
     renderer = None
     renderer_manager = None
     renderer_error = None
@@ -253,7 +272,8 @@ def convert_batch(
                     lambda stage, item=index, path=input_path:
                     notify_stage(item, path, stage)
                 )
-                result_path = convert_markdown_to_pdf(input_path, target, css_path=css_path, header_footer=header_footer, render_date=resolved_date, trusted_html=trusted_html, overwrite=overwrite, theme=theme, theme_root=theme_root, _renderer=renderer, _cancel_event=cancel_current_event)
+                item_overwrite = overwrite or _path_key(target) in selected_overwrites
+                result_path = convert_markdown_to_pdf(input_path, target, css_path=css_path, header_footer=header_footer, render_date=resolved_date, trusted_html=trusted_html, overwrite=item_overwrite, theme=theme, theme_root=theme_root, _renderer=renderer, _cancel_event=cancel_current_event)
                 result = {"input": str(input_path), "output": str(result_path), "status": "ok", "error": None, "error_code": None}
                 results.append(result)
             except Exception as exc:

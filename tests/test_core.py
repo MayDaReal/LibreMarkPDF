@@ -61,7 +61,7 @@ class TestCoreFacadeCharacterization(unittest.TestCase):
                 "input_paths", "output_dir", "css_path", "header_footer",
                 "render_date", "trusted_html", "overwrite", "theme",
                 "theme_root", "cancel_event", "progress_callback",
-                "cancel_current_event", "stage_callback",
+                "cancel_current_event", "stage_callback", "overwrite_targets",
             ),
             "render_preview_png": (
                 "markdown_text", "css_path", "header_footer", "dpi", "render_date",
@@ -554,6 +554,40 @@ class TestDeterministicCoreContract(unittest.TestCase):
             plan = core.plan_batch_outputs([existing])
             self.assertEqual(plan[0].error_code, "OUTPUT_EXISTS")
             self.assertEqual(existing.with_suffix(".pdf").read_bytes(), b"old")
+
+    def test_batch_overwrites_only_selected_existing_targets(self):
+        class FakeRenderer:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, exc_type, exc_value, traceback):
+                return None
+
+            def render(self, full_html, output_path, header_footer, render_date):
+                output_path.write_bytes(b"%PDF-1.4\nnew")
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            first = root / "one.md"
+            second = root / "two.md"
+            first.write_text("# One", encoding="utf-8")
+            second.write_text("# Two", encoding="utf-8")
+            first_output = first.with_suffix(".pdf")
+            second_output = second.with_suffix(".pdf")
+            first_output.write_bytes(b"old-one")
+            second_output.write_bytes(b"old-two")
+
+            with mock.patch.object(jobs.chromium, "BrowserRenderer", FakeRenderer):
+                results = core.convert_batch(
+                    [first, second], overwrite_targets=[first_output]
+                )
+
+            self.assertEqual(
+                [item["status"] for item in results], ["ok", "error"]
+            )
+            self.assertEqual(first_output.read_bytes(), b"%PDF-1.4\nnew")
+            self.assertEqual(second_output.read_bytes(), b"old-two")
+            self.assertEqual(results[1]["error_code"], "OUTPUT_EXISTS")
 
     def test_batch_cancellation_returns_one_result_per_input_and_reports_progress(self):
         class FakeRenderer:
