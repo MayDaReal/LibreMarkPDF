@@ -13,6 +13,7 @@ from typing import Optional
 from .. import core
 from .contracts import (
     ConversionProgressEvent,
+    ConversionStageEvent,
     ConversionTerminalEvent,
     PreviewDocumentEvent,
     PreviewDocumentRequest,
@@ -125,12 +126,18 @@ def run_conversion_job(
     def progress(index: int, total: int, result: dict) -> None:
         result_queue.put(ConversionProgressEvent("progress", index, total, result))
 
+    def stage(index: int, total: int, input_path: Path, name: str) -> None:
+        result_queue.put(
+            ConversionStageEvent("conversion_stage", index, total, input_path, name)
+        )
+
     try:
         results = core.convert_batch(
             files,
             cancel_event=cancel_event,
             cancel_current_event=cancel_current_event,
             progress_callback=progress,
+            stage_callback=stage,
             **options
         )
         result_queue.put(ConversionTerminalEvent("generate_done", results))

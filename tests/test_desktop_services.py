@@ -140,10 +140,11 @@ class TestDesktopServiceBoundary(unittest.TestCase):
         cancel_current_event = threading.Event()
         conversion = {"input": "one.md", "status": "ok"}
 
-        def convert(files, progress_callback, **kwargs):
+        def convert(files, progress_callback, stage_callback, **kwargs):
             self.assertEqual(files, [Path("one.md")])
             self.assertIs(kwargs["cancel_event"], cancel_event)
             self.assertIs(kwargs["cancel_current_event"], cancel_current_event)
+            stage_callback(1, 1, Path("one.md"), "rendering")
             progress_callback(1, 1, conversion)
             return [conversion]
 
@@ -155,6 +156,10 @@ class TestDesktopServiceBoundary(unittest.TestCase):
                 cancel_event,
                 cancel_current_event,
             )
+        self.assertEqual(
+            results.get_nowait(),
+            ("conversion_stage", 1, 1, Path("one.md"), "rendering"),
+        )
         self.assertEqual(results.get_nowait(), ("progress", 1, 1, conversion))
         self.assertEqual(results.get_nowait(), ("generate_done", [conversion]))
 

@@ -61,7 +61,7 @@ class TestCoreFacadeCharacterization(unittest.TestCase):
                 "input_paths", "output_dir", "css_path", "header_footer",
                 "render_date", "trusted_html", "overwrite", "theme",
                 "theme_root", "cancel_event", "progress_callback",
-                "cancel_current_event",
+                "cancel_current_event", "stage_callback",
             ),
             "render_preview_png": (
                 "markdown_text", "css_path", "header_footer", "dpi", "render_date",
@@ -625,6 +625,46 @@ class TestDeterministicCoreContract(unittest.TestCase):
             )
         self.assertEqual(len(results), 1)
         self.assertEqual(results[0]["status"], "cancelled")
+
+    def test_batch_reports_exact_engine_stages_and_ignores_callback_failure(self):
+        class FakeRenderer:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, exc_type, exc_value, traceback):
+                return None
+
+            def render(self, full_html, output_path, header_footer, render_date):
+                output_path.write_bytes(b"%PDF-1.4\nmock")
+
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / "one.md"
+            source.write_text("# One", encoding="utf-8")
+            stages = []
+
+            def on_stage(index, total, input_path, stage):
+                stages.append((index, total, input_path.name, stage))
+
+            with mock.patch.object(jobs.chromium, "BrowserRenderer", FakeRenderer):
+                results = core.convert_batch([source], stage_callback=on_stage)
+                resilient = core.convert_batch(
+                    [source], overwrite=True,
+                    stage_callback=lambda *unused: (_ for _ in ()).throw(
+                        RuntimeError("presentation failed")
+                    ),
+                )
+
+        self.assertEqual(results[0]["status"], "ok")
+        self.assertEqual(resilient[0]["status"], "ok")
+        self.assertEqual(
+            stages,
+            [
+                (1, 1, "one.md", "preparing"),
+                (1, 1, "one.md", "rendering"),
+                (1, 1, "one.md", "finalizing"),
+                (1, 1, "one.md", "publishing"),
+            ],
+        )
 
     def test_current_item_cancellation_preserves_existing_output(self):
         class CancellingRenderer:

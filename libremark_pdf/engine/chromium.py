@@ -170,12 +170,17 @@ def atomic_render_pdf(
             render_pdf(full_html, temp_path, header_footer, render_date)
         else:
             renderer.render(full_html, temp_path, header_footer, render_date)
+        stage_callback = getattr(renderer, "stage_callback", None)
+        if stage_callback is not None:
+            stage_callback("finalizing")
         if not temp_path.exists() or temp_path.stat().st_size == 0:
             raise ConversionError("INVALID_OUTPUT: renderer did not create a PDF")
         # Chromium calls are synchronous. This is the first safe interruption
         # point after printing and, critically, precedes atomic publication.
         if cancel_event is not None and cancel_event.is_set():
             raise ConversionError("CANCELLED: conversion cancelled before publication")
+        if stage_callback is not None:
+            stage_callback("publishing")
         try:
             os.replace(str(temp_path), str(output_path))
         except OSError as exc:

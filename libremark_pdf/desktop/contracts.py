@@ -87,6 +87,16 @@ class ConversionProgressEvent(NamedTuple):
     result: Dict[str, Any]
 
 
+class ConversionStageEvent(NamedTuple):
+    """An exact engine phase for the currently converting file."""
+
+    kind: str
+    index: int
+    total: int
+    input_path: Path
+    stage: str
+
+
 class ConversionTerminalEvent(NamedTuple):
     """A terminal conversion event containing results or an error message."""
 

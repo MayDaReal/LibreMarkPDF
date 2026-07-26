@@ -65,6 +65,9 @@ def convert_markdown_text_to_pdf(
     )
     if _cancel_event is not None and _cancel_event.is_set():
         raise ConversionError("CANCELLED: conversion cancelled before rendering")
+    stage_callback = getattr(_renderer, "stage_callback", None)
+    if stage_callback is not None:
+        stage_callback("rendering")
     chromium.atomic_render_pdf(
         rendered_document.full_html,
         output_path,
@@ -177,6 +180,7 @@ def convert_batch(
     cancel_event: Optional[Any] = None,
     progress_callback: Optional[Callable[[int, int, dict], None]] = None,
     cancel_current_event: Optional[Any] = None,
+    stage_callback: Optional[Callable[[int, int, Path, str], None]] = None,
 ) -> list[dict[str, Optional[str]]]:
     """Convert every input independently and return one result per input."""
     try:
@@ -193,7 +197,25 @@ def convert_batch(
         (cancel_event is not None and cancel_event.is_set())
         or (cancel_current_event is not None and cancel_current_event.is_set())
     )
+    last_stage = None
+
+    def notify_stage(index: int, input_path: Path, stage: str) -> None:
+        nonlocal last_stage
+        marker = (index, stage)
+        if marker == last_stage:
+            return
+        last_stage = marker
+        if stage_callback is not None:
+            try:
+                stage_callback(index, len(planned), input_path, stage)
+            except Exception:
+                pass
+
     if not initially_cancelled and any(plan.error is None and date_error is None for plan in planned):
+        first_renderable = next(
+            plan for plan in planned if plan.error is None and date_error is None
+        )
+        notify_stage(planned.index(first_renderable) + 1, first_renderable.input_path, "preparing")
         try:
             renderer_manager = chromium.BrowserRenderer()
             renderer = renderer_manager.__enter__()
@@ -226,6 +248,11 @@ def convert_batch(
                     raise ConversionError(plan.error)
                 if renderer_error is not None:
                     raise renderer_error
+                notify_stage(index, input_path, "preparing")
+                renderer.stage_callback = (
+                    lambda stage, item=index, path=input_path:
+                    notify_stage(item, path, stage)
+                )
                 result_path = convert_markdown_to_pdf(input_path, target, css_path=css_path, header_footer=header_footer, render_date=resolved_date, trusted_html=trusted_html, overwrite=overwrite, theme=theme, theme_root=theme_root, _renderer=renderer, _cancel_event=cancel_current_event)
                 result = {"input": str(input_path), "output": str(result_path), "status": "ok", "error": None, "error_code": None}
                 results.append(result)

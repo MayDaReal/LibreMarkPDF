@@ -20,7 +20,7 @@ class TestConversionJobsBoundary(unittest.TestCase):
             tuple(inspect.signature(jobs.convert_batch).parameters),
             ("input_paths", "output_dir", "css_path", "header_footer", "render_date",
              "trusted_html", "overwrite", "theme", "theme_root", "cancel_event",
-             "progress_callback", "cancel_current_event"),
+             "progress_callback", "cancel_current_event", "stage_callback"),
         )
 
     def test_jobs_do_not_import_the_public_facade(self):
