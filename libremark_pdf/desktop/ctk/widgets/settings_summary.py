@@ -29,7 +29,7 @@ class SettingsSummaryRow(ctk.CTkFrame):
             corner_radius=RADII["card"],
             border_width=1,
             border_color=COLORS["border"],
-            height=44,
+            height=40,
             width=1,
         )
         self.grid_propagate(False)
@@ -256,7 +256,7 @@ class SettingsSummaryPanel(CardFrame):
             column=0,
             sticky="ew",
             padx=(SPACING["md"], SPACING["sm"]),
-            pady=SPACING["md"],
+            pady=SPACING["sm"],
         )
         self.edit_button = SecondaryButton(
             self,
@@ -270,7 +270,7 @@ class SettingsSummaryPanel(CardFrame):
             row=0,
             column=1,
             padx=(SPACING["sm"], SPACING["md"]),
-            pady=SPACING["md"],
+            pady=SPACING["sm"],
         )
         self.rows = {}  # type: Dict[str, SettingsSummaryRow]
         icons = {

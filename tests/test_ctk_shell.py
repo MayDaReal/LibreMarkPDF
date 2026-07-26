@@ -18,6 +18,7 @@ from libremark_pdf.desktop.ctk.theme import SystemFontResolver
 from libremark_pdf.desktop.ctk.widgets.action_bar import ActionBar
 from libremark_pdf.desktop.ctk.widgets.app_header import AppHeader, WindowChrome
 from libremark_pdf.desktop.ctk.widgets.preview_panel import PreviewPanel
+from libremark_pdf.desktop.ctk.widgets import results_view as ctk_results
 from libremark_pdf.desktop.tk import app as tk_app
 from libremark_pdf.desktop.tk import layout as tk_layout
 
@@ -359,6 +360,19 @@ class TestModernShellWidgets(unittest.TestCase):
         self.assertEqual(action_bar.decision_back_button.winfo_manager(), "grid")
         self.assertEqual(action_bar.decision_table.winfo_manager(), "grid")
         item = action_bar.decision_table.get_children()[0]
+        replace_box = action_bar.decision_table.bbox(item, "replace")
+        self.assertTrue(replace_box)
+        self.assertLessEqual(
+            replace_box[0] + replace_box[2],
+            action_bar.decision_table.winfo_width(),
+        )
+        header_event = mock.Mock(
+            x=replace_box[0] + replace_box[2] // 2,
+            y=2,
+        )
+        with mock.patch.object(action_bar, "_toggle_decision_item") as toggle:
+            self.assertIsNone(action_bar._on_decision_click(header_event))
+        toggle.assert_not_called()
         self.assertEqual(
             action_bar.decision_table.item(item, "values"),
             ("folder / one.md", "output / one.pdf", "Existing PDF", "☐"),
@@ -423,6 +437,9 @@ class TestModernShellWidgets(unittest.TestCase):
             decision_replace_heading="Replace?",
             decision_blocked_text="Blocked",
         )
+        action_bar.decision_table.configure(height=2)
+        action_bar.decision_table_frame.configure(height=80)
+        action_bar.decision_table_frame.grid_propagate(False)
         self.root.update()
         wheel = mock.Mock(delta=-120, num=0)
         action_bar.status_label.focus_force()
@@ -611,7 +628,10 @@ class TestModernShellWidgets(unittest.TestCase):
         application._responsive_controller.schedule(820, 780)
         application._responsive_controller.flush()
         self.root.update()
-        self.assertEqual(application.workspace.grid_bbox(0, 0)[2], 340)
+        self.assertEqual(
+            application.workspace.grid_bbox(0, 0)[2],
+            application._left_panel_width,
+        )
         application._responsive_controller.schedule(560, 520)
         application._responsive_controller.flush()
         self.root.geometry("560x520+0+0")
@@ -637,7 +657,11 @@ class TestModernShellWidgets(unittest.TestCase):
         self.root.update()
         self.assertEqual(application.workspace.grid_bbox(0, 0)[2], 440)
         application._set_left_panel_width(999)
-        self.assertEqual(application._left_panel_width, 440)
+        self.assertEqual(
+            application._left_panel_width,
+            application._left_panel_max_width(),
+        )
+        self.assertGreater(application._left_panel_width, 440)
         application._set_left_panel_width(1)
         self.assertEqual(application._left_panel_width, 360)
         application._render_file_list()
@@ -1438,6 +1462,289 @@ class TestModernShellWidgets(unittest.TestCase):
             self.assertEqual(application.source_group.winfo_manager(), "")
             cancel()
             self.root.update()
+
+    def test_results_view_projects_ordered_mixed_batch_in_large_and_compact_modes(self):
+        services = mock.Mock()
+        dialogs = mock.Mock()
+        with mock.patch.object(tk_layout, "HAS_DND", False), mock.patch.object(
+            tk_app.i18n,
+            "load_language",
+            return_value="en",
+        ):
+            application = tk_app.LibreMarkPdfApp(
+                self.root,
+                services=services,
+                dialogs=dialogs,
+            )
+        long_source = (
+            "C:/Données Ω/Projet avec espaces/"
+            "rapport-très-long-avec-unicode-東京.md"
+        )
+        results = [
+            {
+                "input": long_source,
+                "output": "C:/Exports/rapport-très-long-avec-unicode-東京.pdf",
+                "status": "ok",
+                "error": None,
+                "error_code": None,
+            },
+            {
+                "input": "C:/Données Ω/erreur.md",
+                "output": None,
+                "status": "error",
+                "error": "Markdown could not be rendered\nparser context",
+                "error_code": "MD_PARSE_ERROR",
+            },
+            {
+                "input": "C:/Données Ω/annulé.md",
+                "output": None,
+                "status": "cancelled",
+                "error": "Cancelled before rendering",
+                "error_code": "CANCELLED",
+            },
+            {
+                "input": "C:/Données Ω/conservé.md",
+                "output": "C:/Exports/conservé.pdf",
+                "status": "kept",
+                "error": None,
+                "error_code": None,
+            },
+        ]
+
+        application.results_view.set_collapsed(False)
+        application._render_results(results)
+        self.root.update()
+
+        view = application.results_view
+        self.assertEqual(view.mode, "large")
+        self.assertEqual(list(view.rows), [item["input"] for item in results])
+        self.assertEqual(
+            [
+                button.accessible_name
+                for button in view.rows[long_source].action_buttons
+            ],
+            ["Open PDF", "Open folder"],
+        )
+        self.assertEqual(
+            [
+                button.accessible_name
+                for button in view.rows[results[1]["input"]].action_buttons
+            ],
+            [
+                "Copy details",
+                "Report a problem",
+                "Show details",
+            ],
+        )
+        self.assertEqual(
+            [
+                button.accessible_name
+                for button in view.rows[results[2]["input"]].action_buttons
+            ],
+            ["Show details"],
+        )
+        self.assertEqual(
+            view.rows[long_source].source_label.tooltip.text,
+            str(Path(long_source)),
+        )
+        kept_source = results[3]["input"]
+        self.assertEqual(view.rows[kept_source].action_buttons, [])
+        self.assertLess(view.rows[kept_source].winfo_reqheight(), 80)
+        self.assertEqual(
+            view.rows[kept_source].output_label.tooltip.text,
+            str(Path(results[3]["output"])),
+        )
+
+        error_source = results[1]["input"]
+        self.assertEqual(
+            view.rows[error_source].output_label.cget("text"),
+            "Markdown could not be rendered",
+        )
+        view.rows[error_source].details_button.invoke()
+        self.root.update()
+        self.assertIn(error_source, view._expanded_sources)
+        self.assertEqual(
+            view.rows[error_source].details_frame.winfo_manager(), "grid"
+        )
+        detail_text = "\n".join(
+            str(child.cget("text"))
+            for child in view.rows[error_source].details_frame.winfo_children()
+            if hasattr(child, "cget")
+        )
+        self.assertNotIn("Markdown could not be rendered", detail_text)
+        self.assertIn("parser context", detail_text)
+        application.lang = "fr"
+        application._retranslate()
+        self.root.update()
+        self.assertIn(error_source, view._expanded_sources)
+        self.assertEqual(
+            view.rows[error_source].details_button.accessible_name,
+            "Masquer les détails",
+        )
+
+        first_source = results[0]["input"]
+        view.focus_result(first_source)
+        self.root.update()
+        view.rows[first_source]._move_focus(1)
+        self.root.update()
+        self.assertIs(self.root.focus_get(), view.rows[error_source])
+
+        self.root.geometry("560x520+0+0")
+        self.root.update()
+        application._responsive_controller.flush()
+        application._select_compact_tab("results")
+        self.root.update()
+        self.assertEqual(view.mode, "compact")
+        self.assertFalse(view.has_horizontal_scroll)
+        self.assertEqual(view.column_header.winfo_manager(), "")
+        self.assertEqual(list(view.rows), [item["input"] for item in results])
+        for row in view.rows.values():
+            self.assertTrue(all(
+                int(button.grid_info()["column"]) <= 2
+                for button in row.action_buttons
+            ))
+
+    def test_terminal_error_selects_results_but_success_keeps_compact_tab(self):
+        services = mock.Mock()
+        dialogs = mock.Mock()
+        with mock.patch.object(tk_layout, "HAS_DND", False), mock.patch.object(
+            tk_app.i18n,
+            "load_language",
+            return_value="en",
+        ):
+            application = tk_app.LibreMarkPdfApp(
+                self.root,
+                services=services,
+                dialogs=dialogs,
+            )
+        self.root.geometry("560x520+0+0")
+        self.root.update()
+        application._responsive_controller.flush()
+        application.files = [Path("ok.md"), Path("bad.md")]
+        application._render_file_list()
+        application._select_compact_tab("files")
+        mixed = [
+            {
+                "input": "ok.md", "output": "ok.pdf", "status": "ok",
+                "error": None, "error_code": None,
+            },
+            {
+                "input": "bad.md", "output": None, "status": "error",
+                "error": "failed", "error_code": "RENDER_FAILED",
+            },
+        ]
+
+        application._handle_generate_done(mixed)
+        self.root.update()
+        self.assertEqual(application._active_compact_tab, "results")
+        self.assertEqual(application.results_view._selected_source, "bad.md")
+
+        application._select_compact_tab("files")
+        application._handle_generate_done(mixed[:1])
+        self.root.update()
+        self.assertEqual(application._active_compact_tab, "files")
+
+    def test_results_panel_is_full_width_bounded_resizable_and_clear_is_safe(self):
+        services = mock.Mock()
+        dialogs = mock.Mock()
+        with mock.patch.object(tk_layout, "HAS_DND", False), mock.patch.object(
+            tk_app.i18n,
+            "load_language",
+            return_value="en",
+        ):
+            application = tk_app.LibreMarkPdfApp(
+                self.root,
+                services=services,
+                dialogs=dialogs,
+            )
+        application.files = [Path("one.md")]
+        result = {
+            "input": "one.md", "output": "one.pdf", "status": "ok",
+            "error": None, "error_code": None,
+        }
+        application._render_results([result])
+        application.results_view.set_collapsed(False)
+        self.root.update()
+
+        grid = application.results_view.grid_info()
+        self.assertEqual(int(grid["row"]), 2)
+        self.assertGreaterEqual(
+            application.results_view.winfo_width(),
+            application.content_container.winfo_width() - 2,
+        )
+        self.assertEqual(application.results_splitter.winfo_manager(), "grid")
+        application._set_results_panel_height(999)
+        self.assertEqual(
+            application._results_panel_height,
+            min(
+                tk_layout.RESULTS_PANEL_MAX_HEIGHT,
+                760 - tk_layout.RESULTS_PANEL_VERTICAL_RESERVE,
+            ),
+        )
+        application._set_results_panel_height(1)
+        self.assertEqual(
+            application._results_panel_height,
+            tk_layout.RESULTS_PANEL_MIN_HEIGHT,
+        )
+
+        application.results_view.set_conversion_active(True)
+        self.assertEqual(
+            application.results_view.clear_button.winfo_manager(), ""
+        )
+        application.results_view.set_conversion_active(False)
+        self.assertEqual(
+            application.results_view.clear_button.winfo_manager(), "grid"
+        )
+        self.assertEqual(
+            application.results_view.clear_button.accessible_name,
+            "Clear results",
+        )
+        application.results_view.clear_button.invoke()
+        self.root.update()
+        self.assertEqual(application._conversion_results, [])
+        self.assertEqual(application.results_view.rows, {})
+        self.assertEqual(application._action_state, "ready")
+        services.open_path.assert_not_called()
+
+        application.results_view.set_collapsed(True)
+        self.root.update()
+        self.assertEqual(application.results_splitter.winfo_manager(), "")
+        self.assertEqual(
+            int(application.content_container.grid_rowconfigure(2)["minsize"]),
+            tk_layout.RESULTS_PANEL_COLLAPSED_HEIGHT,
+        )
+
+        application.results_view.set_collapsed(False)
+        application._set_left_panel_width(9999)
+        self.assertEqual(
+            application._left_panel_width,
+            application._left_panel_max_width(),
+        )
+        self.assertGreater(application._left_panel_width, 440)
+        self.assertEqual(
+            int(application.workspace.grid_rowconfigure(0)["weight"]), 1
+        )
+        self.assertEqual(
+            int(application.workspace.grid_rowconfigure(1)["minsize"]),
+            tk_layout.LEFT_SETTINGS_TARGET_HEIGHT,
+        )
+        last_setting = application.settings_panel.rows["other"]
+        self.assertLessEqual(
+            last_setting.winfo_y() + last_setting.winfo_height(),
+            application.settings_panel.winfo_height(),
+        )
+        self.assertLessEqual(
+            application.settings_panel.winfo_y()
+            + application.settings_panel.winfo_height(),
+            application.workspace.winfo_height(),
+        )
+
+        self.root.geometry("900x700+0+0")
+        self.root.update()
+        application._responsive_controller.flush()
+        self.root.update()
+        self.assertEqual(application._layout_mode, "medium")
+        self.assertEqual(application.workspace_splitter.winfo_manager(), "grid")
 
 
 if __name__ == "__main__":

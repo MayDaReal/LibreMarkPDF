@@ -38,6 +38,13 @@ agent contract in [`SKILL.md`](SKILL.md).
   exact completed-file progress plus live engine phases, applied-option details, safe
   stop-after-current or cooperative immediate cancellation, terminal summaries,
   and persistent results;
+- responsive persistent results with a collapsible, vertically resizable
+  full-width lower panel on normal and large windows, vertical cards on compact
+  windows, compact icon actions, an explicit neutral state for existing PDFs
+  kept by user choice, expandable technical details, and clearing that never
+  deletes generated PDFs; Files absorbs the available height above fixed
+  Settings, while the vertical divider lets the left workspace grow up to the
+  Preview limit;
 - deterministic JSON output and meaningful exit status for automation.
 
 User guides: [English](docs/MANUAL_EN.md) · [Français](docs/MANUEL_FR.md)

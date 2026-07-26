@@ -79,6 +79,21 @@ class TestModernFilesPanel(unittest.TestCase):
         self.panel.retranslate(i18n.STRINGS["fr"])
         self.assertGreater(self.panel.add_button.cget("width"), english_width)
 
+    def test_file_header_clear_is_a_direct_localized_trash_action(self):
+        path = Path("one.md")
+        self.panel.set_files([path], active=path)
+        self.root.update()
+        self.assertEqual(
+            self.panel.clear_button.accessible_name,
+            "Remove all",
+        )
+        self.panel.clear_button.invoke()
+        self.assertEqual(self.cleared, [True])
+        self.panel.set_interaction_enabled(False, False)
+        self.assertEqual(
+            self.panel.clear_button.cget("state"), "disabled"
+        )
+
     def test_zero_one_two_eight_and_one_hundred_keep_order_and_row_identity(self):
         for count in (0, 1, 2, 8, 100):
             paths = [Path("folder/file-{0}.md".format(index)) for index in range(count)]
@@ -229,6 +244,9 @@ class TestModernFilesPanel(unittest.TestCase):
             row.active_badge.grid_info()["row"],
             row.conversion_badge.grid_info()["row"],
         )
+
+        self.panel.set_conversion_states({path: "kept"})
+        self.assertEqual(row.conversion_badge.cget("text"), "Kept")
 
 
 if __name__ == "__main__":

@@ -33,10 +33,11 @@ install CPython 3.9 with pyenv first; the Linux bootstrap detects an installed
    **Actions** menu to show the source folder, copy the path, or remove the
    file. With a row focused, use Up/Down to move, Enter or Space to activate
    its preview, Delete to remove it, and Menu or Shift+F10 to open its actions.
-   Add and remove actions are unavailable during conversion, with the reason
-   shown in the file panel. In the large two-column layout, drag the separator
-   between the left panel and preview to set the left panel from 360 to 440 px;
-   this width is retained only for the current session. Long parent paths are
+   The header trash action removes all files directly. Add and remove actions
+   are unavailable during conversion, with the reason shown in the file panel.
+   In the large two-column layout, drag the separator between the left panel
+   and preview from its 360 px minimum up to the available limit that preserves
+   a usable preview; this width is retained only for the current session. Long parent paths are
    elided in the middle while their complete value remains available from the
    tooltip and **Copy path** action.
    At window widths of 759 px and below, use the **Files**, **Preview**,
@@ -116,7 +117,7 @@ before the decision title, like the settings pages; Escape performs the same
 safe return. The title and counts share one line. Details list each source,
 destination, short issue, and replacement decision in a compact table. Check
 **Replace?** for each existing PDF that may be replaced after a successful
-render; unchecked PDFs are kept and reported as failures. The checkbox in the
+render; unchecked PDFs receive the neutral **Kept** state. The checkbox in the
 column heading changes all eligible rows and shows an intermediate state for a
 mixed selection. Collision rows show **Blocked** instead of a checkbox and can
 be reported while independent files continue. A separate summary states how
@@ -147,9 +148,35 @@ return; no partial PDF is published and any previous destination PDF is kept.
 Closing the window asks whether to **Continue conversion** (the safe default,
 also used by Escape) or **Cancel conversion and close**; the active file may
 finish before the remaining files are cancelled. The final list keeps one row
-per input in source order, including successful, failed, and cancelled items.
-Error codes can be expanded and copied. **Open PDF** and **Open folder** actions
-are shown only for successful outputs.
+per input in source order, including successful, failed, kept, and cancelled
+items. An existing PDF that the user explicitly chose not to replace is
+**Kept**, not failed; an unexpected overwrite refusal remains a failure.
+On normal and large windows, **Results** is a bounded full-width lower panel
+below the Files/Settings and Preview workspace. Expand or collapse it, or drag
+its horizontal separator to adjust its height; the main workspace and fixed
+action bar remain available. Settings keeps a fixed height while Files uses
+the remaining height, down to its minimum. The vertical separator can grow the
+left workspace to the available limit while retaining a usable Preview. On compact
+windows, the same ordered results use condensed vertical cards in the
+**Results** tab without horizontal scrolling. A terminal
+batch containing an error selects Results automatically; conversion never
+changes tabs while it is still running, and an all-success batch keeps the
+current tab.
+
+The panel header places the batch summary beside **Results**. Its trash action
+clears results directly, consistently with the Files panel, and the chevron
+collapses or expands the panel. Row actions use standard icons with localized
+tooltips and accessible names. Successful items offer **Open PDF** and
+**Open folder**. Failed items offer **Copy details**, the existing prefilled
+**Report a problem** workflow, and a direct information button for expandable details.
+Cancelled items never offer an open action; their details, when available, are
+also reached through the same information button. The Output cell shows an
+ellided failure message when no PDF was produced. Expanded details avoid
+repeating that message and show the stable error code followed by any
+additional monospace technical details; they stay expanded during later UI updates or a
+language change. **Clear results** is available only while no conversion is
+active; it removes no PDF and returns the application to its ready state when
+source files remain.
 
 ## Header and footer tokens
 

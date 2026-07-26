@@ -5,7 +5,6 @@ from __future__ import annotations
 import threading
 import tkinter as tk
 from pathlib import Path
-from tkinter import ttk
 from typing import Optional
 
 from ... import core
@@ -72,12 +71,20 @@ class TkConversionMixin:
             self._begin_operation("decision")
             self._set_action_state("decision_required")
             return
+        self._expected_kept_outputs = {}
         self._start_generation(False)
 
     def _continue_generation_decision(self) -> None:
         if self.operation != "decision":
             return
         overwrite_targets = self.action_bar.selected_overwrite_targets()
+        selected = {Path(str(path)) for path in overwrite_targets}
+        self._expected_kept_outputs = {
+            plan.input_path: plan.output_path
+            for plan in getattr(self, "_decision_plans", [])
+            if plan.error_code == "OUTPUT_EXISTS"
+            and plan.output_path not in selected
+        }
         self._start_generation(False, overwrite_targets=overwrite_targets)
 
     def _cancel_generation_decision(self) -> None:
@@ -86,6 +93,7 @@ class TkConversionMixin:
         self._decision_plans = []
         self._decision_has_collisions = False
         self._decision_has_existing = False
+        self._expected_kept_outputs = {}
         if hasattr(self, "action_bar"):
             self.action_bar.clear_decision_choices()
         self._finish_operation()
@@ -197,6 +205,9 @@ class TkConversionMixin:
 
     def _begin_operation(self, operation: str) -> None:
         self.operation = operation
+        results_view = getattr(self, "results_view", None)
+        if results_view is not None:
+            results_view.set_conversion_active(True)
         for widget in self._operation_controls:
             try:
                 widget.config(state="disabled")
@@ -254,11 +265,16 @@ class TkConversionMixin:
             settings_panel.set_enabled(True)
         self._update_zoom_controls()
         self._update_page_controls()
+        results_view = getattr(self, "results_view", None)
+        if results_view is not None:
+            results_view.set_conversion_active(False)
         self._refresh_generate_button(preserve_action_state=True)
 
     def _handle_generate_done(self, results: list) -> None:
+        results = [self._project_expected_kept_result(item) for item in results]
         ok = [item for item in results if item["status"] == "ok"]
         failed = [item for item in results if item["status"] == "error"]
+        kept = [item for item in results if item["status"] == "kept"]
         cancelled = [item for item in results if item["status"] == "cancelled"]
         self._render_results(results)
         self._file_conversion_states = {
@@ -269,14 +285,17 @@ class TkConversionMixin:
             "status_done_summary",
             ok=len(ok),
             failed=len(failed),
+            kept=len(kept),
             cancelled=len(cancelled),
         )
         self._set_action_state("complete")
-        self.results_summary_label.focus_set()
+        if failed:
+            self._reveal_terminal_results(str(failed[0]["input"]))
 
     def _handle_conversion_progress(
         self, index: int, total: int, result: dict
     ) -> None:
+        result = self._project_expected_kept_result(result)
         self.progress_var.set(index)
         self._conversion_results.append(result)
         if not hasattr(self, "_file_conversion_states"):
@@ -325,6 +344,27 @@ class TkConversionMixin:
                 name=active_name,
             )
 
+    def _project_expected_kept_result(self, result: dict) -> dict:
+        """Classify only an explicitly declined replacement as kept."""
+        if (
+            result.get("status") != "error"
+            or result.get("error_code") != "OUTPUT_EXISTS"
+        ):
+            return result
+        source = Path(str(result.get("input") or ""))
+        output = getattr(self, "_expected_kept_outputs", {}).get(source)
+        if output is None:
+            return result
+        projected = dict(result)
+        projected.update({
+            "output": str(output),
+            "status": "kept",
+            "error": None,
+            "error_code": None,
+            "kept_reason": "OUTPUT_EXISTS",
+        })
+        return projected
+
     def _handle_conversion_stage(
         self, index: int, total: int, input_path: Path, stage: str
     ) -> None:
@@ -366,7 +406,7 @@ class TkConversionMixin:
         )
         self._set_status("status_generation_error", error=error)
         self._set_action_state("failed")
-        self.results_summary_label.focus_set()
+        self._reveal_terminal_results()
 
     def _refresh_file_conversion_states(self) -> None:
         files_panel = getattr(self, "files_panel", None)
@@ -378,10 +418,26 @@ class TkConversionMixin:
     def _clear_results(self) -> None:
         self._conversion_results = []
         self._global_conversion_error = None
-        self.results_summary_label.config(text="")
-        self.results_error_label.pack_forget()
-        for child in self.result_rows_frame.winfo_children():
-            child.destroy()
+        results_view = getattr(self, "results_view", None)
+        if results_view is not None:
+            results_view.set_results([], "")
+
+    def _clear_results_from_ui(self) -> None:
+        """Clear result UI only while idle and leave produced PDFs untouched."""
+        if self.operation != "idle":
+            return
+        self._clear_results()
+        self._file_conversion_states = {}
+        self._refresh_file_conversion_states()
+        self._set_status("status_ready")
+        self._set_action_state("ready" if self.files else "idle")
+
+    def _refresh_results_projection(self) -> None:
+        """Rebuild the responsive projection from authoritative app state."""
+        self._render_results(
+            getattr(self, "_conversion_results", []),
+            global_error=getattr(self, "_global_conversion_error", None),
+        )
 
     def _render_results(
         self,
@@ -390,116 +446,46 @@ class TkConversionMixin:
     ) -> None:
         self._conversion_results = list(results)
         self._global_conversion_error = global_error
-        for child in self.result_rows_frame.winfo_children():
-            child.destroy()
         ok = sum(item["status"] == "ok" for item in results)
         failed = sum(item["status"] == "error" for item in results)
+        kept = sum(item["status"] == "kept" for item in results)
         cancelled = sum(item["status"] == "cancelled" for item in results)
-        if results:
-            self.results_summary_label.config(
-                text=self._format_result_summary(ok, failed, cancelled)
-            )
-        else:
-            self.results_summary_label.config(text="")
-        if global_error:
-            self.results_error_label.config(
-                text="{0}: {1}".format(self._t("batch_error"), global_error)
-            )
-            self.results_error_label.pack(fill="x", pady=(4, 0))
-        else:
-            self.results_error_label.pack_forget()
-        for result in results:
-            self._render_result_row(result)
+        summary = (
+            self._format_result_summary(ok, failed, cancelled, kept)
+            if results else ""
+        )
+        self.results_view.set_results(
+            results,
+            summary,
+            global_error=global_error,
+        )
 
     def _format_result_summary(
-        self, ok: int, failed: int, cancelled: int
+        self, ok: int, failed: int, cancelled: int, kept: int = 0
     ) -> str:
         return " · ".join((
             self._tp(
                 "summary_succeeded_one", "summary_succeeded_many", ok
             ),
             self._tp("summary_failed_one", "summary_failed_many", failed),
+            self._tp("summary_kept_one", "summary_kept_many", kept),
             self._tp(
                 "summary_cancelled_one", "summary_cancelled_many", cancelled
             ),
         ))
 
-    def _render_result_row(self, result: dict) -> None:
-        source = Path(result["input"])
-        row = ttk.LabelFrame(
-            self.result_rows_frame,
-            text=source.name,
-            padding=6,
-        )
-        row.pack(fill="x", pady=2)
-        status = result["status"]
-        status_text = {
-            "ok": "✓ {0}".format(self._t("result_status_ok")),
-            "error": "! {0}".format(self._t("result_status_error")),
-            "cancelled": "– {0}".format(self._t("result_status_cancelled")),
-        }[status]
-        ttk.Label(row, text=status_text, anchor="w").pack(fill="x")
-        if status == "ok":
-            output = Path(result["output"])
-            ttk.Label(row, text=str(output), anchor="w").pack(fill="x")
-            actions = ttk.Frame(row)
-            actions.pack(fill="x", pady=(4, 0))
-            ttk.Button(
-                actions,
-                text=self._t("open_pdf"),
-                command=lambda path=output: self._open_result(path),
-            ).pack(side="right")
-            ttk.Button(
-                actions,
-                text=self._t("open_folder"),
-                command=lambda path=output.parent: self._open_result(path),
-            ).pack(side="right", padx=4)
-        elif status == "error":
-            ttk.Label(
-                row,
-                text=str(result.get("error") or ""),
-                anchor="w",
-                wraplength=440,
-            ).pack(fill="x")
-            details = ttk.Frame(row)
-            ttk.Label(
-                details,
-                text=self._t(
-                    "result_error_code",
-                    code=result.get("error_code") or "UNKNOWN",
-                ),
-                anchor="w",
-            ).pack(fill="x")
-            actions = ttk.Frame(row)
-            actions.pack(fill="x", pady=(4, 0))
-            toggle = ttk.Button(actions)
-
-            def toggle_details() -> None:
-                if details.winfo_manager():
-                    details.pack_forget()
-                    toggle.config(text=self._t("show_details"))
-                else:
-                    details.pack(fill="x", pady=(4, 0), before=actions)
-                    toggle.config(text=self._t("hide_details"))
-
-            toggle.config(
-                text=self._t("show_details"),
-                command=toggle_details,
-            )
-            toggle.pack(side="left")
-            ttk.Button(
-                actions,
-                text=self._t("copy_details"),
-                command=lambda item=result: self._copy_result_details(item),
-            ).pack(side="left", padx=4)
-            ttk.Button(
-                actions,
-                text=self._t("report_issue_action"),
-                command=lambda item=result: self._show_problem_report(
-                    item.get("error_code") or "UNKNOWN",
-                    item.get("error") or "",
-                ),
-            ).pack(side="left", padx=4)
+    def _reveal_terminal_results(
+        self, source_id: Optional[str] = None
+    ) -> None:
+        """Reveal and focus results only for a terminal batch failure."""
+        if self._layout_mode == "compact":
+            self._select_compact_tab("results")
+        else:
+            self.results_view.set_collapsed(False)
+        if source_id is not None:
+            self.results_view.focus_result(source_id)
+        else:
+            self.results_view.focus_results()
 
     def _copy_result_details(self, result: dict) -> None:
         details = "{0}: [{1}] {2}".format(

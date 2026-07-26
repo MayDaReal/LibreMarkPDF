@@ -61,6 +61,7 @@ class LibreMarkPdfApp(
         self._decision_plans = []
         self._decision_has_collisions = False
         self._decision_has_existing = False
+        self._expected_kept_outputs = {}  # type: dict[Path, Path]
         self._conversion_options_summary = ""
         self._status_key = "status_ready"
         self._status_kwargs = {}  # type: dict
@@ -185,7 +186,6 @@ class LibreMarkPdfApp(
             "unsupported_drop",
             "active_preview_badge",
             "file_menu_a11y",
-            "files_menu_a11y",
             "reveal_source",
             "copy_path",
             "remove_from_batch",
@@ -194,6 +194,7 @@ class LibreMarkPdfApp(
             "conversion_running",
             "conversion_ok",
             "conversion_error",
+            "conversion_kept",
             "conversion_cancelled",
         )
         return {key: self._t(key) for key in keys}
@@ -221,6 +222,35 @@ class LibreMarkPdfApp(
             "preview_empty",
             "add_files",
             "preview_retry",
+            "copy_details",
+            "report_issue_action",
+        )
+        return {key: self._t(key) for key in keys}
+
+    def _results_labels(self) -> dict:
+        keys = (
+            "results_heading",
+            "results_empty",
+            "result_file_heading",
+            "result_status_heading",
+            "result_output_heading",
+            "result_actions_heading",
+            "result_status_ok",
+            "result_status_error",
+            "result_status_kept",
+            "result_status_cancelled",
+            "result_output_value",
+            "result_kept_summary",
+            "result_cancelled_summary",
+            "result_error_code",
+            "show_details",
+            "hide_details",
+            "expand_results",
+            "collapse_results",
+            "clear_results",
+            "batch_error",
+            "open_pdf",
+            "open_folder",
             "copy_details",
             "report_issue_action",
         )
@@ -438,7 +468,8 @@ class LibreMarkPdfApp(
             return self._t(
                 key,
                 summary=self._format_result_summary(
-                    kwargs["ok"], kwargs["failed"], kwargs["cancelled"]
+                    kwargs["ok"], kwargs["failed"], kwargs["cancelled"],
+                    kwargs.get("kept", 0),
                 ),
             )
         if key == "files_add_summary":
@@ -632,7 +663,7 @@ class LibreMarkPdfApp(
         self.output_button.config(text=self._t("change_destination"))
         self.output_reset_button.config(text=self._t("reset_destination"))
         self.cancel_button.config(text=self._t("stop_after_current"))
-        self.results_frame.config(text=self._t("results_heading"))
+        self.results_view.retranslate(self._results_labels())
         self._refresh_generate_button(preserve_action_state=True)
         self._refresh_css_entry()
         self._refresh_output_entry()

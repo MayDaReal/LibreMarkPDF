@@ -26,6 +26,7 @@ _STATUS_TONES = {
     "running": "info",
     "ok": "success",
     "error": "error",
+    "kept": "neutral",
     "cancelled": "neutral",
 }
 

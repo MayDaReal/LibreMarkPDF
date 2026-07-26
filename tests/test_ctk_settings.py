@@ -104,7 +104,7 @@ class TestSettingsSummaryPanel(unittest.TestCase):
             for row in self.panel.rows.values()
         }
         self.assertEqual(len(description_positions), 1)
-        self.assertEqual(self.panel.edit_button.grid_info()["pady"], 12)
+        self.assertEqual(self.panel.edit_button.grid_info()["pady"], 8)
 
         french = {
             "settings_heading": i18n.t("settings_heading", "fr"),

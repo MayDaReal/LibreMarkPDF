@@ -30,6 +30,7 @@ from ..ctk.widgets.destination_editor import DestinationEditorPanel
 from ..ctk.widgets.file_panel import FilesPanel
 from ..ctk.widgets.header_footer_editor import HeaderFooterEditorPanel
 from ..ctk.widgets.preview_panel import PreviewPanel
+from ..ctk.widgets.results_view import ResultsView
 from ..ctk.widgets.settings_summary import SettingsSummaryPanel
 from ..ctk.widgets.style_editor import StyleEditorPanel
 from .styles import (
@@ -62,6 +63,7 @@ AUTOMATION_ACTIONS = frozenset((
     "output.choose", "output.reset",
     "convert.start", "convert.cancel", "convert.cancel_now", "menu.compact",
     "tab.files", "tab.preview", "tab.settings", "tab.results",
+    "results.clear", "results.toggle",
     "about.open",
 ))
 
@@ -71,8 +73,15 @@ MINIMUM_WINDOW_WIDTH = 560
 MINIMUM_WINDOW_HEIGHT = 520
 LEFT_PANEL_TARGET_WIDTH = 390
 LEFT_PANEL_MIN_WIDTH = 360
-LEFT_PANEL_MAX_WIDTH = 440
 PREVIEW_MIN_WIDTH = 560
+PREVIEW_MEDIUM_MIN_WIDTH = 320
+LEFT_SECTION_MIN_HEIGHT = 148
+LEFT_SETTINGS_TARGET_HEIGHT = 226
+RESULTS_PANEL_TARGET_HEIGHT = 232
+RESULTS_PANEL_MIN_HEIGHT = 160
+RESULTS_PANEL_MAX_HEIGHT = 360
+RESULTS_PANEL_COLLAPSED_HEIGHT = 52
+RESULTS_PANEL_VERTICAL_RESERVE = 542
 
 
 def initial_window_size(root: tk.Misc) -> tuple[int, int]:
@@ -219,7 +228,11 @@ class TkLayoutMixin:
             self._register_automation_widget("tab.{0}".format(name), button)
         self.content_container = ttk.Frame(self.app_shell.content)
         self.content_container.pack(fill="both", expand=True)
-        container = self.content_container
+        self.content_container.grid_columnconfigure(0, weight=1)
+        self.content_container.grid_rowconfigure(0, weight=1)
+        self.body_container = ttk.Frame(self.content_container)
+        self.body_container.grid(row=0, column=0, sticky="nsew")
+        container = self.body_container
         self.body_canvas = tk.Canvas(container, highlightthickness=0, takefocus=True)
         self.body_scroll = AutoHideVerticalScrollbar(
             container, orient="vertical", command=self.body_canvas.yview
@@ -245,6 +258,8 @@ class TkLayoutMixin:
         self.workspace.pack(fill="both", expand=True)
         self._left_panel_width = LEFT_PANEL_TARGET_WIDTH
         self._left_resize_origin = None
+        self._results_panel_height = RESULTS_PANEL_TARGET_HEIGHT
+        self._results_resize_origin = None
         self.workspace_splitter = ttk.Frame(
             self.workspace,
             width=SECTION_GAP,
@@ -288,7 +303,62 @@ class TkLayoutMixin:
         self.workspace_splitter.bind(
             "<End>",
             lambda _event: self._set_left_panel_width(
-                LEFT_PANEL_MAX_WIDTH
+                self._left_panel_max_width()
+            ),
+            add="+",
+        )
+        self.results_splitter = ttk.Frame(
+            self.content_container,
+            height=SECTION_GAP,
+            cursor="size_ns",
+            takefocus=True,
+        )
+        self.results_splitter.grid_propagate(False)
+        results_splitter_line = ttk.Separator(
+            self.results_splitter,
+            orient="horizontal",
+        )
+        results_splitter_line.place(
+            relx=0,
+            rely=0.5,
+            relwidth=1,
+            anchor="w",
+        )
+        for splitter_widget in (
+            self.results_splitter,
+            results_splitter_line,
+        ):
+            splitter_widget.bind(
+                "<ButtonPress-1>",
+                self._start_results_panel_resize,
+                add="+",
+            )
+            splitter_widget.bind(
+                "<B1-Motion>",
+                self._resize_results_panel,
+                add="+",
+            )
+        self.results_splitter.bind(
+            "<Up>",
+            lambda _event: self._adjust_results_panel_height(10),
+            add="+",
+        )
+        self.results_splitter.bind(
+            "<Down>",
+            lambda _event: self._adjust_results_panel_height(-10),
+            add="+",
+        )
+        self.results_splitter.bind(
+            "<Home>",
+            lambda _event: self._set_results_panel_height(
+                RESULTS_PANEL_MIN_HEIGHT
+            ),
+            add="+",
+        )
+        self.results_splitter.bind(
+            "<End>",
+            lambda _event: self._set_results_panel_height(
+                RESULTS_PANEL_MAX_HEIGHT
             ),
             add="+",
         )
@@ -309,7 +379,7 @@ class TkLayoutMixin:
         self.source_group = self.files_panel
         self.browse_button = self.files_panel.add_button
         self.file_count_label = self.files_panel.count_label
-        self.clear_files_button = self.files_panel.panel_menu_button
+        self.clear_files_button = self.files_panel.clear_button
         self.drop_canvas = self.files_panel.empty_state
         self.file_canvas = self.files_panel.list_view
         self._register_automation_widget("files.add", self.browse_button)
@@ -753,24 +823,25 @@ class TkLayoutMixin:
             "<Right>", lambda event: self._change_preview_page(1)
         )
 
-        self.results_frame = ttk.LabelFrame(
-            self.workspace,
-            padding=SECTION_PADDING,
+        self.results_view = ResultsView(
+            self.content_container,
+            labels=self._results_labels(),
+            fonts=self.ui_fonts,
+            assets=self.ui_assets,
+            on_clear=self._clear_results_from_ui,
+            on_open=self._open_result,
+            on_copy=self._copy_result_details,
+            on_report=self._show_problem_report,
+            on_collapsed_changed=self._on_results_collapsed_changed,
+            on_details_changed=self._refresh_results_projection,
         )
-        self.results_summary_label = ttk.Label(
-            self.results_frame,
-            anchor="w",
-            takefocus=True,
-            font=self.ui_styles.emphasis_font,
+        self.results_frame = self.results_view
+        self._register_automation_widget(
+            "results.clear", self.results_view.clear_button
         )
-        self.results_summary_label.pack(fill="x")
-        self.results_error_label = ttk.Label(
-            self.results_frame,
-            justify="left",
-            wraplength=480,
+        self._register_automation_widget(
+            "results.toggle", self.results_view.collapse_button
         )
-        self.result_rows_frame = ttk.Frame(self.results_frame)
-        self.result_rows_frame.pack(fill="x", pady=(SPACE_SM, 0))
 
         self._operation_controls.extend([
             self.browse_button, self.clear_files_button, self.css_button,
@@ -805,6 +876,8 @@ class TkLayoutMixin:
             )
         )
         if self._layout_mode == "compact" and fills_viewport:
+            window_height = max(1, height)
+        elif self._layout_mode != "compact":
             window_height = max(1, height)
         self.body_canvas.itemconfigure(
             self._body_window,
@@ -889,15 +962,23 @@ class TkLayoutMixin:
         for section in all_sections:
             section.grid_forget()
         active = sections[self._active_compact_tab]
-        active.grid(row=0, column=0, sticky="nsew")
-        self.workspace.rowconfigure(0, weight=1)
+        if active is self.results_view:
+            self.body_container.grid_remove()
+            active.grid(row=0, column=0, sticky="nsew")
+        else:
+            self.results_view.grid_forget()
+            self.body_container.grid(row=0, column=0, sticky="nsew")
+            active.grid(row=0, column=0, sticky="nsew")
+            self.workspace.rowconfigure(0, weight=1)
         self.compact_tabs.set_active(self._active_compact_tab)
-        self.body_canvas.yview_moveto(0)
-        self._sync_body_window_to_canvas()
+        if active is not self.results_view:
+            self.body_canvas.yview_moveto(0)
+            self._sync_body_window_to_canvas()
         # Tk can leave a remapped grid child hidden when the canvas window
         # keeps exactly the same dimensions. Two idle stages let grid settle,
         # then make it project the new tab without resizing the root.
-        self.body_canvas.after_idle(self._refresh_compact_viewport)
+        if active is not self.results_view:
+            self.body_canvas.after_idle(self._refresh_compact_viewport)
         focus_was_in_hidden_section = any(
             section is not active and self._is_descendant(focus, section)
             for section in all_sections
@@ -916,6 +997,7 @@ class TkLayoutMixin:
 
     def _apply_responsive_layout(self, width: int, height: int) -> None:
         """Adapt existing panes without rebuilding widgets or changing focus."""
+        self._viewport_width = width
         self._viewport_height = height
         mode = responsive_mode(width)
         layout_changed = mode != self._layout_mode
@@ -923,9 +1005,17 @@ class TkLayoutMixin:
             sections = self._all_compact_sections()
             for section in sections:
                 section.grid_forget()
-            for row in range(len(sections)):
+            self.workspace_splitter.grid_remove()
+            self.results_splitter.grid_remove()
+            for row in range(5):
                 self.workspace.rowconfigure(row, weight=0)
+                self.workspace.rowconfigure(row, minsize=0)
+            self.results_view.set_layout_mode(mode)
             if mode == "compact":
+                self.results_view.grid_propagate(True)
+                self.source_group.grid_propagate(True)
+                self.settings_panel.grid_propagate(True)
+                self.content_container.rowconfigure(2, minsize=0)
                 self.compact_tabs.pack(
                     fill="x",
                     before=self.content_container,
@@ -933,60 +1023,78 @@ class TkLayoutMixin:
                 self.workspace.columnconfigure(0, weight=1, minsize=0)
                 self.workspace.columnconfigure(1, weight=0, minsize=0)
                 self.workspace.columnconfigure(2, weight=0, minsize=0)
-                self.workspace_splitter.grid_remove()
                 self._show_active_compact_section()
             else:
+                self.results_view.grid_propagate(False)
+                self.source_group.grid_propagate(False)
+                self.settings_panel.grid_propagate(False)
+                self.source_group.configure(height=LEFT_SECTION_MIN_HEIGHT)
+                self.settings_panel.configure(height=LEFT_SETTINGS_TARGET_HEIGHT)
                 self.compact_tabs.pack_forget()
+                self.body_container.grid(row=0, column=0, sticky="nsew")
                 self.body_canvas.itemconfigure(self._body_window, height=0)
-                left_minimum = (
-                    self._left_panel_width if mode == "large" else 340
+                right_minimum = self._preview_min_width(mode)
+                left_minimum = min(
+                    self._left_panel_width,
+                    self._left_panel_max_width(mode),
                 )
-                right_minimum = (
-                    PREVIEW_MIN_WIDTH if mode == "large" else 320
+                self._left_panel_width = max(
+                    LEFT_PANEL_MIN_WIDTH,
+                    left_minimum,
                 )
                 self.workspace.columnconfigure(
-                    0, weight=0, minsize=left_minimum
+                    0, weight=0, minsize=self._left_panel_width
                 )
                 self.workspace.columnconfigure(
                     1,
                     weight=0,
-                    minsize=SECTION_GAP if mode == "large" else 0,
+                    minsize=SECTION_GAP,
                 )
                 self.workspace.columnconfigure(
                     2, weight=1, minsize=right_minimum
                 )
-                left_sections = (
-                    self.source_group,
-                    self.settings_panel,
-                    self.results_frame,
+                self.source_group.grid(
+                    row=0,
+                    column=0,
+                    sticky="nsew",
                 )
-                for row, section in enumerate(left_sections):
-                    section.grid(
-                        row=row,
-                        column=0,
-                        sticky="nsew",
-                        padx=(0, 0 if mode == "large" else SECTION_GAP),
-                        pady=(0, SECTION_GAP),
-                    )
-                self.workspace.rowconfigure(len(left_sections) - 1, weight=1)
-                if mode == "large":
-                    self.workspace_splitter.grid(
-                        row=0,
-                        column=1,
-                        rowspan=len(left_sections),
-                        sticky="ns",
-                    )
-                else:
-                    self.workspace_splitter.grid_remove()
+                self.settings_panel.grid(
+                    row=1,
+                    column=0,
+                    sticky="nsew",
+                )
+                self.workspace.rowconfigure(
+                    0,
+                    weight=1,
+                    minsize=LEFT_SECTION_MIN_HEIGHT,
+                )
+                self.workspace.rowconfigure(
+                    1,
+                    weight=0,
+                    minsize=LEFT_SETTINGS_TARGET_HEIGHT,
+                )
+                self.workspace_splitter.grid(
+                    row=0,
+                    column=1,
+                    rowspan=2,
+                    sticky="ns",
+                )
                 self.preview_group.grid(
                     row=0,
                     column=2,
-                    rowspan=len(left_sections),
+                    rowspan=2,
                     sticky="nsew",
                 )
+                self.results_frame.grid(
+                    row=2,
+                    column=0,
+                    sticky="nsew",
+                )
+                self._apply_results_panel_geometry(mode)
             self._layout_legacy_setting_rows()
             self._layout_preview_header(mode)
             self._layout_mode = mode
+            self._refresh_results_projection()
             if getattr(self, "_style_editor_open", False):
                 self._show_style_editor_host()
             elif getattr(self, "_destination_editor_open", False):
@@ -1038,19 +1146,21 @@ class TkLayoutMixin:
                 self._compact_vertical_padding = vertical_padding
         else:
             self._compact_vertical_padding = None
+            self._set_left_panel_width(self._left_panel_width)
+            self._set_results_panel_height(self._results_panel_height)
         self.status_label.configure(
             wraplength=max(160, width // 2),
         )
 
     def _start_left_panel_resize(self, event) -> str:
-        if self._layout_mode != "large":
+        if self._layout_mode == "compact":
             return "break"
         self.workspace_splitter.focus_set()
         self._left_resize_origin = (event.x_root, self._left_panel_width)
         return "break"
 
     def _resize_left_panel(self, event) -> str:
-        if self._left_resize_origin is None or self._layout_mode != "large":
+        if self._left_resize_origin is None or self._layout_mode == "compact":
             return "break"
         pointer_x, initial_width = self._left_resize_origin
         self._set_left_panel_width(
@@ -1059,19 +1169,110 @@ class TkLayoutMixin:
         return "break"
 
     def _adjust_left_panel_width(self, delta: int) -> str:
-        if self._layout_mode == "large":
+        if self._layout_mode != "compact":
             self._set_left_panel_width(self._left_panel_width + delta)
         return "break"
 
     def _set_left_panel_width(self, width: int) -> str:
         width = max(
             LEFT_PANEL_MIN_WIDTH,
-            min(LEFT_PANEL_MAX_WIDTH, int(width)),
+            min(self._left_panel_max_width(), int(width)),
         )
         self._left_panel_width = width
-        if self._layout_mode == "large":
+        if self._layout_mode != "compact":
             self.workspace.columnconfigure(0, minsize=width)
         return "break"
+
+    def _preview_min_width(self, mode=None) -> int:
+        current_mode = mode or self._layout_mode
+        return (
+            PREVIEW_MIN_WIDTH
+            if current_mode == "large"
+            else PREVIEW_MEDIUM_MIN_WIDTH
+        )
+
+    def _left_panel_max_width(self, mode=None) -> int:
+        available = max(
+            1,
+            int(getattr(self, "_viewport_width", INITIAL_WINDOW_WIDTH))
+            - (2 * OUTER_PADDING),
+        )
+        return max(
+            LEFT_PANEL_MIN_WIDTH,
+            available - SECTION_GAP - self._preview_min_width(mode),
+        )
+
+    def _start_results_panel_resize(self, event) -> str:
+        if (
+            self._layout_mode == "compact"
+            or self.results_view.collapsed
+        ):
+            return "break"
+        self.results_splitter.focus_set()
+        self._results_resize_origin = (
+            event.y_root,
+            self._results_panel_height,
+        )
+        return "break"
+
+    def _resize_results_panel(self, event) -> str:
+        if (
+            self._results_resize_origin is None
+            or self._layout_mode == "compact"
+            or self.results_view.collapsed
+        ):
+            return "break"
+        pointer_y, initial_height = self._results_resize_origin
+        self._set_results_panel_height(
+            initial_height + pointer_y - event.y_root
+        )
+        return "break"
+
+    def _adjust_results_panel_height(self, delta: int) -> str:
+        if self._layout_mode != "compact" and not self.results_view.collapsed:
+            self._set_results_panel_height(
+                self._results_panel_height + delta
+            )
+        return "break"
+
+    def _set_results_panel_height(self, height: int) -> str:
+        available_height = max(
+            RESULTS_PANEL_MIN_HEIGHT,
+            int(getattr(self, "_viewport_height", 760))
+            - RESULTS_PANEL_VERTICAL_RESERVE,
+        )
+        maximum = min(RESULTS_PANEL_MAX_HEIGHT, available_height)
+        self._results_panel_height = max(
+            RESULTS_PANEL_MIN_HEIGHT,
+            min(maximum, int(height)),
+        )
+        self._apply_results_panel_geometry()
+        return "break"
+
+    def _on_results_collapsed_changed(self, _collapsed: bool) -> None:
+        self._apply_results_panel_geometry()
+
+    def _apply_results_panel_geometry(self, mode=None) -> None:
+        current_mode = mode or self._layout_mode
+        if current_mode == "compact":
+            self.results_splitter.grid_remove()
+            return
+        collapsed = self.results_view.collapsed
+        height = (
+            RESULTS_PANEL_COLLAPSED_HEIGHT
+            if collapsed
+            else self._results_panel_height
+        )
+        self.content_container.rowconfigure(2, minsize=height, weight=0)
+        self.results_view.configure(height=height)
+        if collapsed:
+            self.results_splitter.grid_remove()
+        else:
+            self.results_splitter.grid(
+                row=1,
+                column=0,
+                sticky="ew",
+            )
 
     def _layout_legacy_setting_rows(self) -> None:
         """Keep temporary legacy editors usable inside their modal adapters."""

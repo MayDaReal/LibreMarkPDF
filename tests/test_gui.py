@@ -12,6 +12,7 @@ from unittest import mock
 
 from libremark_pdf import __version__, core, desktop_services, gui, i18n
 from libremark_pdf.desktop import services
+from libremark_pdf.desktop.ctk.widgets import results_view as ctk_results
 from libremark_pdf.desktop.tk import app as tk_app
 from libremark_pdf.desktop.tk import components as tk_components
 from libremark_pdf.desktop.tk import conversion as tk_conversion
@@ -273,6 +274,7 @@ class TestGuiAutomationContract(unittest.TestCase):
             "about.open",
             "menu.compact", "tab.files", "tab.preview", "tab.settings",
             "tab.results",
+            "results.clear", "results.toggle",
         }
         self.assertTrue(expected.issubset(tk_layout.AUTOMATION_ACTIONS))
 
@@ -328,12 +330,19 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
         app._compact_vertical_padding = None
         app._active_compact_tab = "files"
         app.workspace = mock.Mock()
+        app.workspace.winfo_width.return_value = 1100
+        app.workspace.winfo_height.return_value = 500
         app.workspace_splitter = mock.Mock()
+        app.results_splitter = mock.Mock()
         app._left_panel_width = tk_layout.LEFT_PANEL_TARGET_WIDTH
+        app._results_panel_height = tk_layout.RESULTS_PANEL_TARGET_HEIGHT
         app.source_group = mock.Mock()
         app.preview_group = mock.Mock()
         app.settings_panel = mock.Mock()
         app.results_frame = mock.Mock()
+        app.results_view = app.results_frame
+        app.results_view.collapsed = True
+        app._refresh_results_projection = mock.Mock()
         app._layout_legacy_setting_rows = mock.Mock()
         app._layout_preview_header = mock.Mock()
         app.body = mock.Mock()
@@ -345,6 +354,7 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
         app.app_header = mock.Mock()
         app.compact_tabs = mock.Mock()
         app.content_container = mock.Mock()
+        app.body_container = mock.Mock()
         app.body_canvas = mock.Mock()
         app.body_canvas.winfo_width.return_value = 560
         app.body_canvas.winfo_height.return_value = 400
@@ -407,15 +417,22 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
             row=0,
             column=0,
             sticky="nsew",
-            padx=(0, 0),
-            pady=(0, tk_styles.SECTION_GAP),
+        )
+        app.settings_panel.grid.assert_called_with(
+            row=1, column=0, sticky="nsew"
         )
         app.preview_group.grid.assert_called_with(
             row=0,
             column=2,
-            rowspan=3,
+            rowspan=2,
             sticky="nsew",
         )
+        app.results_frame.grid.assert_called_with(
+            row=2,
+            column=0,
+            sticky="nsew",
+        )
+
     def test_primary_action_and_progress_are_outside_scrolling_content(self):
         source = inspect.getsource(tk_layout.TkLayoutMixin._build_ui)
         self.assertIn("self.app_shell = AppShell(self.root)", source)
@@ -2123,8 +2140,8 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
     def test_result_summary_uses_natural_singular_and_plural_forms(self):
         app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
         expected = {
-            "en": "1 succeeded · 2 failed · 0 cancelled",
-            "fr": "1 réussi · 2 échecs · 0 annulés",
+            "en": "1 succeeded · 2 failed · 0 kept · 0 cancelled",
+            "fr": "1 réussi · 2 échecs · 0 conservés · 0 annulés",
         }
         for language, summary in expected.items():
             with self.subTest(language=language):
@@ -2229,6 +2246,16 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
         app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
         app.operation = "decision"
         app._decision_has_existing = True
+        app._decision_plans = [
+            services.core.BatchPlan(
+                Path("one.md"), Path("exports/one.pdf"),
+                "OUTPUT_EXISTS: refusing overwrite",
+            ),
+            services.core.BatchPlan(
+                Path("two.md"), Path("exports/two.pdf"),
+                "OUTPUT_EXISTS: refusing overwrite",
+            ),
+        ]
         app.action_bar = mock.Mock()
         app._start_generation = mock.Mock()
 
@@ -2239,6 +2266,10 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
         app._start_generation.assert_called_once_with(
             False,
             overwrite_targets=("exports/one.pdf", "exports/three.pdf"),
+        )
+        self.assertEqual(
+            app._expected_kept_outputs,
+            {Path("two.md"): Path("exports/two.pdf")},
         )
 
     def test_preflight_returns_collisions_before_existing_outputs_without_dialog(self):
@@ -2263,11 +2294,30 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
         self.assertEqual(existing, [plans[1]])
         app.dialogs.assert_not_called()
 
+    def test_only_explicitly_declined_overwrite_is_projected_as_kept(self):
+        app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
+        app._expected_kept_outputs = {
+            Path("kept.md"): Path("exports/kept.pdf")
+        }
+        refusal = {
+            "input": "kept.md",
+            "output": None,
+            "status": "error",
+            "error": "OUTPUT_EXISTS: refusing to overwrite",
+            "error_code": "OUTPUT_EXISTS",
+        }
+        projected = app._project_expected_kept_result(refusal)
+        self.assertEqual(projected["status"], "kept")
+        self.assertEqual(projected["output"], str(Path("exports/kept.pdf")))
+        self.assertIsNone(projected["error"])
+        unexpected = dict(refusal, input="unexpected.md")
+        self.assertIs(app._project_expected_kept_result(unexpected), unexpected)
+
     def test_mixed_results_keep_one_persistent_row_per_core_result(self):
         app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
         app._render_results = mock.Mock()
         app._set_status = mock.Mock()
-        app.results_summary_label = mock.Mock()
+        app._reveal_terminal_results = mock.Mock()
         results = [
             {
                 "input": "ok.md", "output": "ok.pdf", "status": "ok",
@@ -2285,9 +2335,9 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
         app._handle_generate_done(results)
         app._render_results.assert_called_once_with(results)
         app._set_status.assert_called_once_with(
-            "status_done_summary", ok=1, failed=1, cancelled=1
+            "status_done_summary", ok=1, failed=1, kept=0, cancelled=1
         )
-        app.results_summary_label.focus_set.assert_called_once_with()
+        app._reveal_terminal_results.assert_called_once_with("bad.md")
 
     def test_progress_keeps_completed_result_and_names_the_active_item(self):
         app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
@@ -2419,7 +2469,7 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
         app._conversion_results = completed
         app._render_results = mock.Mock()
         app._set_status = mock.Mock()
-        app.results_summary_label = mock.Mock()
+        app._reveal_terminal_results = mock.Mock()
         app._handle_generate_failed("worker stopped")
         app._render_results.assert_called_once_with(
             completed, global_error="worker stopped"
@@ -2427,15 +2477,31 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
         app._set_status.assert_called_once_with(
             "status_generation_error", error="worker stopped"
         )
-        app.results_summary_label.focus_set.assert_called_once_with()
+        app._reveal_terminal_results.assert_called_once_with()
 
     def test_only_success_rows_offer_open_actions(self):
-        app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
-        app.result_rows_frame = mock.Mock()
-        app._t = lambda key, **kwargs: key
-        app._open_result = mock.Mock()
-        app._copy_result_details = mock.Mock()
-        app._show_problem_report = mock.Mock()
+        row = ctk_results.ResultRow.__new__(ctk_results.ResultRow)
+        row._mode = "large"
+        row._expanded = False
+        row.source_id = "source.md"
+        row._on_toggle_details = mock.Mock()
+        row.action_buttons = []
+        row.details_button = None
+        row._assets = mock.Mock()
+        row._assets.image.return_value = mock.sentinel.icon
+        row._labels = {
+            "open_pdf": "open_pdf",
+            "open_folder": "open_folder",
+            "show_details": "show_details",
+            "hide_details": "hide_details",
+            "copy_details": "copy_details",
+            "report_issue_action": "report_issue_action",
+        }
+        on_open = mock.Mock()
+        on_copy = mock.Mock()
+        on_report = mock.Mock()
+        fonts = mock.Mock()
+        fonts.font.return_value.measure.side_effect = lambda text: len(text)
         created_buttons = []
 
         def button(*args, **kwargs):
@@ -2444,35 +2510,49 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
             created_buttons.append(widget)
             return widget
 
-        widget = lambda *args, **kwargs: mock.Mock()
-        with mock.patch.object(tk_conversion.ttk, "LabelFrame", side_effect=widget), \
-                mock.patch.object(tk_conversion.ttk, "Frame", side_effect=widget), \
-                mock.patch.object(tk_conversion.ttk, "Label", side_effect=widget), \
-                mock.patch.object(tk_conversion.ttk, "Button", side_effect=button):
-            app._render_result_row({
+        with mock.patch.object(
+            ctk_results, "IconButton", side_effect=button
+        ):
+            row.result = {
                 "input": "ok.md", "output": "ok.pdf", "status": "ok",
                 "error": None, "error_code": None,
-            })
-            app._render_result_row({
+            }
+            row._build_actions(
+                mock.Mock(), Path("ok.pdf"), "ok", fonts,
+                on_open, on_copy, on_report,
+            )
+            row.result = {
                 "input": "bad.md", "output": None, "status": "error",
                 "error": "failed", "error_code": "RENDER_FAILED",
-            })
-            app._render_result_row({
-                "input": "later.md", "output": None, "status": "cancelled",
-                "error": "cancelled", "error_code": "CANCELLED",
-            })
-        labels = [item.creation_options.get("text") for item in created_buttons]
+            }
+            row._build_actions(
+                mock.Mock(), None, "error", fonts,
+                on_open, on_copy, on_report,
+            )
+            error_report_button = next(
+                item for item in created_buttons
+                if item.creation_options.get("accessible_name")
+                == "report_issue_action"
+            )
+            error_report_button.creation_options["command"]()
+            row.result = {
+                "input": "later.md", "output": None,
+                "status": "cancelled", "error": None, "error_code": None,
+            }
+            row._build_actions(
+                mock.Mock(), None, "cancelled", fonts,
+                on_open, on_copy, on_report,
+            )
+        labels = [
+            item.creation_options.get("accessible_name")
+            for item in created_buttons
+        ]
         self.assertEqual(labels.count("open_pdf"), 1)
         self.assertEqual(labels.count("open_folder"), 1)
         self.assertEqual(labels.count("report_issue_action"), 1)
         self.assertNotIn("open_pdf", labels[2:])
         self.assertNotIn("open_folder", labels[2:])
-        report_button = next(
-            item for item in created_buttons
-            if item.creation_options.get("text") == "report_issue_action"
-        )
-        report_button.creation_options["command"]()
-        app._show_problem_report.assert_called_once_with(
+        on_report.assert_called_once_with(
             "RENDER_FAILED", "failed"
         )
 
@@ -2659,6 +2739,23 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
         output = Path("/tmp/report.pdf")
         app._open_result(output)
         app.services.open_path.assert_called_once_with(output)
+
+    def test_result_details_copy_keeps_source_code_and_human_error(self):
+        app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
+        app.root = mock.Mock()
+        app._set_status = mock.Mock()
+
+        app._copy_result_details({
+            "input": "C:/Données Ω/rapport.md",
+            "error_code": "RENDER_FAILED",
+            "error": "Chromium stopped safely",
+        })
+
+        app.root.clipboard_clear.assert_called_once_with()
+        app.root.clipboard_append.assert_called_once_with(
+            "C:/Données Ω/rapport.md: [RENDER_FAILED] Chromium stopped safely"
+        )
+        app._set_status.assert_called_once_with("status_details_copied")
 
     def test_file_row_show_and_copy_actions_use_public_desktop_boundaries(self):
         app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)

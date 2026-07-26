@@ -203,13 +203,13 @@ class ActionBar(ctk.CTkFrame):
             background=[("selected", COLORS["surface_selected"])],
             foreground=[("selected", COLORS["text"])],
         )
-        self.decision_table.column("source", width=230, minwidth=100, stretch=True)
+        self.decision_table.column("source", width=125, minwidth=90, stretch=True)
         self.decision_table.column(
-            "destination", width=230, minwidth=100, stretch=True
+            "destination", width=125, minwidth=90, stretch=True
         )
-        self.decision_table.column("issue", width=170, minwidth=110, stretch=True)
+        self.decision_table.column("issue", width=110, minwidth=90, stretch=True)
         self.decision_table.column(
-            "replace", width=118, minwidth=100, stretch=False, anchor="center"
+            "replace", width=118, minwidth=118, stretch=False, anchor="center"
         )
         self.decision_scrollbar = ttk.Scrollbar(
             self.decision_table_frame,
@@ -484,6 +484,8 @@ class ActionBar(ctk.CTkFrame):
         self._update_decision_selection()
 
     def _on_decision_click(self, event) -> Optional[str]:
+        if self.decision_table.identify_region(event.x, event.y) != "cell":
+            return None
         if self.decision_table.identify_column(event.x) != "#4":
             return None
         item = self.decision_table.identify_row(event.y)

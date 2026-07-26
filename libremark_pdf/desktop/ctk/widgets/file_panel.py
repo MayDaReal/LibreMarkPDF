@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import tkinter as tk
 from pathlib import Path
 from typing import Callable, Dict, Mapping, Optional, Sequence
 
@@ -100,15 +99,13 @@ class FilesPanel(CardFrame):
             font=self._add_font,
         )
         self.add_button.grid(row=0, column=1, padx=(SPACING["sm"], 0))
-        self.panel_menu_button = IconButton(
+        self.clear_button = IconButton(
             header,
-            image=assets.image(
-                "three-dots-vertical", size=16, color="neutral"
-            ),
-            accessible_name=self._labels["files_menu_a11y"],
-            command=self.open_panel_menu,
+            image=assets.image("trash3", size=16, color="neutral"),
+            accessible_name=self._labels["all_remove_action"],
+            command=self._on_clear,
         )
-        self.panel_menu_button.grid(
+        self.clear_button.grid(
             row=0,
             column=2,
             padx=(SPACING["xs"], 0),
@@ -169,7 +166,7 @@ class FilesPanel(CardFrame):
             padx=SPACING["md"],
             pady=(0, SPACING["md"]),
         )
-        self.panel_menu_button.grid_remove()
+        self.clear_button.grid_remove()
 
     def _show_list(self) -> None:
         self.empty_state.grid_forget()
@@ -180,7 +177,7 @@ class FilesPanel(CardFrame):
             padx=SPACING["xs"],
             pady=(0, SPACING["sm"]),
         )
-        self.panel_menu_button.grid()
+        self.clear_button.grid()
 
     def _set_count_text(self, count: int) -> None:
         key = "file_count_one" if count == 1 else "file_count_many"
@@ -283,6 +280,7 @@ class FilesPanel(CardFrame):
         state = "normal" if mutation_enabled else "disabled"
         self.add_button.configure(state=state)
         self.empty_state.configure(state=state)
+        self.clear_button.configure(state=state)
         for row in self.rows.values():
             row.set_enabled(mutation_enabled, selection_enabled)
         if mutation_enabled or not reason:
@@ -343,31 +341,13 @@ class FilesPanel(CardFrame):
             border_color=border,
         )
 
-    def open_panel_menu(self) -> None:
-        """Open secondary batch actions in a native menu."""
-        menu = tk.Menu(self, tearoff=False)
-        menu.add_command(
-            label=self._labels["all_remove_action"],
-            command=self._on_clear,
-            state="normal" if self._mutation_enabled else "disabled",
-        )
-        x = self.panel_menu_button.winfo_rootx()
-        y = (
-            self.panel_menu_button.winfo_rooty()
-            + self.panel_menu_button.winfo_height()
-        )
-        try:
-            menu.tk_popup(x, y)
-        finally:
-            menu.grab_release()
-
     def retranslate(self, labels: Mapping[str, str]) -> None:
         """Refresh all panel copy while retaining row objects and focus."""
         self._labels = dict(labels)
         self.title_label.configure(text=self._labels["files_heading"])
         self.add_button.configure(text=self._labels["add_files"])
-        self.panel_menu_button.update_accessible_name(
-            self._labels["files_menu_a11y"]
+        self.clear_button.update_accessible_name(
+            self._labels["all_remove_action"]
         )
         self._set_count_text(len(self._paths))
         self.set_drop_state("empty")

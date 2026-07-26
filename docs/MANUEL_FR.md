@@ -36,11 +36,12 @@ automatiquement une version pyenv `3.9.x` déjà installée.
    ligne permet d’afficher le dossier source, de copier le chemin ou de retirer
    le fichier. Lorsqu’une ligne a le focus, utilisez Haut/Bas pour vous
    déplacer, Entrée ou Espace pour activer son aperçu, Suppr pour la retirer,
-   et Menu ou Maj+F10 pour ouvrir ses actions. L’ajout et le retrait sont
-   indisponibles pendant la conversion, et le panneau Fichiers en indique la
-   raison. Dans la disposition large à deux colonnes, faites glisser le
-   séparateur entre le panneau gauche et l’aperçu pour régler sa largeur de
-   360 à 440 px ; cette valeur est conservée uniquement pendant la session.
+   et Menu ou Maj+F10 pour ouvrir ses actions. La poubelle du bandeau retire
+   directement tous les fichiers. L’ajout et le retrait sont indisponibles
+   pendant la conversion, et le panneau Fichiers en indique la raison. Dans la
+   disposition large à deux colonnes, faites glisser le séparateur entre le
+   panneau gauche et l’aperçu depuis son minimum de 360 px jusqu’à la limite
+   disponible qui conserve un aperçu utilisable ; cette valeur est conservée uniquement pendant la session.
    Les chemins parents longs sont élidés au milieu, tandis que leur valeur
    complète reste accessible dans l’infobulle et par **Copier le chemin**.
    Pour une largeur de fenêtre inférieure ou égale à 759 px, utilisez les
@@ -130,8 +131,8 @@ précède le titre de la décision, comme dans les pages de réglages ; Échap p
 le même retour sûr. Le titre et les compteurs partagent une ligne. Les détails
 indiquent chaque source, destination, problème court et décision de remplacement
 dans un tableau compact. Cochez **Remplacer ?** pour chaque PDF existant qui peut
-être remplacé après un rendu réussi ; les PDF non cochés sont conservés et
-signalés comme des échecs. La case du titre de colonne modifie toutes les lignes
+être remplacé après un rendu réussi ; les PDF non cochés sont conservés avec
+un état neutre **Conservé**. La case du titre de colonne modifie toutes les lignes
 éligibles et adopte un état intermédiaire pour une sélection mixte. Les lignes en
 collision affichent **Bloqué** à la place d’une case et peuvent être signalées
 pendant que les fichiers indépendants continuent. Un récapitulatif séparé indique
@@ -166,10 +167,38 @@ préexistant est conservé. Fermer la fenêtre demande de
 **Continuer la conversion** (choix sûr par défaut, également utilisé par Échap)
 ou d’**Annuler la conversion et fermer** ; le fichier actif peut se terminer
 avant l’annulation des fichiers restants. La liste finale conserve une ligne
-par entrée dans l’ordre des sources, y compris les réussites, échecs et
-annulations. Les codes d’erreur peuvent être dépliés et copiés. Les actions
-**Ouvrir le PDF** et **Ouvrir le dossier** ne sont proposées que pour les
-sorties réussies.
+par entrée dans l’ordre des sources, y compris les réussites, échecs,
+conservations et annulations. Un PDF existant que l’utilisateur a explicitement
+choisi de ne pas remplacer est **Conservé**, tandis qu’un refus d’écrasement
+inattendu reste un échec. Dans les fenêtres normales et grandes, **Résultats** est un panneau
+inférieur transversal de hauteur bornée, sous l’espace Fichiers/Réglages et
+Aperçu. Vous pouvez le déployer, le replier ou faire glisser son séparateur
+horizontal pour régler sa hauteur ; l’espace principal et la barre d’action
+fixe restent disponibles. Réglages conserve une hauteur fixe et Fichiers
+utilise toute la hauteur restante, jusqu’à son minimum. Le séparateur vertical permet d’agrandir la
+zone de gauche jusqu’à la limite disponible tout en conservant un Aperçu
+utilisable. Dans une fenêtre compacte, les mêmes résultats ordonnés utilisent
+des cartes verticales condensées dans l’onglet **Résultats**, sans
+défilement horizontal. À la fin d’un lot comportant une erreur, l’application
+sélectionne automatiquement Résultats. Elle ne change jamais d’onglet pendant
+la conversion et conserve l’onglet courant après un lot entièrement réussi.
+
+Le bandeau place le résumé du lot à côté de **Résultats**. Sa poubelle efface
+directement les résultats, comme dans la section Fichiers, et le chevron replie
+ou déploie le panneau. Les actions des lignes utilisent
+des icônes standard avec infobulles localisées et noms accessibles. Une
+réussite propose **Ouvrir le PDF** et **Ouvrir le dossier**. Un échec propose
+**Copier les détails**, le parcours existant **Signaler un problème** prérempli
+avec le code d’erreur, et un bouton d’information direct pour déployer les détails. Une
+annulation ne propose jamais d’action d’ouverture ; ses détails éventuels sont
+également accessibles par le même bouton d’information. La cellule Sortie
+affiche le message d’échec élidé lorsqu’aucun PDF n’a été produit. Les détails
+déployés évitent de répéter ce message et affichent le code stable puis les
+éventuelles informations techniques supplémentaires en police monospace ; ils restent
+déployés pendant les mises à jour suivantes ou un changement de langue.
+**Effacer les résultats** est disponible uniquement hors conversion, ne
+supprime aucun PDF et restaure l’état prêt lorsque des fichiers sources restent
+sélectionnés.
 
 ## Jetons d’en-tête et de pied de page
 
