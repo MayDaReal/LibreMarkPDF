@@ -71,6 +71,8 @@ class LibreMarkPdfApp(
         self._preview_page_pending = None
         self._preview_failed_page = None  # type: Optional[int]
         self._preview_active_request = None
+        self._preview_fit_mode = None  # type: Optional[str]
+        self._preview_image_origin = (16.0, 16.0)
         self._poll_after = None
         self._cancel_event = threading.Event()
         self._result_queue = queue.Queue()  # type: queue.Queue
@@ -191,6 +193,26 @@ class LibreMarkPdfApp(
             "settings": self._t("compact_tab_settings"),
             "results": self._t("compact_tab_results"),
         }
+
+    def _preview_labels(self) -> dict:
+        keys = (
+            "preview_heading",
+            "refresh_preview_a11y",
+            "previous_page_a11y",
+            "next_page_a11y",
+            "zoom_out_a11y",
+            "zoom_in_a11y",
+            "fit_page",
+            "fit_width",
+            "preview_more_a11y",
+            "preview_canvas_a11y",
+            "preview_empty",
+            "add_files",
+            "preview_retry",
+            "copy_details",
+            "report_issue_action",
+        )
+        return {key: self._t(key) for key in keys}
 
     def _tp(
         self,
@@ -430,7 +452,7 @@ class LibreMarkPdfApp(
             title.configure(text=settings_labels[name])
         self._settings_dialog["apply"].config(text=self._t("apply_settings"))
         self._settings_dialog["cancel"].config(text=self._t("cancel_settings"))
-        self.preview_group.config(text=self._t("preview_heading"))
+        self.preview_group.retranslate(self._preview_labels())
         self._update_preview_translations()
         self.output_button.config(text=self._t("change_destination"))
         self.output_reset_button.config(text=self._t("reset_destination"))

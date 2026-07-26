@@ -1097,8 +1097,8 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
         app.zoom_percent.set.side_effect = lambda value: current.__setitem__(0, value)
         app._redraw_preview = mock.Mock()
 
-        expected = (125, 150, 200, 200, 150, 125, 100, 75, 50, 50)
-        directions = (1, 1, 1, 1, -1, -1, -1, -1, -1, -1)
+        expected = (125, 150, 200, 200, 150, 125, 100, 75, 50, 25, 10, 10)
+        directions = (1, 1, 1, 1, -1, -1, -1, -1, -1, -1, -1, -1)
         observed = []
         for direction in directions:
             app._change_zoom(direction)
@@ -1161,7 +1161,7 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
         self.assertEqual(request, (9, 2, tk_preview.PREVIEW_DPI))
         self.assertEqual(app._preview_page_pending, 2)
         self.assertEqual(app._preview_active_request, ("page", 9, 2))
-        app._set_preview_state.assert_called_once_with("loading")
+        app._set_preview_state.assert_called_once_with("rendering")
         app._schedule_queue_poll.assert_called_once_with()
 
     def test_page_controls_follow_bounds_and_loading_state(self):
@@ -1179,7 +1179,7 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
         )
 
         app._update_page_controls()
-        app.preview_page_label.config.assert_called_with(text="1/3")
+        app.preview_page_label.configure.assert_called_with(text="1/3")
         app.previous_page_button.config.assert_called_with(state="disabled")
         app.next_page_button.config.assert_called_with(state="normal")
 
@@ -1252,7 +1252,7 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
         app.root.after_cancel.assert_called_once_with("older")
         self.assertEqual(app.root.after.call_args.args[0], 450)
         self.assertEqual(app._preview_after, "newer")
-        app._set_preview_state.assert_called_once_with("loading")
+        app._set_preview_state.assert_called_once_with("scheduled")
 
     def test_refresh_without_files_keeps_explicit_empty_state(self):
         app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
@@ -1267,6 +1267,20 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
 
         app._set_preview_state.assert_called_once_with("empty")
         app._start_preview.assert_not_called()
+
+    def test_explicit_preview_reset_enables_fit_page_before_refresh(self):
+        app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
+        app.operation = "idle"
+        app._preview_png = b"existing-raster"
+        app._preview_fit_mode = None
+        app._redraw_preview = mock.Mock()
+        app._refresh_preview = mock.Mock()
+
+        app._reset_preview()
+
+        self.assertEqual(app._preview_fit_mode, "page")
+        app._redraw_preview.assert_called_once_with()
+        app._refresh_preview.assert_called_once_with()
 
     def test_preview_error_is_inline_and_preserves_the_previous_image(self):
         app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
@@ -1293,7 +1307,7 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
         self.assertEqual(app._preview_png, b"previous")
         app.preview_message_label.config.assert_called_once_with(
             text=(
-                "preview_unavailable: pypdfium2 is required "
+                "preview_unavailable\npypdfium2 is required\n"
                 "preview_conversion_possible"
             )
         )
@@ -1347,8 +1361,8 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
         app._set_zoom(200, (10, 20))
 
         app.zoom_percent.set.assert_called_once_with(200)
-        app.preview_canvas.xview_moveto.assert_called_once_with(0.202)
-        app.preview_canvas.yview_moveto.assert_called_once_with(0.196)
+        app.preview_canvas.xview_moveto.assert_called_once_with(0.198)
+        app.preview_canvas.yview_moveto.assert_called_once_with(0.194)
 
     def test_preview_mouse_gestures_scroll_zoom_and_pan(self):
         app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
@@ -1376,7 +1390,7 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
         app.zoom_in_button = mock.Mock()
         app._t = lambda key, **kwargs: "{0}%".format(kwargs["percent"])
 
-        app.zoom_percent.get.return_value = 50
+        app.zoom_percent.get.return_value = 10
         app._update_zoom_controls()
         app.zoom_out_button.config.assert_called_with(state="disabled")
         app.zoom_in_button.config.assert_called_with(state="normal")
@@ -1405,6 +1419,60 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
         app._update_preview_scrollbars()
         self.assertEqual(app.preview_horizontal.grid_remove.call_count, 1)
         self.assertEqual(app.preview_vertical.grid_remove.call_count, 2)
+
+    def test_fit_modes_use_only_the_existing_raster_and_manual_zoom_exits_fit(self):
+        app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
+        app.operation = "idle"
+        app._preview_png = b"existing-raster"
+        app._preview_fit_mode = None
+        app._preview_requests = queue.Queue()
+        app._redraw_preview = mock.Mock()
+
+        self.assertEqual(app._set_preview_fit("page"), "break")
+        self.assertEqual(app._preview_fit_mode, "page")
+        app._redraw_preview.assert_called_once_with()
+        self.assertTrue(app._preview_requests.empty())
+
+        app.zoom_percent = mock.Mock()
+        app.zoom_percent.get.return_value = 100
+        app._update_zoom_controls = mock.Mock()
+        app._set_zoom(125)
+        self.assertIsNone(app._preview_fit_mode)
+        self.assertTrue(app._preview_requests.empty())
+
+    def test_fit_percent_respects_canvas_margin_zoom_bounds_and_mode(self):
+        app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
+        app.preview_canvas = mock.Mock()
+        app.preview_canvas.winfo_width.return_value = 432
+        app.preview_canvas.winfo_height.return_value = 632
+
+        self.assertEqual(app._fit_zoom_percent(400, 600, "page"), 100)
+        self.assertEqual(app._fit_zoom_percent(400, 900, "page"), 66)
+        self.assertEqual(app._fit_zoom_percent(400, 900, "width"), 100)
+        app.preview_canvas.winfo_width.return_value = 100
+        app.preview_canvas.winfo_height.return_value = 100
+        self.assertEqual(app._fit_zoom_percent(400, 900, "page"), 10)
+
+    def test_resize_recalculates_active_fit_without_rendering(self):
+        app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
+        app._preview_png = b"existing-raster"
+        app._preview_fit_mode = "width"
+        app._preview_requests = queue.Queue()
+        app._redraw_preview = mock.Mock()
+
+        app._on_preview_canvas_configure()
+
+        app._redraw_preview.assert_called_once_with()
+        self.assertTrue(app._preview_requests.empty())
+
+    def test_shift_wheel_scrolls_horizontally(self):
+        app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
+        app.preview_canvas = mock.Mock()
+        event = mock.Mock(delta=-120, num=0, state=1, x=30, y=40)
+
+        self.assertEqual(app._on_preview_mousewheel(event), "break")
+        app.preview_canvas.xview_scroll.assert_called_once_with(1, "units")
+        app.preview_canvas.yview_scroll.assert_not_called()
 
     def test_ctrl_zero_and_f1_handlers_are_non_destructive(self):
         app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
@@ -1564,6 +1632,18 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
         app.root.clipboard_clear.assert_called_once_with()
         app.root.clipboard_append.assert_called_once_with("preview failed")
 
+    def test_preview_error_report_uses_local_reporting_dialog(self):
+        app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
+        app._preview_error = "preview failed"
+        app._preview_state = "error"
+        app._show_problem_report = mock.Mock()
+
+        app._report_preview_error()
+
+        app._show_problem_report.assert_called_once_with(
+            "PREVIEW_FAILED", "preview failed"
+        )
+
     def test_initial_focus_is_given_to_browse_files(self):
         root = mock.Mock()
         services_boundary = mock.Mock()
@@ -1667,6 +1747,7 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
         app.operation = "idle"
         app.files = [Path("existing.md")]
         app.active_file = Path("existing.md")
+        app._preview_fit_mode = "width"
         app._render_file_list = mock.Mock()
         app._refresh_generate_button = mock.Mock()
         app._schedule_preview = mock.Mock()
@@ -1689,6 +1770,7 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
             ],
         )
         self.assertEqual(app.active_file, Path("existing.md"))
+        self.assertEqual(app._preview_fit_mode, "width")
         app._render_file_list.assert_called_once_with(focus_path=Path("new.md"))
         app._schedule_preview.assert_called_once_with()
         app._set_status.assert_called_once_with(
@@ -1703,6 +1785,7 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
         app.operation = "idle"
         app.files = []
         app.active_file = None
+        app._preview_fit_mode = "width"
         app._render_file_list = mock.Mock()
         app._refresh_generate_button = mock.Mock()
         app._schedule_preview = mock.Mock()
@@ -1710,6 +1793,7 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
 
         app._add_files(["unsupported.txt"])
         self.assertIsNone(app.active_file)
+        self.assertEqual(app._preview_fit_mode, "width")
         app._schedule_preview.assert_not_called()
         app._set_status.assert_called_once_with(
             "files_add_summary",
@@ -1721,6 +1805,7 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
         app._set_status.reset_mock()
         app._add_files(["first.md", "second.md"])
         self.assertEqual(app.active_file, Path("first.md"))
+        self.assertEqual(app._preview_fit_mode, "page")
         app._set_status.assert_called_once_with("files_added_many", count=2)
 
     def test_advanced_draft_matches_render_boundary_and_saves_only_advanced_values(self):
@@ -1877,12 +1962,14 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
         app.operation = "idle"
         app.files = [Path("first.md"), Path("second.md")]
         app.active_file = Path("first.md")
+        app._preview_fit_mode = "width"
         app._render_file_list = mock.Mock()
         app._schedule_preview = mock.Mock()
 
         app._select_file(Path("second.md"))
 
         self.assertEqual(app.active_file, Path("second.md"))
+        self.assertEqual(app._preview_fit_mode, "page")
         self.assertEqual(app.files, [Path("first.md"), Path("second.md")])
         app._render_file_list.assert_called_once_with(
             focus_path=Path("second.md")
@@ -1894,6 +1981,7 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
         app.operation = "idle"
         app.files = [Path("one.md"), Path("two.md"), Path("three.md")]
         app.active_file = Path("two.md")
+        app._preview_fit_mode = "width"
         app._render_file_list = mock.Mock()
         app._refresh_generate_button = mock.Mock()
         app._schedule_preview = mock.Mock()
@@ -1902,10 +1990,13 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
         app._remove_file(Path("two.md"))
         self.assertEqual(app.files, [Path("one.md"), Path("three.md")])
         self.assertEqual(app.active_file, Path("three.md"))
+        self.assertEqual(app._preview_fit_mode, "page")
 
+        app._preview_fit_mode = "width"
         app._remove_file(Path("three.md"))
         self.assertEqual(app.files, [Path("one.md")])
         self.assertEqual(app.active_file, Path("one.md"))
+        self.assertEqual(app._preview_fit_mode, "page")
         self.assertEqual(
             app._render_file_list.call_args_list,
             [
@@ -1913,6 +2004,22 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
                 mock.call(focus_path=Path("one.md")),
             ],
         )
+
+    def test_removing_inactive_file_preserves_active_preview_view(self):
+        app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
+        app.operation = "idle"
+        app.files = [Path("one.md"), Path("two.md")]
+        app.active_file = Path("one.md")
+        app._preview_fit_mode = "width"
+        app._render_file_list = mock.Mock()
+        app._refresh_generate_button = mock.Mock()
+        app._schedule_preview = mock.Mock()
+
+        app._remove_file(Path("two.md"))
+
+        self.assertEqual(app.active_file, Path("one.md"))
+        self.assertEqual(app._preview_fit_mode, "width")
+        app._schedule_preview.assert_called_once_with()
 
     def test_drop_hover_distinguishes_supported_and_unsupported_inputs(self):
         app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)

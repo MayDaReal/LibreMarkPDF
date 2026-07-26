@@ -69,6 +69,7 @@ class TkInputMixin:
     def _add_files(self, paths: Iterable[Union[str, Path]]) -> None:
         if self.operation != "idle":
             return
+        was_empty = not self.files
         added = []
         duplicates = 0
         unsupported = 0
@@ -84,6 +85,8 @@ class TkInputMixin:
         if self.active_file not in self.files:
             self.active_file = added[0] if added else None
         if added:
+            if was_empty:
+                self._preview_fit_mode = "page"
             self._render_file_list(focus_path=added[0])
             self._refresh_generate_button()
             self._schedule_preview()
@@ -150,7 +153,10 @@ class TkInputMixin:
     def _select_file(self, path: Path) -> None:
         if self.operation != "idle" or path not in self.files:
             return
+        active_changed = path != self.active_file
         self.active_file = path
+        if active_changed:
+            self._preview_fit_mode = "page"
         self._render_file_list(focus_path=path)
         self._schedule_preview()
 
@@ -184,6 +190,7 @@ class TkInputMixin:
         if was_active:
             if self.files:
                 self.active_file = self.files[min(removed_index, len(self.files) - 1)]
+                self._preview_fit_mode = "page"
             else:
                 self.active_file = None
         getattr(self, "_file_conversion_states", {}).pop(path, None)

@@ -81,16 +81,28 @@ install CPython 3.9 with pyenv first; the Linux bootstrap detects an installed
 5. The active file's preview is refreshed after a short delay when a
    preview-compatible setting changes. The preview keeps the previous image
    visible while updating and identifies empty, updating, and unavailable
-   states explicitly. Select the ↻ button to refresh immediately. Use
+   states explicitly. The first file added to an empty list opens in
+   **Fit page** mode. Selecting a different preview file, including the file
+   automatically selected after removing the active one, returns to page 1 in
+   **Fit page** mode. Adding or removing another file without changing the
+   active file preserves the current view. Select the ↻ button, or press
+   `Ctrl+R`, to refresh
+   immediately and reset the view to **Fit page**. Use
    **‹ Page n of total ›** to rasterize any page from the same temporary preview
    PDF without changing the final PDF. A new document version returns to page
    1; zoom keeps the current page. With the preview focused, Left and Right
    move between pages. Use
-   **− 100% +**, `Ctrl+-`, `Ctrl++`, or `Ctrl+0` to set zoom from 50% through
-   200%. With the preview focused, the wheel scrolls, `Ctrl+wheel` zooms around
+   **− 100% +**, `Ctrl+-`, `Ctrl++`, or `Ctrl+0` to set zoom from 10% through
+   200%. **Fit page** uses the available width and height, while **Fit width**
+   uses the available width. Both actions resize the existing preview image
+   without rendering the document again; resizing the window recalculates an
+   active fit mode, and a manual zoom exits it. In compact windows, both Fit
+   actions are in the preview overflow menu. With the preview focused, the
+   wheel scrolls, `Shift+wheel` scrolls horizontally, `Ctrl+wheel` zooms around
    the pointer, and middle-button drag pans the page. Scrollbars appear only
-   when needed. A preview error can be retried or copied and does not prevent a
-   valid PDF generation attempt.
+   when needed. A preview error can be retried, copied, or opened in the local
+   **Report a problem** workflow and does not prevent a valid PDF generation
+   attempt.
 6. Optional: edit **Destination** and select **Single folder**. Otherwise, each
    PDF is written beside its Markdown source.
    **Advanced options** contains the render date and trusted static HTML as

@@ -92,17 +92,30 @@ automatiquement une version pyenv `3.9.x` déjà installée.
 5. L’aperçu du fichier actif est actualisé après un court délai
    lorsqu’un réglage compatible change. L’ancienne image reste visible pendant
    la mise à jour et les états vide, mise à jour et indisponible sont indiqués
-   explicitement. Sélectionnez le bouton ↻ pour actualiser immédiatement.
+   explicitement. Le premier fichier ajouté à une liste vide s’ouvre en mode
+   **Ajuster à la page**. La sélection d’un autre fichier d’aperçu, y compris
+   celui sélectionné automatiquement après la suppression du fichier actif,
+   revient à la page 1 en mode **Ajuster à la page**. L’ajout ou la suppression
+   d’un autre fichier sans changer le fichier actif conserve la vue courante.
+   Sélectionnez le bouton ↻, ou appuyez sur `Ctrl+R`, pour
+   actualiser immédiatement et réinitialiser la vue sur **Ajuster à la page**.
    Utilisez **‹ Page n sur total ›** pour rasteriser chaque page depuis le même
    PDF temporaire d’aperçu, sans modifier le PDF final. Une nouvelle version du
    document revient à la page 1 ; le zoom conserve la page courante. Lorsque
    l’aperçu a le focus, les flèches Gauche et Droite changent de page.
    Utilisez **− 100 % +**, `Ctrl+-`, `Ctrl++` ou `Ctrl+0` pour régler le zoom de
-   50 % à 200 %. Lorsque l’aperçu a le focus, la molette le fait défiler,
-   `Ctrl+molette` zoome autour du pointeur et le glisser avec le bouton central
-   déplace la page. Les barres de défilement n’apparaissent que si nécessaire.
-   Une erreur d’aperçu peut être relancée ou copiée et n’empêche pas de tenter
-   une génération PDF valide.
+   10 % à 200 %. **Ajuster à la page** utilise la largeur et la hauteur
+   disponibles, tandis que **Ajuster à la largeur** utilise la largeur
+   disponible. Ces deux actions redimensionnent l’image d’aperçu existante sans
+   relancer le rendu du document ; redimensionner la fenêtre recalcule le mode
+   d’ajustement actif, et un zoom manuel le quitte. Dans une fenêtre compacte,
+   les deux actions d’ajustement se trouvent dans le menu de débordement de
+   l’aperçu. Lorsque l’aperçu a le focus, la molette le fait défiler,
+   `Maj+molette` le fait défiler horizontalement, `Ctrl+molette` zoome autour du
+   pointeur et le glisser avec le bouton central déplace la page. Les barres de
+   défilement n’apparaissent que si nécessaire. Une erreur d’aperçu peut être
+   relancée, copiée ou ouverte dans le parcours local **Signaler un problème**
+   et n’empêche pas de tenter une génération PDF valide.
 6. Facultatif : modifiez **Destination** et choisissez **Dossier unique**.
    Sinon, chaque PDF est créé à côté de sa source Markdown.
    **Options avancées** contient la date de rendu et le HTML statique de

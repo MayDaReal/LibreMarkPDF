@@ -29,13 +29,11 @@ from ..ctk.widgets.compact_tabs import CompactTabBar
 from ..ctk.widgets.destination_editor import DestinationEditorPanel
 from ..ctk.widgets.file_panel import FilesPanel
 from ..ctk.widgets.header_footer_editor import HeaderFooterEditorPanel
+from ..ctk.widgets.preview_panel import PreviewPanel
 from ..ctk.widgets.settings_summary import SettingsSummaryPanel
 from ..ctk.widgets.style_editor import StyleEditorPanel
-from .components import configure_symbol_button
 from .styles import (
-    ICON_BUTTON_STYLE,
     OUTER_PADDING,
-    PREVIEW_HEIGHT,
     SECTION_GAP,
     SECTION_PADDING,
     SPACE_SM,
@@ -58,7 +56,8 @@ AUTOMATION_ACTIONS = frozenset((
     "style.toggle", "destination.toggle", "header_footer.toggle",
     "other.toggle", "advanced.toggle", "preview.refresh",
     "preview.zoom_out", "preview.zoom_in", "preview.retry",
-    "preview.copy_details",
+    "preview.copy_details", "preview.report", "preview.fit_page",
+    "preview.fit_width",
     "preview.previous_page", "preview.next_page",
     "output.choose", "output.reset",
     "convert.start", "convert.cancel", "menu.compact",
@@ -679,137 +678,58 @@ class TkLayoutMixin:
                 ),
             )
 
-        self.preview_group = ttk.LabelFrame(self.workspace, padding=SECTION_PADDING)
-        self.preview_header = ttk.Frame(self.preview_group)
-        self.preview_header.pack(fill="x")
-        self.active_preview_label = ttk.Label(
-            self.preview_header,
-            font=self.ui_styles.emphasis_font,
-            anchor="w",
+        self.preview_group = PreviewPanel(
+            self.workspace,
+            labels=self._preview_labels(),
+            fonts=self.ui_fonts,
+            assets=self.ui_assets,
+            on_add_files=self._browse_files,
+            on_refresh=self._reset_preview,
+            on_previous=lambda: self._change_preview_page(-1),
+            on_next=lambda: self._change_preview_page(1),
+            on_zoom_out=lambda: self._change_zoom(-1),
+            on_zoom_in=lambda: self._change_zoom(1),
+            on_fit_page=lambda: self._set_preview_fit("page"),
+            on_fit_width=lambda: self._set_preview_fit("width"),
+            on_retry=self._retry_preview,
+            on_copy_details=self._copy_preview_details,
+            on_report=self._report_preview_error,
         )
-        self.active_preview_label.pack(side="left", fill="x", expand=True)
-        self.preview_controls = ttk.Frame(self.preview_header)
-        self.preview_controls.pack(side="right")
-        self.refresh_preview_button = ttk.Button(
-            self.preview_controls,
-            command=self._refresh_preview,
-            style=ICON_BUTTON_STYLE,
-        )
-        self.refresh_preview_button.pack(side="left")
-        self._register_automation_widget("preview.refresh", self.refresh_preview_button)
-        self.previous_page_button = ttk.Button(
-            self.preview_controls,
-            command=lambda: self._change_preview_page(-1),
-            style=ICON_BUTTON_STYLE,
-        )
-        self.previous_page_button.pack(side="left", padx=(SPACE_SM, 0))
-        self._register_automation_widget(
-            "preview.previous_page", self.previous_page_button
-        )
-        self.preview_page_label = ttk.Label(
-            self.preview_controls, anchor="center", width=16
-        )
-        self.preview_page_label.pack(side="left", padx=SPACE_XS)
-        self.next_page_button = ttk.Button(
-            self.preview_controls,
-            command=lambda: self._change_preview_page(1),
-            style=ICON_BUTTON_STYLE,
-        )
-        self.next_page_button.pack(side="left")
-        self._register_automation_widget(
-            "preview.next_page", self.next_page_button
-        )
-        self.zoom_out_button = ttk.Button(
-            self.preview_controls,
-            command=lambda: self._change_zoom(-1),
-            style=ICON_BUTTON_STYLE,
-        )
-        self.zoom_out_button.pack(side="left", padx=(SPACE_SM, 0))
-        self._register_automation_widget("preview.zoom_out", self.zoom_out_button)
-        self.zoom_label = ttk.Label(
-            self.preview_controls,
-            anchor="center",
-            width=7,
-        )
-        self.zoom_label.pack(side="left", padx=SPACE_XS)
-        self.zoom_in_button = ttk.Button(
-            self.preview_controls,
-            command=lambda: self._change_zoom(1),
-            style=ICON_BUTTON_STYLE,
-        )
-        self.zoom_in_button.pack(side="left")
-        self._register_automation_widget("preview.zoom_in", self.zoom_in_button)
-        configure_symbol_button(
-            self.refresh_preview_button,
-            "↻",
-            self._t("refresh_preview_a11y"),
-        )
-        configure_symbol_button(
-            self.previous_page_button,
-            "‹",
-            self._t("previous_page_a11y"),
-        )
-        configure_symbol_button(
-            self.next_page_button,
-            "›",
-            self._t("next_page_a11y"),
-        )
-        configure_symbol_button(
-            self.zoom_out_button,
-            "−",
-            self._t("zoom_out_a11y"),
-        )
-        configure_symbol_button(
-            self.zoom_in_button,
-            "+",
-            self._t("zoom_in_a11y"),
-        )
-
-        self.preview_message_frame = ttk.Frame(self.preview_group)
-        self.preview_message_label = ttk.Label(
-            self.preview_message_frame,
-            wraplength=480,
-            justify="left",
-        )
-        self.preview_message_label.pack(side="left", fill="x", expand=True)
-        self.preview_retry_button = ttk.Button(
-            self.preview_message_frame,
-            command=self._retry_preview,
-        )
-        self.preview_retry_button.pack(side="right", padx=(SPACE_SM, 0))
-        self._register_automation_widget("preview.retry", self.preview_retry_button)
-        self.preview_copy_button = ttk.Button(
-            self.preview_message_frame,
-            command=self._copy_preview_details,
-        )
-        self.preview_copy_button.pack(side="right", padx=(SPACE_SM, 0))
-        self._register_automation_widget(
-            "preview.copy_details", self.preview_copy_button
-        )
-        preview_box = ttk.Frame(self.preview_group)
-        preview_box.pack(fill="both", expand=True, pady=(SPACE_SM, 0))
-        preview_box.rowconfigure(0, weight=1)
-        preview_box.columnconfigure(0, weight=1)
-        self.preview_canvas = tk.Canvas(
-            preview_box,
-            height=PREVIEW_HEIGHT,
-            bg=self.ui_styles.preview_background,
-            highlightbackground=self.ui_styles.drop_border,
-            highlightcolor=self.ui_styles.drop_border,
-            highlightthickness=1,
-            takefocus=True,
-        )
-        self.preview_vertical = ttk.Scrollbar(
-            preview_box, orient="vertical", command=self.preview_canvas.yview
-        )
-        self.preview_horizontal = ttk.Scrollbar(
-            preview_box, orient="horizontal", command=self.preview_canvas.xview
-        )
-        self.preview_canvas.configure(
-            yscrollcommand=self.preview_vertical.set,
-            xscrollcommand=self.preview_horizontal.set,
-        )
-        self.preview_canvas.grid(row=0, column=0, sticky="nsew")
+        toolbar = self.preview_group.toolbar
+        self.preview_header = self.preview_group.header
+        self.active_preview_label = self.preview_group.filename_label
+        self.preview_controls = toolbar
+        self.refresh_preview_button = toolbar.refresh_button
+        self.previous_page_button = toolbar.previous_button
+        self.preview_page_label = toolbar.page_label
+        self.next_page_button = toolbar.next_button
+        self.zoom_out_button = toolbar.zoom_out_button
+        self.zoom_label = toolbar.zoom_label
+        self.zoom_in_button = toolbar.zoom_in_button
+        self.fit_page_button = toolbar.fit_page_button
+        self.fit_width_button = toolbar.fit_width_button
+        self.preview_overflow_button = toolbar.overflow_button
+        self.preview_message_frame = self.preview_group.message_frame
+        self.preview_message_label = self.preview_group.message_label
+        self.preview_retry_button = self.preview_group.retry_button
+        self.preview_copy_button = self.preview_group.copy_button
+        self.preview_report_button = self.preview_group.report_button
+        self.preview_canvas = self.preview_group.canvas
+        self.preview_vertical = self.preview_group.vertical_scrollbar
+        self.preview_horizontal = self.preview_group.horizontal_scrollbar
+        for action, widget in (
+            ("preview.refresh", self.refresh_preview_button),
+            ("preview.previous_page", self.previous_page_button),
+            ("preview.next_page", self.next_page_button),
+            ("preview.zoom_out", self.zoom_out_button),
+            ("preview.zoom_in", self.zoom_in_button),
+            ("preview.fit_page", self.fit_page_button),
+            ("preview.fit_width", self.fit_width_button),
+            ("preview.retry", self.preview_retry_button),
+            ("preview.copy_details", self.preview_copy_button),
+            ("preview.report", self.preview_report_button),
+        ):
+            self._register_automation_widget(action, widget)
         self.preview_canvas.bind("<Configure>", self._on_preview_canvas_configure)
         self.preview_canvas.bind("<Button-1>", self._focus_preview)
         self.preview_canvas.bind("<MouseWheel>", self._on_preview_mousewheel)
@@ -853,6 +773,8 @@ class TkLayoutMixin:
             self.refresh_preview_button, self.zoom_out_button,
             self.zoom_in_button, self.preview_retry_button,
             self.preview_copy_button,
+            self.preview_report_button, self.fit_page_button,
+            self.fit_width_button,
             self.previous_page_button, self.next_page_button,
             self.output_button, self.output_reset_button,
         ])
@@ -1061,7 +983,7 @@ class TkLayoutMixin:
                     sticky="nsew",
                 )
             self._layout_legacy_setting_rows()
-            self._layout_preview_header()
+            self._layout_preview_header(mode)
             self._layout_mode = mode
             if getattr(self, "_style_editor_open", False):
                 self._show_style_editor_host()
@@ -1202,12 +1124,9 @@ class TkLayoutMixin:
                         padx=SPACE_XS,
                     )
 
-    def _layout_preview_header(self) -> None:
-        """Keep the active file and legacy toolbar visible without clipping."""
-        self.active_preview_label.pack_forget()
-        self.preview_controls.pack_forget()
-        self.active_preview_label.pack(fill="x")
-        self.preview_controls.pack(anchor="e", pady=(SPACE_XS, 0))
+    def _layout_preview_header(self, mode=None) -> None:
+        """Adapt the modern preview toolbar without rebuilding its widgets."""
+        self.preview_group.set_layout_mode(mode or self._layout_mode or "large")
 
     def _build_style_editor(self, master, show_back: bool) -> StyleEditorPanel:
         return StyleEditorPanel(
@@ -1284,7 +1203,7 @@ class TkLayoutMixin:
 
     def _bind_accessibility(self) -> None:
         self.root.bind_all("<Control-o>", lambda event: self._browse_files())
-        self.root.bind_all("<Control-r>", lambda event: self._refresh_preview())
+        self.root.bind_all("<Control-r>", lambda event: self._reset_preview())
         self.root.bind_all("<Control-g>", lambda event: self._on_generate_clicked())
         self.root.bind_all("<Escape>", self._handle_escape)
         self.root.bind_all("<Control-plus>", lambda event: self._change_zoom(1))

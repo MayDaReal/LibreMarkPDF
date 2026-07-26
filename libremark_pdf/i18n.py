@@ -251,11 +251,14 @@ STRINGS = {
         "left_placeholder": "Left",
         "center_placeholder": "Center",
         "right_placeholder": "Right",
-        "refresh_preview": "Refresh preview",
+        "refresh_preview": "Reset preview and fit page",
         "preview_heading": "Preview",
-        "refresh_preview_a11y": "Refresh preview",
+        "refresh_preview_a11y": "Reset preview and fit page",
         "preview_empty": "Add or select a file to preview it.",
         "preview_loading": "Updating preview…",
+        "preview_scheduled": "Preview update scheduled…",
+        "preview_rendering": "Updating preview…",
+        "preview_error_title": "Could not generate preview",
         "preview_unavailable": "Preview unavailable",
         "preview_retry": "Try again",
         "preview_conversion_possible": "You can still try to generate the PDF.",
@@ -266,11 +269,15 @@ STRINGS = {
         "zoom_out_a11y": "Zoom out",
         "zoom_in_a11y": "Zoom in",
         "zoom_value": "{percent}%",
+        "fit_page": "Fit page",
+        "fit_width": "Fit width",
+        "preview_more_a11y": "More preview actions",
+        "preview_canvas_a11y": "Document preview",
         "keyboard_shortcuts_action": "Keyboard shortcuts",
         "language_english_a11y": "Change language to English",
         "language_french_a11y": "Change language to French",
         "keyboard_shortcuts_body": (
-            "Add files: Ctrl+O\nRefresh preview: Ctrl+R\n"
+            "Add files: Ctrl+O\nReset preview and fit page: Ctrl+R\n"
             "Generate: Ctrl+G\nZoom in/out: Ctrl++ / Ctrl+-\n"
             "Reset zoom: Ctrl+0\nPreview page (focused): Left / Right\n"
             "File row: Up / Down / Enter / Space / Delete / Shift+F10\n"
@@ -622,11 +629,14 @@ STRINGS = {
         "left_placeholder": "Gauche",
         "center_placeholder": "Centre",
         "right_placeholder": "Droite",
-        "refresh_preview": "Actualiser l'aperçu",
+        "refresh_preview": "Réinitialiser l'aperçu et ajuster à la page",
         "preview_heading": "Aperçu",
-        "refresh_preview_a11y": "Actualiser l’aperçu",
+        "refresh_preview_a11y": "Réinitialiser l’aperçu et ajuster à la page",
         "preview_empty": "Ajoutez ou sélectionnez un fichier pour le prévisualiser.",
         "preview_loading": "Mise à jour de l’aperçu…",
+        "preview_scheduled": "Mise à jour de l’aperçu programmée…",
+        "preview_rendering": "Mise à jour de l’aperçu…",
+        "preview_error_title": "Impossible de générer l’aperçu",
         "preview_unavailable": "Aperçu indisponible",
         "preview_retry": "Réessayer",
         "preview_conversion_possible": (
@@ -639,11 +649,15 @@ STRINGS = {
         "zoom_out_a11y": "Réduire le zoom",
         "zoom_in_a11y": "Augmenter le zoom",
         "zoom_value": "{percent} %",
+        "fit_page": "Ajuster à la page",
+        "fit_width": "Ajuster à la largeur",
+        "preview_more_a11y": "Autres actions d’aperçu",
+        "preview_canvas_a11y": "Aperçu du document",
         "keyboard_shortcuts_action": "Raccourcis clavier",
         "language_english_a11y": "Passer l’interface en anglais",
         "language_french_a11y": "Passer l’interface en français",
         "keyboard_shortcuts_body": (
-            "Ajouter des fichiers : Ctrl+O\nActualiser l’aperçu : Ctrl+R\n"
+            "Ajouter des fichiers : Ctrl+O\nRéinitialiser l’aperçu et ajuster à la page : Ctrl+R\n"
             "Générer : Ctrl+G\nZoom avant/arrière : Ctrl++ / Ctrl+-\n"
             "Réinitialiser le zoom : Ctrl+0\n"
             "Page d’aperçu (avec focus) : Gauche / Droite\n"

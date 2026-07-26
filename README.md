@@ -14,8 +14,11 @@ agent contract in [`SKILL.md`](SKILL.md).
 - modern file cards with optional drag-and-drop, exact mixed-add feedback,
   keyboard navigation, row menus, and an independently identified active
   preview file;
-- responsive multipage preview with explicit empty, updating, ready, and error
-  states, an active-file label, 50–200% zoom, scrolling, and panning;
+- responsive multipage preview with explicit empty, scheduled, rendering,
+  ready, error, and unavailable states, an active-file label, 10–200% zoom,
+  fit-page behavior when the active document changes, fit-page/fit-width
+  actions, an explicit refresh-and-fit reset, scrolling, panning, and local
+  error reporting;
 - versioned local themes, the compatible `default@1` style, or a user-supplied
   CSS file;
 - four summarized desktop setting sections for style, destination, six

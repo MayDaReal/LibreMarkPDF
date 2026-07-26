@@ -15,6 +15,7 @@ from libremark_pdf.desktop.ctk.responsive import (
 from libremark_pdf.desktop.ctk.theme import SystemFontResolver
 from libremark_pdf.desktop.ctk.widgets.action_bar import ActionBar
 from libremark_pdf.desktop.ctk.widgets.app_header import AppHeader, WindowChrome
+from libremark_pdf.desktop.ctk.widgets.preview_panel import PreviewPanel
 from libremark_pdf.desktop.tk import app as tk_app
 from libremark_pdf.desktop.tk import layout as tk_layout
 
@@ -529,6 +530,134 @@ class TestModernShellWidgets(unittest.TestCase):
         )
         self.assertTrue(application.files_panel.list_view.winfo_ismapped())
         self.assertGreater(application.files_panel.list_view.winfo_height(), 100)
+
+    def test_preview_panel_toolbar_states_translation_and_compact_overflow(self):
+        services = mock.Mock()
+        dialogs = mock.Mock()
+        with mock.patch.object(tk_layout, "HAS_DND", False), mock.patch.object(
+            tk_app.i18n,
+            "load_language",
+            return_value="en",
+        ):
+            application = tk_app.LibreMarkPdfApp(
+                self.root,
+                services=services,
+                dialogs=dialogs,
+            )
+        self.root.update()
+        panel = application.preview_group
+        toolbar = panel.toolbar
+        self.assertIsInstance(panel, PreviewPanel)
+        self.assertEqual(
+            toolbar.ordered_controls,
+            (
+                application.refresh_preview_button,
+                application.previous_page_button,
+                application.preview_page_label,
+                application.next_page_button,
+                application.zoom_out_button,
+                application.zoom_label,
+                application.zoom_in_button,
+                application.fit_page_button,
+                application.fit_width_button,
+            ),
+        )
+        self.assertEqual(application.fit_page_button.winfo_manager(), "grid")
+        self.assertEqual(application.preview_overflow_button.winfo_manager(), "")
+        self.assertEqual(
+            application.preview_canvas.accessible_name,
+            "Document preview",
+        )
+        self.assertEqual(
+            application.refresh_preview_button.accessible_name,
+            "Reset preview and fit page",
+        )
+        self.assertGreaterEqual(
+            toolbar.winfo_width(), panel.winfo_width() - 32
+        )
+        self.assertGreater(
+            application.preview_page_label.winfo_width(),
+            int(application.preview_page_label.cget("width")),
+        )
+        self.assertLessEqual(
+            application.refresh_preview_button.winfo_rootx()
+            - toolbar.winfo_rootx(),
+            12,
+        )
+        self.assertLessEqual(
+            toolbar.winfo_rootx()
+            + toolbar.winfo_width()
+            - application.fit_width_button.winfo_rootx()
+            - application.fit_width_button.winfo_width(),
+            12,
+        )
+
+        for state in ("scheduled", "rendering"):
+            with self.subTest(state=state):
+                application._set_preview_state(state)
+                self.root.update()
+                self.assertEqual(panel.state_badge.winfo_manager(), "grid")
+                self.assertEqual(panel.message_frame.winfo_manager(), "")
+                filename_right = (
+                    panel.filename_label.winfo_rootx()
+                    + panel.filename_label.winfo_width()
+                )
+                self.assertLessEqual(
+                    panel.state_badge.winfo_rootx() - filename_right,
+                    12,
+                )
+                self.assertLessEqual(
+                    abs(
+                        panel.state_badge.winfo_rooty()
+                        + panel.state_badge.winfo_height() // 2
+                        - panel.filename_label.winfo_rooty()
+                        - panel.filename_label.winfo_height() // 2
+                    ),
+                    2,
+                )
+        application._set_preview_state("ready")
+        self.root.update()
+        self.assertEqual(panel.state_badge.winfo_manager(), "")
+        self.assertEqual(panel.message_frame.winfo_manager(), "")
+
+        application._set_preview_state("error", "preview failed")
+        self.root.update()
+        self.assertEqual(panel.retry_button.winfo_manager(), "grid")
+        self.assertEqual(panel.copy_button.winfo_manager(), "grid")
+        self.assertEqual(panel.report_button.winfo_manager(), "grid")
+        self.assertIn("preview failed", panel.message_label.cget("text"))
+        application._set_preview_state("unavailable", "renderer missing")
+        self.root.update()
+        self.assertEqual(panel.retry_button.winfo_manager(), "grid")
+        application._set_preview_state("empty")
+        self.root.update()
+        self.assertEqual(panel.add_files_button.winfo_manager(), "")
+
+        self.root.geometry("560x520+0+0")
+        self.root.update()
+        application._responsive_controller.flush()
+        application._select_compact_tab("preview")
+        self.root.update()
+        self.assertEqual(application.fit_page_button.winfo_manager(), "")
+        self.assertEqual(
+            application.preview_overflow_button.winfo_manager(), "grid"
+        )
+        self.assertEqual(panel.add_files_button.winfo_manager(), "grid")
+        self.assertGreaterEqual(application.preview_canvas.winfo_height(), 180)
+
+        application.lang = "fr"
+        application._retranslate()
+        self.root.update()
+        self.assertEqual(application.fit_page_button.cget("text"), "Ajuster à la page")
+        self.assertEqual(
+            application.preview_overflow_button.accessible_name,
+            "Autres actions d’aperçu",
+        )
+        self.assertEqual(
+            application.refresh_preview_button.accessible_name,
+            "Réinitialiser l’aperçu et ajuster à la page",
+        )
+        services.run_conversion_job.assert_not_called()
 
     def test_compact_conversion_controls_remain_fixed_at_short_height(self):
         shell = AppShell(self.root)
