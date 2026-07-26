@@ -137,16 +137,24 @@ class TestDesktopServiceBoundary(unittest.TestCase):
     def test_conversion_worker_emits_typed_progress_and_terminal_events(self):
         results = queue.Queue()
         cancel_event = threading.Event()
+        cancel_current_event = threading.Event()
         conversion = {"input": "one.md", "status": "ok"}
 
         def convert(files, progress_callback, **kwargs):
             self.assertEqual(files, [Path("one.md")])
             self.assertIs(kwargs["cancel_event"], cancel_event)
+            self.assertIs(kwargs["cancel_current_event"], cancel_current_event)
             progress_callback(1, 1, conversion)
             return [conversion]
 
         with mock.patch.object(services.core, "convert_batch", side_effect=convert):
-            services.run_conversion_job(results, [Path("one.md")], {}, cancel_event)
+            services.run_conversion_job(
+                results,
+                [Path("one.md")],
+                {},
+                cancel_event,
+                cancel_current_event,
+            )
         self.assertEqual(results.get_nowait(), ("progress", 1, 1, conversion))
         self.assertEqual(results.get_nowait(), ("generate_done", [conversion]))
 

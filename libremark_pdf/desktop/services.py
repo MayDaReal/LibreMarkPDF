@@ -118,6 +118,7 @@ def run_conversion_job(
     files: list,
     options: dict,
     cancel_event: threading.Event,
+    cancel_current_event: Optional[threading.Event] = None,
 ) -> None:
     """Run a batch conversion and publish progress through a neutral queue."""
 
@@ -128,6 +129,7 @@ def run_conversion_job(
         results = core.convert_batch(
             files,
             cancel_event=cancel_event,
+            cancel_current_event=cancel_current_event,
             progress_callback=progress,
             **options
         )
@@ -155,8 +157,11 @@ class DesktopServices:
         files: list,
         options: dict,
         cancel_event: threading.Event,
+        cancel_current_event: Optional[threading.Event] = None,
     ) -> None:
-        run_conversion_job(result_queue, files, options, cancel_event)
+        run_conversion_job(
+            result_queue, files, options, cancel_event, cancel_current_event
+        )
 
 
 DEFAULT_DESKTOP_SERVICES = DesktopServices()

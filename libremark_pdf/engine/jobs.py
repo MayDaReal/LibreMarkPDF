@@ -37,8 +37,11 @@ def convert_markdown_text_to_pdf(
     theme: Optional[str] = None,
     theme_root: Optional[_PathInput] = None,
     _renderer: Optional[chromium.BrowserRenderer] = None,
+    _cancel_event: Optional[Any] = None,
 ) -> Path:
     """Convert Markdown text to a PDF and return its output path."""
+    if _cancel_event is not None and _cancel_event.is_set():
+        raise ConversionError("CANCELLED: conversion cancelled before preparation")
     output_path = Path(output_path)
     try:
         output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -60,12 +63,15 @@ def convert_markdown_text_to_pdf(
         theme=theme,
         theme_root=theme_root,
     )
+    if _cancel_event is not None and _cancel_event.is_set():
+        raise ConversionError("CANCELLED: conversion cancelled before rendering")
     chromium.atomic_render_pdf(
         rendered_document.full_html,
         output_path,
         hf,
         rendered_document.render_date,
         renderer=_renderer,
+        cancel_event=_cancel_event,
     )
     return output_path
 
@@ -81,8 +87,11 @@ def convert_markdown_to_pdf(
     theme: Optional[str] = None,
     theme_root: Optional[_PathInput] = None,
     _renderer: Optional[chromium.BrowserRenderer] = None,
+    _cancel_event: Optional[Any] = None,
 ) -> Path:
     """Convert one Markdown file, defaulting to a sibling `.pdf` output."""
+    if _cancel_event is not None and _cancel_event.is_set():
+        raise ConversionError("CANCELLED: conversion cancelled before reading input")
     input_path = Path(input_path)
     if not input_path.exists():
         raise ConversionError(f"INPUT_NOT_FOUND: input file not found: {input_path}")
@@ -97,6 +106,8 @@ def convert_markdown_to_pdf(
         raise ConversionError("INVALID_UTF8: Markdown input must be UTF-8") from exc
     except OSError as exc:
         raise ConversionError(f"INPUT_UNREADABLE: cannot read input: {input_path}") from exc
+    if _cancel_event is not None and _cancel_event.is_set():
+        raise ConversionError("CANCELLED: conversion cancelled after reading input")
     resolved_output = Path(output_path) if output_path else input_path.with_suffix(".pdf")
     try:
         same_path = input_path.resolve() == resolved_output.resolve()
@@ -109,6 +120,7 @@ def convert_markdown_to_pdf(
         render_date=render_date, trusted_html=trusted_html, overwrite=overwrite,
         resource_root=input_path.resolve().parent, theme=theme,
         theme_root=theme_root, _renderer=_renderer,
+        _cancel_event=_cancel_event,
     )
 
 
@@ -164,6 +176,7 @@ def convert_batch(
     theme_root: Optional[_PathInput] = None,
     cancel_event: Optional[Any] = None,
     progress_callback: Optional[Callable[[int, int, dict], None]] = None,
+    cancel_current_event: Optional[Any] = None,
 ) -> list[dict[str, Optional[str]]]:
     """Convert every input independently and return one result per input."""
     try:
@@ -176,7 +189,10 @@ def convert_batch(
     renderer = None
     renderer_manager = None
     renderer_error = None
-    initially_cancelled = cancel_event is not None and cancel_event.is_set()
+    initially_cancelled = (
+        (cancel_event is not None and cancel_event.is_set())
+        or (cancel_current_event is not None and cancel_current_event.is_set())
+    )
     if not initially_cancelled and any(plan.error is None and date_error is None for plan in planned):
         try:
             renderer_manager = chromium.BrowserRenderer()
@@ -189,7 +205,13 @@ def convert_batch(
             input_path = plan.input_path
             target = plan.output_path
             try:
-                if cancel_event is not None and cancel_event.is_set():
+                if (
+                    (cancel_event is not None and cancel_event.is_set())
+                    or (
+                        cancel_current_event is not None
+                        and cancel_current_event.is_set()
+                    )
+                ):
                     result = {"input": str(input_path), "output": None, "status": "cancelled", "error": "CANCELLED: conversion cancelled before this item", "error_code": "CANCELLED"}
                     results.append(result)
                     if progress_callback is not None:
@@ -204,11 +226,13 @@ def convert_batch(
                     raise ConversionError(plan.error)
                 if renderer_error is not None:
                     raise renderer_error
-                result_path = convert_markdown_to_pdf(input_path, target, css_path=css_path, header_footer=header_footer, render_date=resolved_date, trusted_html=trusted_html, overwrite=overwrite, theme=theme, theme_root=theme_root, _renderer=renderer)
+                result_path = convert_markdown_to_pdf(input_path, target, css_path=css_path, header_footer=header_footer, render_date=resolved_date, trusted_html=trusted_html, overwrite=overwrite, theme=theme, theme_root=theme_root, _renderer=renderer, _cancel_event=cancel_current_event)
                 result = {"input": str(input_path), "output": str(result_path), "status": "ok", "error": None, "error_code": None}
                 results.append(result)
             except Exception as exc:
-                result = {"input": str(input_path), "output": None, "status": "error", "error": str(exc), "error_code": _diagnostic_code(exc)}
+                code = _diagnostic_code(exc)
+                status = "cancelled" if code == "CANCELLED" else "error"
+                result = {"input": str(input_path), "output": None, "status": status, "error": str(exc), "error_code": code}
                 results.append(result)
             if progress_callback is not None:
                 try:

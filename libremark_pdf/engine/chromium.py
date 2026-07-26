@@ -5,7 +5,7 @@ from __future__ import annotations
 import os
 import tempfile
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 from . import document
 from .contracts import (
@@ -149,10 +149,13 @@ def render_pdf(
 def atomic_render_pdf(
     full_html: str, output_path: Path, header_footer: HeaderFooterConfig,
     render_date: Optional[str], renderer: Optional[BrowserRenderer] = None,
+    cancel_event: Optional[Any] = None,
 ) -> None:
     """Render into a sibling temporary file, then atomically publish it."""
     temp_path = None
     try:
+        if cancel_event is not None and cancel_event.is_set():
+            raise ConversionError("CANCELLED: conversion cancelled before rendering")
         try:
             with tempfile.NamedTemporaryFile(
                 mode="wb", suffix=".pdf", prefix=".libremark-", dir=output_path.parent,
@@ -169,6 +172,10 @@ def atomic_render_pdf(
             renderer.render(full_html, temp_path, header_footer, render_date)
         if not temp_path.exists() or temp_path.stat().st_size == 0:
             raise ConversionError("INVALID_OUTPUT: renderer did not create a PDF")
+        # Chromium calls are synchronous. This is the first safe interruption
+        # point after printing and, critically, precedes atomic publication.
+        if cancel_event is not None and cancel_event.is_set():
+            raise ConversionError("CANCELLED: conversion cancelled before publication")
         try:
             os.replace(str(temp_path), str(output_path))
         except OSError as exc:

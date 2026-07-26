@@ -50,17 +50,18 @@ class TestCoreFacadeCharacterization(unittest.TestCase):
             "convert_markdown_text_to_pdf": (
                 "markdown_text", "output_path", "css_path", "header_footer",
                 "render_date", "trusted_html", "overwrite", "resource_root",
-                "theme", "theme_root", "_renderer",
+                "theme", "theme_root", "_renderer", "_cancel_event",
             ),
             "convert_markdown_to_pdf": (
                 "input_path", "output_path", "css_path", "header_footer",
                 "render_date", "trusted_html", "overwrite", "theme",
-                "theme_root", "_renderer",
+                "theme_root", "_renderer", "_cancel_event",
             ),
             "convert_batch": (
                 "input_paths", "output_dir", "css_path", "header_footer",
                 "render_date", "trusted_html", "overwrite", "theme",
                 "theme_root", "cancel_event", "progress_callback",
+                "cancel_current_event",
             ),
             "render_preview_png": (
                 "markdown_text", "css_path", "header_footer", "dpi", "render_date",
@@ -624,6 +625,72 @@ class TestDeterministicCoreContract(unittest.TestCase):
             )
         self.assertEqual(len(results), 1)
         self.assertEqual(results[0]["status"], "cancelled")
+
+    def test_current_item_cancellation_preserves_existing_output(self):
+        class CancellingRenderer:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, exc_type, exc_value, traceback):
+                return None
+
+            def render(self, full_html, output_path, header_footer, render_date):
+                output_path.write_bytes(b"new")
+                cancel_current.set()
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source = root / "one.md"
+            output = root / "one.pdf"
+            source.write_text("# One", encoding="utf-8")
+            output.write_bytes(b"old")
+            cancel_current = threading.Event()
+            with mock.patch.object(
+                jobs.chromium, "BrowserRenderer", CancellingRenderer
+            ):
+                results = core.convert_batch(
+                    [source],
+                    overwrite=True,
+                    cancel_current_event=cancel_current,
+                )
+            self.assertEqual(results[0]["status"], "cancelled")
+            self.assertEqual(results[0]["error_code"], "CANCELLED")
+            self.assertEqual(output.read_bytes(), b"old")
+            self.assertEqual(list(root.glob(".libremark-*.pdf")), [])
+
+    def test_current_item_cancellation_cancels_remaining_items(self):
+        class CancellingRenderer:
+            rendered = 0
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, exc_type, exc_value, traceback):
+                return None
+
+            def render(self, full_html, output_path, header_footer, render_date):
+                type(self).rendered += 1
+                output_path.write_bytes(b"new")
+                cancel_current.set()
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            files = [root / "one.md", root / "two.md"]
+            for path in files:
+                path.write_text("# " + path.stem, encoding="utf-8")
+            cancel_current = threading.Event()
+            with mock.patch.object(
+                jobs.chromium, "BrowserRenderer", CancellingRenderer
+            ):
+                results = core.convert_batch(
+                    files, cancel_current_event=cancel_current
+                )
+            self.assertEqual(
+                [item["status"] for item in results],
+                ["cancelled", "cancelled"],
+            )
+            self.assertEqual(CancellingRenderer.rendered, 1)
+            self.assertFalse(any(path.with_suffix(".pdf").exists() for path in files))
 
 
 class TestResourcePolicy(unittest.TestCase):
