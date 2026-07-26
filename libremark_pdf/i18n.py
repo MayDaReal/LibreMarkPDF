@@ -292,6 +292,20 @@ STRINGS = {
         "reset_destination": "Use source folders",
         "generate_one": "Generate PDF",
         "generate_many": "Generate {count} PDFs",
+        "action_blocked_no_files": "Add at least one Markdown file to generate a PDF.",
+        "action_blocked_validating": "Generation is unavailable while outputs are checked.",
+        "action_progress_completed": "{current} of {total} completed · {percent}%",
+        "action_active_stage": "File {current} of {total} · {name} — {stage}",
+        "action_running_one": "1 file in progress · Destination: {destination}",
+        "action_running_many": "{count} files in progress · Destination: {destination}",
+        "applied_options": "Applied options ⓘ",
+        "conversion_stage_preparing": "Preparing document…",
+        "conversion_stage_rendering": "Rendering with Chromium…",
+        "conversion_stage_finalizing": "Finalizing PDF…",
+        "conversion_stage_publishing": "Publishing safely…",
+        "stop_after_current": "Stop after this file",
+        "cancel_now": "Cancel now",
+        "status_cancelling_now": "Cancelling at the next safe point — this may take a few seconds.",
         "cancel_button": "Cancel after this file",
         "cancel_button_short": "Cancel",
         "status_ready": "Ready.",
@@ -300,9 +314,11 @@ STRINGS = {
             "{count} files ready · Destination: {destination}"
         ),
         "status_generating": "Generating…",
+        "status_validating": "… Validating outputs…",
         "status_generating_progress": "{current} of {total}",
-        "status_generating_file": "{current} of {total} · {name}",
+        "status_generating_file": "→ Converting {current} of {total} — {name}",
         "status_cancelling": "Cancelling after the current file…",
+        "status_cancelling_file": "! Stop requested — {name} may finish.",
         "status_cancelled": "Conversion cancelled before it started.",
         "status_closing": "Finishing the active operation before closing…",
         "status_done_summary": "{summary}",
@@ -332,6 +348,40 @@ STRINGS = {
         ),
         "continue_with_others": "Continue with other files",
         "overwrite_title": "Existing PDFs",
+        "decision_required_title": "Decision required",
+        "decision_conflict_one": "{count} conflict",
+        "decision_conflict_many": "{count} conflicts",
+        "decision_existing_one": "{count} existing PDF",
+        "decision_existing_many": "{count} existing PDFs",
+        "decision_replace_instruction": (
+            "Check the PDFs to replace. Unchecked PDFs will be kept."
+        ),
+        "decision_blocked_instruction": (
+            "Blocked files cannot be generated and will be reported."
+        ),
+        "decision_source_heading": "Source",
+        "decision_destination_heading": "Destination",
+        "decision_issue_heading": "Issue",
+        "decision_replace_heading": "Replace?",
+        "decision_blocked": "Blocked",
+        "decision_replace_help": (
+            "Checked: replace only after successful conversion. "
+            "Unchecked: keep the existing PDF."
+        ),
+        "decision_blocked_help": (
+            "This destination is blocked and cannot be selected for replacement."
+        ),
+        "decision_replaced_one": "{count} will be replaced",
+        "decision_replaced_many": "{count} will be replaced",
+        "decision_kept_one": "{count} kept",
+        "decision_kept_many": "{count} kept",
+        "decision_issue_duplicate": "Same destination",
+        "decision_issue_same_path": "Source = destination",
+        "decision_issue_missing_input": "Source unavailable",
+        "decision_issue_existing": "PDF already exists",
+        "decision_issue_other": "Output unavailable",
+        "continue_generation": "Continue",
+        "back_action": "Back",
         "overwrite_question_one": (
             "1 output PDF already exists. Choose whether to replace it only "
             "after successful rendering, or keep it and report a failure."
@@ -340,8 +390,6 @@ STRINGS = {
             "{count} output PDFs already exist. Choose whether to replace each "
             "one only after successful rendering, or keep them and report failures."
         ),
-        "replace_after_success": "Replace after successful rendering",
-        "keep_and_report": "Keep existing PDFs and report failures",
         "close_conversion_title": "Conversion in progress",
         "close_conversion_question": (
             "A conversion is still running. Continuing is the safe choice. "
@@ -673,6 +721,20 @@ STRINGS = {
         "reset_destination": "Utiliser les dossiers sources",
         "generate_one": "Générer le PDF",
         "generate_many": "Générer {count} PDF",
+        "action_blocked_no_files": "Ajoutez au moins un fichier Markdown pour générer un PDF.",
+        "action_blocked_validating": "La génération est indisponible pendant la vérification des sorties.",
+        "action_progress_completed": "{current} sur {total} terminés · {percent} %",
+        "action_active_stage": "Fichier {current} sur {total} · {name} — {stage}",
+        "action_running_one": "1 fichier en cours · Destination : {destination}",
+        "action_running_many": "{count} fichiers en cours · Destination : {destination}",
+        "applied_options": "Options appliquées ⓘ",
+        "conversion_stage_preparing": "Préparation du document…",
+        "conversion_stage_rendering": "Rendu avec Chromium…",
+        "conversion_stage_finalizing": "Finalisation du PDF…",
+        "conversion_stage_publishing": "Publication sécurisée…",
+        "stop_after_current": "Arrêter après ce fichier",
+        "cancel_now": "Annuler maintenant",
+        "status_cancelling_now": "Annulation au prochain point sûr — cela peut prendre quelques secondes.",
         "cancel_button": "Annuler après ce fichier",
         "cancel_button_short": "Annuler",
         "status_ready": "Prêt.",
@@ -681,9 +743,11 @@ STRINGS = {
             "{count} fichiers prêts · Destination : {destination}"
         ),
         "status_generating": "Génération en cours…",
+        "status_validating": "… Vérification des sorties…",
         "status_generating_progress": "{current} sur {total}",
-        "status_generating_file": "{current} sur {total} · {name}",
+        "status_generating_file": "→ Conversion {current} sur {total} — {name}",
         "status_cancelling": "Annulation après le fichier en cours…",
+        "status_cancelling_file": "! Arrêt demandé — {name} peut se terminer.",
         "status_cancelled": "Conversion annulée avant son démarrage.",
         "status_closing": "Fin de l’opération en cours avant la fermeture…",
         "status_done_summary": "{summary}",
@@ -714,6 +778,41 @@ STRINGS = {
         ),
         "continue_with_others": "Continuer avec les autres fichiers",
         "overwrite_title": "PDF existants",
+        "decision_required_title": "Décision requise",
+        "decision_conflict_one": "{count} conflit",
+        "decision_conflict_many": "{count} conflits",
+        "decision_existing_one": "{count} PDF existant",
+        "decision_existing_many": "{count} PDF existants",
+        "decision_replace_instruction": (
+            "Cochez les PDF à remplacer. Les autres seront conservés."
+        ),
+        "decision_blocked_instruction": (
+            "Les fichiers bloqués ne peuvent pas être générés et seront signalés."
+        ),
+        "decision_source_heading": "Source",
+        "decision_destination_heading": "Destination",
+        "decision_issue_heading": "Problème",
+        "decision_replace_heading": "Remplacer ?",
+        "decision_blocked": "Bloqué",
+        "decision_replace_help": (
+            "Coché : remplacer uniquement après une conversion réussie. "
+            "Non coché : conserver le PDF existant."
+        ),
+        "decision_blocked_help": (
+            "Cette destination est bloquée et ne peut pas être sélectionnée "
+            "pour remplacement."
+        ),
+        "decision_replaced_one": "{count} sera remplacé",
+        "decision_replaced_many": "{count} seront remplacés",
+        "decision_kept_one": "{count} conservé",
+        "decision_kept_many": "{count} conservés",
+        "decision_issue_duplicate": "Même destination",
+        "decision_issue_same_path": "Source = destination",
+        "decision_issue_missing_input": "Source indisponible",
+        "decision_issue_existing": "PDF déjà présent",
+        "decision_issue_other": "Sortie indisponible",
+        "continue_generation": "Continuer",
+        "back_action": "Retour",
         "overwrite_question_one": (
             "1 PDF de sortie existe déjà. Choisissez de le remplacer uniquement "
             "après un rendu réussi, ou de le conserver et de signaler un échec."
@@ -723,8 +822,6 @@ STRINGS = {
             "uniquement après un rendu réussi, ou de les conserver et de "
             "signaler des échecs."
         ),
-        "replace_after_success": "Remplacer après un rendu réussi",
-        "keep_and_report": "Conserver les PDF et signaler les échecs",
         "close_conversion_title": "Conversion en cours",
         "close_conversion_question": (
             "Une conversion est toujours en cours. La poursuivre est le choix "

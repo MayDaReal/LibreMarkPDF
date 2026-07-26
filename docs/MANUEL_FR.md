@@ -124,12 +124,45 @@ automatiquement une version pyenv `3.9.x` déjà installée.
    pour un lot. Le libellé suit le nombre de fichiers sans abréviation de
    pluriel.
 
-L’application présente les collisions de sortie et les PDF existants avant la
-conversion. Les choix sont explicites : une collision peut être ignorée pendant
-que les fichiers indépendants continuent, et un PDF existant peut être remplacé
-uniquement après un rendu réussi ou conservé et signalé comme un échec. Pendant
-un lot, la barre d’action persistante indique la progression et permet une
-annulation sûre après le fichier en cours. Fermer la fenêtre demande de
+L’application présente les PDF existants et les collisions de sortie directement
+dans la barre d’action fixe avant la conversion, sans fenêtre modale. **Retour**
+précède le titre de la décision, comme dans les pages de réglages ; Échap produit
+le même retour sûr. Le titre et les compteurs partagent une ligne. Les détails
+indiquent chaque source, destination, problème court et décision de remplacement
+dans un tableau compact. Cochez **Remplacer ?** pour chaque PDF existant qui peut
+être remplacé après un rendu réussi ; les PDF non cochés sont conservés et
+signalés comme des échecs. La case du titre de colonne modifie toutes les lignes
+éligibles et adopte un état intermédiaire pour une sélection mixte. Les lignes en
+collision affichent **Bloqué** à la place d’une case et peuvent être signalées
+pendant que les fichiers indépendants continuent. Un récapitulatif séparé indique
+combien de PDF seront remplacés ou conservés ; le bouton **Continuer** reste fixe.
+Survolez une cellule pour afficher sa valeur complète. La molette ne fait défiler
+ce tableau que lorsqu’il a le focus ; sinon elle continue de faire défiler
+l’interface principale.
+
+Pendant la conversion, la barre indique la destination du lot, l’élément et le
+fichier actifs. Le pourcentage numérique repose uniquement sur les fichiers
+entièrement terminés, tandis qu’un segment animé et la phase exacte
+**Préparation du document**, **Rendu avec Chromium**, **Finalisation du PDF** ou
+**Publication sécurisée** montrent l’avancement du fichier actif. Chromium
+imprime le PDF complet dans un seul appel bloquant ; aucun pourcentage par page
+n’est donc annoncé. Le premier fichier peut être plus long pendant le démarrage
+de Chromium et la préparation des ressources et polices locales. **Options
+appliquées ⓘ** est un lien informatif, pas un réglage : survolez-le ou donnez-lui
+le focus pour l’infobulle, ou activez-le pour garder ouvert un petit résumé non
+modal. Il détaille dès le début de la conversion l’instantané immuable transmis
+au moteur : style, destination complète, six valeurs d’en-tête/pied, mode de
+date et HTML de confiance. La sélection des fichiers, l’aperçu existant (pages,
+zoom, ajustement,
+défilement et déplacement), les résumés des réglages et les résultats produits
+restent consultables. Les mutations et le nouveau rendu de l’aperçu restent
+verrouillés jusqu’à l’événement terminal.
+
+**Arrêter après ce fichier** laisse finir le fichier courant et annule ceux qui
+n’ont pas démarré. **Annuler maintenant** interrompt au prochain point sûr et
+annule tout le reste. Un appel Chromium bloquant peut demander quelques secondes
+pour rendre la main ; aucun PDF partiel n’est publié et un PDF de destination
+préexistant est conservé. Fermer la fenêtre demande de
 **Continuer la conversion** (choix sûr par défaut, également utilisé par Échap)
 ou d’**Annuler la conversion et fermer** ; le fichier actif peut se terminer
 avant l’annulation des fichiers restants. La liste finale conserve une ligne

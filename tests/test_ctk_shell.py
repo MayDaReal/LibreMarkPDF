@@ -5,6 +5,8 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
+import customtkinter as ctk
+
 from libremark_pdf import __version__
 from libremark_pdf.desktop.ctk.app_shell import AppShell
 from libremark_pdf.desktop.ctk.assets import product_logo
@@ -281,10 +283,227 @@ class TestModernShellWidgets(unittest.TestCase):
                 self.assertLessEqual(abs(action_bar.button_center_error()), 16)
         self.assertIs(action_bar.master, shell)
         self.assertEqual(action_bar.cancel_button.winfo_manager(), "")
+
+    def test_action_bar_presents_running_details_and_inline_decision(self):
+        shell = AppShell(self.root)
+        shell.pack(fill="both", expand=True)
+        progress = tk.IntVar(master=self.root, value=0)
+        action_bar = ActionBar(
+            shell,
+            fonts=self.fonts,
+            on_generate=lambda: None,
+            on_cancel=lambda: None,
+            progress_variable=progress,
+            generate_icon=None,
+        )
+        shell.attach_action_bar(action_bar)
+        action_bar.set_state(
+            "running",
+            status_text="Converting 2 of 4 — two.md",
+            generate_text="Generate 4 PDFs",
+            generate_enabled=False,
+            progress_current=1,
+            progress_total=4,
+            progress_text="25%",
+            cancel_text="Stop after this file",
+            cancel_enabled=True,
+            cancel_now_text="Cancel now",
+            cancel_now_enabled=True,
+            batch_text="4 files in progress · Destination: sources",
+            active_text="Converting 2 of 4 — two.md",
+            options_text="Applied options ⓘ",
+            options_summary="Style: Default\nDestination: sources",
+        )
+        self.root.update()
+        self.assertEqual(action_bar.batch_label.winfo_manager(), "grid")
+        self.assertEqual(action_bar.active_label.winfo_manager(), "grid")
+        self.assertEqual(action_bar.cancel_now_button.winfo_manager(), "grid")
+        self.assertEqual(action_bar.options_tooltip.text, "Style: Default\nDestination: sources")
+        self.assertIsInstance(action_bar.options_button, ctk.CTkLabel)
+        self.assertEqual(action_bar._toggle_options_popover(), "break")
+        self.root.update()
+        self.assertIsNotNone(action_bar._options_popover)
+        self.assertEqual(action_bar._toggle_options_popover(), "break")
+        self.assertIsNone(action_bar._options_popover)
+
+        action_bar.set_state(
+            "decision_required",
+            status_text="",
+            generate_text="Generate 4 PDFs",
+            generate_enabled=False,
+            decision_title="A decision is required",
+            decision_message="Existing outputs were found.",
+            decision_rows=(
+                ("folder/one.md", "output/one.pdf", "Existing PDF", True),
+                ("other/two.md", "output/two.pdf", "Conflict", False),
+            ),
+            decision_has_existing=True,
+            decision_instruction="Check PDFs to replace. Others will be kept.",
+            decision_source_heading="Source",
+            decision_destination_heading="Destination",
+            decision_issue_heading="Issue",
+            decision_replace_heading="Replace?",
+            decision_blocked_text="Blocked",
+            decision_replace_help="Checked replaces; unchecked keeps.",
+            decision_blocked_help="This destination is blocked.",
+            decision_replaced_one="{count} will be replaced",
+            decision_replaced_many="{count} will be replaced",
+            decision_kept_one="{count} kept",
+            decision_kept_many="{count} kept",
+            continue_text="Continue",
+            back_text="Back",
+        )
+        self.root.update()
+        self.assertEqual(action_bar.decision_title.winfo_manager(), "grid")
+        self.assertEqual(action_bar.decision_header_frame.winfo_manager(), "grid")
+        self.assertEqual(action_bar.decision_back_button.winfo_manager(), "grid")
+        self.assertEqual(action_bar.decision_table.winfo_manager(), "grid")
+        item = action_bar.decision_table.get_children()[0]
+        self.assertEqual(
+            action_bar.decision_table.item(item, "values"),
+            ("folder / one.md", "output / one.pdf", "Existing PDF", "☐"),
+        )
+        self.assertEqual(action_bar.decision_continue_button.cget("text"), "Continue")
+        action_bar.decision_table.focus(item)
+        self.assertEqual(action_bar._toggle_focused_decision(), "break")
+        self.assertEqual(action_bar.selected_overwrite_targets(), ("output/one.pdf",))
+        self.assertEqual(action_bar.decision_table.item(item, "values")[3], "☑")
+        self.assertEqual(
+            action_bar.decision_selection_summary.cget("text"),
+            "1 will be replaced · 0 kept",
+        )
+        blocked = action_bar.decision_table.get_children()[1]
+        self.assertEqual(
+            action_bar.decision_table.item(blocked, "values")[3], "Blocked"
+        )
+        self.assertEqual(action_bar._toggle_all_decisions(), "break")
+        self.assertEqual(action_bar.selected_overwrite_targets(), ())
+        self.assertTrue(
+            action_bar.decision_table.heading("replace", "text").startswith("☐")
+        )
+        self.assertEqual(action_bar.generate_button.winfo_manager(), "")
         self.assertEqual(action_bar.progress.winfo_manager(), "")
         action_bar.set_conversion_active(True)
+        self.assertEqual(action_bar.generate_button.winfo_manager(), "")
         self.assertEqual(action_bar.cancel_button.winfo_manager(), "grid")
         self.assertEqual(action_bar.progress.winfo_manager(), "grid")
+
+    def test_decision_table_scrolls_itself_only_with_focus(self):
+        shell = AppShell(self.root)
+        shell.pack(fill="both", expand=True)
+        outside_scroll = mock.Mock()
+        action_bar = ActionBar(
+            shell,
+            fonts=self.fonts,
+            on_generate=lambda: None,
+            on_cancel=lambda: None,
+            progress_variable=tk.IntVar(master=self.root, value=0),
+            generate_icon=None,
+            on_scroll_outside=outside_scroll,
+        )
+        shell.attach_action_bar(action_bar)
+        rows = tuple(
+            (
+                "source/{0}.md".format(index),
+                "output/{0}.pdf".format(index),
+                "Conflict",
+                False,
+            )
+            for index in range(7)
+        )
+        action_bar.set_state(
+            "decision_required",
+            status_text="",
+            generate_text="Generate",
+            generate_enabled=False,
+            decision_rows=rows,
+            decision_source_heading="Source",
+            decision_destination_heading="Destination",
+            decision_issue_heading="Issue",
+            decision_replace_heading="Replace?",
+            decision_blocked_text="Blocked",
+        )
+        self.root.update()
+        wheel = mock.Mock(delta=-120, num=0)
+        action_bar.status_label.focus_force()
+        self.root.update()
+        self.assertEqual(action_bar._on_decision_mousewheel(wheel), "break")
+        outside_scroll.assert_called_once_with(wheel)
+
+        action_bar.decision_table.focus_force()
+        self.root.update()
+        before = action_bar.decision_table.yview()
+        self.assertEqual(action_bar._on_decision_mousewheel(wheel), "break")
+        self.assertNotEqual(action_bar.decision_table.yview(), before)
+        outside_scroll.assert_called_once_with(wheel)
+
+    def test_action_bar_projects_validation_progress_cancel_and_terminal_states(self):
+        shell = AppShell(self.root)
+        shell.pack(fill="both", expand=True)
+        progress = tk.IntVar(master=self.root, value=0)
+        action_bar = ActionBar(
+            shell,
+            fonts=self.fonts,
+            on_generate=lambda: None,
+            on_cancel=lambda: None,
+            progress_variable=progress,
+            generate_icon=None,
+        )
+        shell.attach_action_bar(action_bar)
+
+        action_bar.set_state(
+            "validating",
+            status_text="… Validating outputs…",
+            generate_text="Generate 2 PDFs",
+            generate_enabled=False,
+            disabled_reason="Outputs are being checked.",
+        )
+        self.root.update()
+        self.assertEqual(action_bar.state, "validating")
+        self.assertEqual(action_bar.progress.winfo_manager(), "grid")
+        self.assertEqual(str(action_bar.progress.cget("mode")), "indeterminate")
+        self.assertEqual(action_bar.generate_button.cget("state"), "disabled")
+
+        action_bar.set_state(
+            "running",
+            status_text="→ Converting 2 of 4 — two.md",
+            generate_text="Generate 4 PDFs",
+            generate_enabled=False,
+            progress_current=1,
+            progress_total=4,
+            progress_text="25%",
+            cancel_text="Stop after this file",
+            cancel_enabled=True,
+        )
+        self.root.update()
+        self.assertEqual(progress.get(), 25)
+        self.assertEqual(action_bar.progress_percent, 25)
+        self.assertEqual(action_bar.cancel_button.winfo_manager(), "grid")
+        self.assertEqual(action_bar.generate_button.winfo_manager(), "")
+
+        action_bar.set_state(
+            "cancel_requested",
+            status_text="! Stop requested — two.md may finish.",
+            generate_text="Generate 4 PDFs",
+            generate_enabled=False,
+            progress_current=1,
+            progress_total=4,
+            progress_text="25%",
+            cancel_text="Stop after this file",
+            cancel_enabled=False,
+        )
+        self.assertEqual(progress.get(), 25)
+        self.assertEqual(action_bar.cancel_button.cget("state"), "disabled")
+        self.assertIn("may finish", action_bar.status_label.accessible_name)
+
+        action_bar.set_state(
+            "complete",
+            status_text="✓ 4 succeeded",
+            generate_text="Generate 4 PDFs",
+            generate_enabled=True,
+        )
+        self.assertEqual(action_bar.progress.winfo_manager(), "")
+        self.assertEqual(action_bar.cancel_button.winfo_manager(), "")
 
     def test_header_uses_real_version_native_menus_and_immediate_language(self):
         calls = []
@@ -531,6 +750,65 @@ class TestModernShellWidgets(unittest.TestCase):
         self.assertTrue(application.files_panel.list_view.winfo_ismapped())
         self.assertGreater(application.files_panel.list_view.winfo_height(), 100)
 
+    def test_running_action_state_survives_resize_and_hot_translation(self):
+        services = mock.Mock()
+        dialogs = mock.Mock()
+        with mock.patch.object(tk_layout, "HAS_DND", False), mock.patch.object(
+            tk_app.i18n,
+            "load_language",
+            return_value="en",
+        ):
+            application = tk_app.LibreMarkPdfApp(
+                self.root,
+                services=services,
+                dialogs=dialogs,
+            )
+        application.files = [Path("one.md"), Path("two.md")]
+        application._cancel_event.clear()
+        application.operation = "generate"
+        application._set_action_state(
+            "running",
+            progress_current=1,
+            progress_total=2,
+            active_name="two.md",
+        )
+        application._set_status(
+            "status_generating_file",
+            current=2,
+            total=2,
+            name="two.md",
+        )
+
+        for width, height in ((720, 640), (560, 520), (1440, 900)):
+            with self.subTest(size=(width, height)):
+                self.root.geometry("{0}x{1}+0+0".format(width, height))
+                self.root.update()
+                application._responsive_controller.flush()
+                self.root.update()
+                self.assertEqual(application.action_bar.state, "running")
+                self.assertEqual(application.action_bar.progress_percent, 50)
+                self.assertEqual(
+                    application.cancel_button.cget("state"), "normal"
+                )
+
+        self.root.geometry("560x520+0+0")
+        self.root.update()
+        application._responsive_controller.flush()
+        application.compact_tabs.buttons["preview"].invoke()
+        self.root.update()
+        self.assertEqual(application.preview_group.winfo_manager(), "grid")
+        self.assertEqual(application.action_bar.winfo_manager(), "grid")
+
+        application.lang = "fr"
+        application._retranslate()
+        self.root.update()
+        self.assertEqual(
+            application.cancel_button.cget("text"),
+            "Arrêter après ce fichier",
+        )
+        self.assertIn("Conversion 2 sur 2", application.status_label.cget("text"))
+        services.run_conversion_job.assert_not_called()
+
     def test_preview_panel_toolbar_states_translation_and_compact_overflow(self):
         services = mock.Mock()
         dialogs = mock.Mock()
@@ -677,7 +955,7 @@ class TestModernShellWidgets(unittest.TestCase):
         self.root.update()
 
         self.assertEqual(action_bar.winfo_manager(), "grid")
-        self.assertEqual(action_bar.generate_button.winfo_manager(), "grid")
+        self.assertEqual(action_bar.generate_button.winfo_manager(), "")
         self.assertEqual(action_bar.cancel_button.winfo_manager(), "grid")
         self.assertEqual(action_bar.progress.winfo_manager(), "grid")
         self.assertLessEqual(

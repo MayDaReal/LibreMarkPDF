@@ -151,14 +151,18 @@ class TkInputMixin:
         self._file_feedback_after = self.root.after(6000, clear_feedback)
 
     def _select_file(self, path: Path) -> None:
-        if self.operation != "idle" or path not in self.files:
+        if (
+            self.operation not in ("idle", "decision", "generate")
+            or path not in self.files
+        ):
             return
         active_changed = path != self.active_file
         self.active_file = path
         if active_changed:
             self._preview_fit_mode = "page"
         self._render_file_list(focus_path=path)
-        self._schedule_preview()
+        if self.operation == "idle":
+            self._schedule_preview()
 
     def _show_source_file(self, path: Path) -> None:
         try:

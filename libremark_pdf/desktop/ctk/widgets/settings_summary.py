@@ -37,6 +37,7 @@ class SettingsSummaryRow(ctk.CTkFrame):
         self._fonts = fonts
         self._complete_summary = ""
         self._on_activate = on_activate
+        self._enabled = True
         self._hovered = False
         if on_activate is not None:
             tk.Frame.configure(self, takefocus=True)
@@ -119,12 +120,13 @@ class SettingsSummaryRow(ctk.CTkFrame):
 
     def invoke(self) -> str:
         """Invoke the row's public action from pointer or keyboard input."""
-        if self._on_activate is not None:
+        if self._enabled and self._on_activate is not None:
             self._on_activate()
         return "break"
 
     def _show_hover(self, _event=None) -> None:
-        self.set_interaction_state("hover")
+        if self._enabled:
+            self.set_interaction_state("hover")
 
     def _schedule_hover_clear(self, _event=None) -> None:
         self.after_idle(self._clear_hover_if_pointer_left)
@@ -172,6 +174,26 @@ class SettingsSummaryRow(ctk.CTkFrame):
         self.configure(
             border_color=COLORS["primary"] if visible else COLORS["border"],
             border_width=2 if visible else 1,
+        )
+
+    def set_enabled(self, enabled: bool) -> None:
+        """Keep disabled rows out of activation and keyboard focus."""
+        self._enabled = bool(enabled)
+        tk.Frame.configure(
+            self,
+            takefocus=self._enabled and self._on_activate is not None,
+        )
+        if not self._enabled:
+            self.set_interaction_state("normal")
+            self.set_focus_visible(False)
+        color = COLORS["text"] if self._enabled else COLORS["text_muted"]
+        self.title_label.configure(text_color=color)
+        self.summary_label.configure(
+            text_color=(
+                COLORS["text_secondary"]
+                if self._enabled
+                else COLORS["text_muted"]
+            )
         )
 
     def update_copy(self, title: str, summary: str) -> None:
@@ -305,8 +327,10 @@ class SettingsSummaryPanel(CardFrame):
             )
 
     def set_enabled(self, enabled: bool) -> None:
-        """Enable or disable the single settings editor action."""
+        """Enable or disable every settings mutation entry point."""
         self.edit_button.configure(state="normal" if enabled else "disabled")
+        for row in self.rows.values():
+            row.set_enabled(enabled)
 
 
 __all__: Sequence[str] = ("SettingsSummaryPanel", "SettingsSummaryRow")

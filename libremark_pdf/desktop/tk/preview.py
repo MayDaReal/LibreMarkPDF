@@ -26,6 +26,11 @@ class TkPreviewMixin:
     def _on_preview_input_changed(self, *unused) -> None:
         self._schedule_preview()
 
+    def _preview_consultation_enabled(self) -> bool:
+        return getattr(self, "operation", "idle") in (
+            "idle", "decision", "generate"
+        )
+
     def _invalidate_preview(self, clear_image: bool = False) -> None:
         self._preview_generation += 1
         if self._preview_after is not None:
@@ -40,6 +45,7 @@ class TkPreviewMixin:
             self._preview_page_pending = None
             self._preview_failed_page = None
             self._preview_fit_mode = None
+            self._preview_source_path = None
             self._set_preview_state("empty")
             self._set_status("status_ready")
         elif getattr(self, "_preview_state", None) in (
@@ -113,6 +119,7 @@ class TkPreviewMixin:
         options["resource_root"] = source_path.resolve().parent
         options["dpi"] = PREVIEW_DPI
         self._preview_running = True
+        self._preview_source_path = source_path
         self._preview_last_submitted = generation
         self._preview_active_request = ("document", generation, 1)
         self._refresh_generate_button()
@@ -222,11 +229,13 @@ class TkPreviewMixin:
     def _refresh_preview_ui(self) -> None:
         if not hasattr(self, "active_preview_label"):
             return
-        active = (
-            self.active_file
-            if getattr(self, "active_file", None) in self.files
-            else None
-        )
+        active = getattr(self, "_preview_source_path", None)
+        if active is None and self.operation == "idle":
+            active = (
+                self.active_file
+                if getattr(self, "active_file", None) in self.files
+                else None
+            )
         filename = active.name if active is not None else ""
         state = getattr(self, "_preview_state", "empty")
         if state == "empty":
@@ -352,7 +361,7 @@ class TkPreviewMixin:
         self.root.after_idle(self._update_preview_scrollbars)
 
     def _change_zoom(self, direction: int, anchor=None) -> str:
-        if getattr(self, "operation", "idle") != "idle":
+        if not self._preview_consultation_enabled():
             return "break"
         current = self.zoom_percent.get()
         index = min(
@@ -364,7 +373,7 @@ class TkPreviewMixin:
         return "break"
 
     def _reset_zoom(self) -> str:
-        if getattr(self, "operation", "idle") == "idle":
+        if self._preview_consultation_enabled():
             self._set_zoom(100)
         return "break"
 
@@ -427,7 +436,7 @@ class TkPreviewMixin:
         """Fit the existing raster without scheduling a renderer request."""
         if mode not in ("page", "width"):
             raise ValueError("Unknown preview fit mode: {0}".format(mode))
-        if self.operation == "idle" and self._preview_png is not None:
+        if self._preview_consultation_enabled() and self._preview_png is not None:
             self._preview_fit_mode = mode
             self._redraw_preview()
         return "break"
@@ -437,7 +446,7 @@ class TkPreviewMixin:
             return
         percent = self.zoom_percent.get()
         self.zoom_label.configure(text=self._t("zoom_value", percent=percent))
-        interactive = self.operation == "idle"
+        interactive = self._preview_consultation_enabled()
         self.zoom_out_button.config(
             state="normal" if interactive and percent > ZOOM_LEVELS[0] else "disabled"
         )
@@ -471,7 +480,7 @@ class TkPreviewMixin:
             )
         )
         interactive = (
-            self.operation == "idle"
+            self._preview_consultation_enabled()
             and getattr(self, "_preview_state", "empty") in ("ready", "page_error")
             and getattr(self, "_preview_page_pending", None) is None
         )
@@ -483,7 +492,7 @@ class TkPreviewMixin:
         )
 
     def _change_preview_page(self, direction: int) -> str:
-        if getattr(self, "operation", "idle") != "idle":
+        if not self._preview_consultation_enabled():
             return "break"
         current = getattr(self, "_preview_page", 1)
         total = getattr(self, "_preview_total_pages", 0)

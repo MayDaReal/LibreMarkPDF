@@ -110,11 +110,40 @@ install CPython 3.9 with pyenv first; the Linux bootstrap detects an installed
 7. Select **Generate PDF** for one file, or **Generate n PDFs** for a
    batch. The label follows the file count without abbreviated plural forms.
 
-The application presents output collisions and existing PDFs before conversion.
-The choices use explicit labels: a collision can be skipped while independent
-files continue, and an existing PDF can be replaced only after a successful
-render or kept and reported as a failure. During a batch the persistent action
-bar identifies progress and allows safe cancellation after the current file.
+The application presents existing PDFs and output collisions directly in the
+fixed action bar before conversion, without a modal dialog. **Back** appears
+before the decision title, like the settings pages; Escape performs the same
+safe return. The title and counts share one line. Details list each source,
+destination, short issue, and replacement decision in a compact table. Check
+**Replace?** for each existing PDF that may be replaced after a successful
+render; unchecked PDFs are kept and reported as failures. The checkbox in the
+column heading changes all eligible rows and shows an intermediate state for a
+mixed selection. Collision rows show **Blocked** instead of a checkbox and can
+be reported while independent files continue. A separate summary states how
+many PDFs will be replaced or kept; the **Continue** button remains fixed.
+Hover a cell for its full value. The mouse wheel scrolls this table only while
+the table has focus; otherwise it continues to scroll the main interface.
+
+During conversion, the bar identifies the batch destination, active item and
+filename. The numeric percentage remains based only on fully completed files,
+while an animated segment and the exact **Preparing document**, **Rendering with
+Chromium**, **Finalizing PDF**, or **Publishing safely** phase show that the
+active file is advancing. Chromium prints a complete PDF in one blocking call,
+so page-level percentages are not claimed. The first file may take longer while
+Chromium starts and local resources and fonts are prepared. **Applied options
+ⓘ** is an informational link, not a setting control: hover or focus it for a
+tooltip, or activate it to keep a small non-modal summary open. It gives the
+immutable style, full destination, six header/footer values, date mode, and
+trusted-HTML setting used by the worker from the start of conversion. File
+selection, the existing preview
+(pages, zoom, fit, scrolling, and panning), settings summaries, and produced
+results remain consultable; file and setting mutations and preview re-rendering
+remain locked until the terminal event.
+
+Select **Stop after this file** to let the current file finish and cancel files
+not started. Select **Cancel now** to interrupt at the next safe point and
+cancel the whole remainder. A blocking Chromium call may take a few seconds to
+return; no partial PDF is published and any previous destination PDF is kept.
 Closing the window asks whether to **Continue conversion** (the safe default,
 also used by Escape) or **Cancel conversion and close**; the active file may
 finish before the remaining files are cancelled. The final list keeps one row

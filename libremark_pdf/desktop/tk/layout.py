@@ -60,7 +60,7 @@ AUTOMATION_ACTIONS = frozenset((
     "preview.fit_width",
     "preview.previous_page", "preview.next_page",
     "output.choose", "output.reset",
-    "convert.start", "convert.cancel", "menu.compact",
+    "convert.start", "convert.cancel", "convert.cancel_now", "menu.compact",
     "tab.files", "tab.preview", "tab.settings", "tab.results",
     "about.open",
 ))
@@ -185,6 +185,10 @@ class TkLayoutMixin:
             fonts=self.ui_fonts,
             on_generate=self._on_generate_clicked,
             on_cancel=self._cancel_conversion,
+            on_cancel_now=self._cancel_conversion_now,
+            on_decision_continue=self._continue_generation_decision,
+            on_decision_back=self._cancel_generation_decision,
+            on_scroll_outside=self._on_mousewheel,
             progress_variable=self.progress_var,
             generate_icon=self.ui_assets.image(
                 "file-earmark-text",
@@ -195,10 +199,14 @@ class TkLayoutMixin:
         self.app_shell.attach_action_bar(self.action_bar)
         self.generate_button = self.action_bar.generate_button
         self.cancel_button = self.action_bar.cancel_button
+        self.cancel_now_button = self.action_bar.cancel_now_button
         self.status_label = self.action_bar.status_label
         self.progress = self.action_bar.progress
         self._register_automation_widget("convert.start", self.generate_button)
         self._register_automation_widget("convert.cancel", self.cancel_button)
+        self._register_automation_widget(
+            "convert.cancel_now", self.cancel_now_button
+        )
 
         self.compact_tabs = CompactTabBar(
             self.app_shell.content,
@@ -770,12 +778,6 @@ class TkLayoutMixin:
             self.settings_panel.edit_button,
             self.reset_header_footer_button,
             self.render_date_entry, self.trusted_html_check,
-            self.refresh_preview_button, self.zoom_out_button,
-            self.zoom_in_button, self.preview_retry_button,
-            self.preview_copy_button,
-            self.preview_report_button, self.fit_page_button,
-            self.fit_width_button,
-            self.previous_page_button, self.next_page_button,
             self.output_button, self.output_reset_button,
         ])
         self._responsive_controller = DebouncedLayoutController(
@@ -1235,5 +1237,8 @@ class TkLayoutMixin:
             return self._cancel_header_footer_editor()
         if getattr(self, "_advanced_editor_open", False):
             return self._cancel_advanced_editor()
+        if self.operation == "decision":
+            self._cancel_generation_decision()
+            return "break"
         self._cancel_conversion()
         return "break"

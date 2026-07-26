@@ -34,8 +34,10 @@ agent contract in [`SKILL.md`](SKILL.md).
   language, problem reporting, About, and version information;
 - an editable local problem report with opt-in anonymized diagnostics, copy,
   and UTF-8 save actions, with no automatic submission;
-- cancellable per-file batch progress, explicit close and collision choices,
-  and persistent success, failure, and cancellation results;
+- a fixed, non-modal action bar with compact per-output replacement decisions,
+  exact completed-file progress plus live engine phases, applied-option details, safe
+  stop-after-current or cooperative immediate cancellation, terminal summaries,
+  and persistent results;
 - deterministic JSON output and meaningful exit status for automation.
 
 User guides: [English](docs/MANUAL_EN.md) · [Français](docs/MANUEL_FR.md)

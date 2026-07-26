@@ -52,6 +52,16 @@ class LibreMarkPdfApp(
         self.css_path = None  # type: Optional[str]
         self.output_dir = None  # type: Optional[str]
         self.operation = "idle"
+        self._action_state = "idle"
+        self._action_progress_current = 0
+        self._action_progress_total = 0
+        self._action_active_name = ""
+        self._action_item_index = 1
+        self._action_stage = "preparing"
+        self._decision_plans = []
+        self._decision_has_collisions = False
+        self._decision_has_existing = False
+        self._conversion_options_summary = ""
         self._status_key = "status_ready"
         self._status_kwargs = {}  # type: dict
         self._close_requested = False
@@ -71,10 +81,12 @@ class LibreMarkPdfApp(
         self._preview_page_pending = None
         self._preview_failed_page = None  # type: Optional[int]
         self._preview_active_request = None
+        self._preview_source_path = None  # type: Optional[Path]
         self._preview_fit_mode = None  # type: Optional[str]
         self._preview_image_origin = (16.0, 16.0)
         self._poll_after = None
         self._cancel_event = threading.Event()
+        self._cancel_current_event = threading.Event()
         self._result_queue = queue.Queue()  # type: queue.Queue
         self._preview_requests = queue.Queue()  # type: queue.Queue
         self._preview_thread = threading.Thread(
@@ -249,6 +261,169 @@ class LibreMarkPdfApp(
         self.status_label.config(
             text=self._translated_status(key, kwargs),
             style=status_label_style(key),
+        )
+        self._project_action_bar()
+
+    def _set_action_state(
+        self,
+        state: str,
+        *,
+        progress_current: int = 0,
+        progress_total: int = 0,
+        active_name: str = "",
+    ) -> None:
+        """Store and project the visual state owned by the action bar."""
+        self._action_state = state
+        self._action_progress_current = progress_current
+        self._action_progress_total = progress_total
+        self._action_active_name = active_name
+        self._project_action_bar()
+
+    def _project_action_bar(self) -> None:
+        action_bar = getattr(self, "action_bar", None)
+        if action_bar is None:
+            return
+        count = len(self.files)
+        state = getattr(self, "_action_state", "idle")
+        generate_text = self._tp("generate_one", "generate_many", count)
+        disabled_reason = ""
+        if state == "idle" and not self.files:
+            disabled_reason = self._t("action_blocked_no_files")
+        elif state == "validating":
+            disabled_reason = self._t("action_blocked_validating")
+        progress_total = getattr(self, "_action_progress_total", 0)
+        progress_current = getattr(self, "_action_progress_current", 0)
+        progress_percent = (
+            int(progress_current * 100 / progress_total)
+            if progress_total else 0
+        )
+        progress_text = (
+            self._t(
+                "action_progress_completed",
+                current=progress_current,
+                total=progress_total,
+                percent=progress_percent,
+            )
+            if state in ("running", "cancel_requested")
+            else ""
+        )
+        running = state in ("running", "cancel_requested")
+        batch_text = (
+            self._tp(
+                "action_running_one", "action_running_many", count,
+                destination=self._destination_summary(),
+            )
+            if running else ""
+        )
+        if state == "running":
+            active_text = self._t(
+                "action_active_stage",
+                current=min(
+                    getattr(self, "_action_item_index", progress_current + 1),
+                    progress_total,
+                ),
+                total=progress_total,
+                name=getattr(self, "_action_active_name", ""),
+                stage=self._t(
+                    "conversion_stage_{0}".format(
+                        getattr(self, "_action_stage", "preparing")
+                    )
+                ),
+            )
+        elif state == "cancel_requested":
+            active_text = self._translated_status(
+                self._status_key, self._status_kwargs
+            )
+        else:
+            active_text = ""
+        decision_plans = getattr(self, "_decision_plans", [])
+        collision_count = sum(
+            plan.error_code != "OUTPUT_EXISTS" for plan in decision_plans
+        )
+        existing_count = sum(
+            plan.error_code == "OUTPUT_EXISTS" for plan in decision_plans
+        )
+        decision_summary = " · ".join(
+            part for part in (
+                self._tp(
+                    "decision_existing_one", "decision_existing_many",
+                    existing_count,
+                ) if existing_count else "",
+                self._tp(
+                    "decision_conflict_one", "decision_conflict_many",
+                    collision_count,
+                ) if collision_count else "",
+            ) if part
+        )
+        issue_keys = {
+            "DUPLICATE_OUTPUT": "decision_issue_duplicate",
+            "INPUT_OUTPUT_COLLISION": "decision_issue_same_path",
+            "INPUT_NOT_FOUND": "decision_issue_missing_input",
+            "OUTPUT_EXISTS": "decision_issue_existing",
+        }
+        decision_rows = tuple(
+            (
+                str(plan.input_path),
+                str(plan.output_path),
+                self._t(issue_keys.get(plan.error_code, "decision_issue_other")),
+                plan.error_code == "OUTPUT_EXISTS",
+            )
+            for plan in decision_plans
+        )
+        action_bar.set_state(
+            state,
+            status_text=self._translated_status(
+                self._status_key, self._status_kwargs
+            ),
+            generate_text=generate_text,
+            generate_enabled=(
+                bool(self.files)
+                and self.operation == "idle"
+                and state not in ("validating", "running", "cancel_requested")
+            ),
+            disabled_reason=disabled_reason,
+            progress_current=progress_current,
+            progress_total=progress_total,
+            progress_text=progress_text,
+            cancel_text=self._t("stop_after_current"),
+            cancel_enabled=(
+                state == "running" and not self._cancel_event.is_set()
+            ),
+            cancel_now_text=self._t("cancel_now"),
+            cancel_now_enabled=(
+                state in ("running", "cancel_requested")
+                and not self._cancel_current_event.is_set()
+            ),
+            batch_text=batch_text,
+            active_text=active_text,
+            options_text=self._t("applied_options"),
+            options_summary=getattr(self, "_conversion_options_summary", ""),
+            decision_title=self._t("decision_required_title"),
+            decision_message=decision_summary,
+            decision_rows=decision_rows,
+            decision_has_existing=self._decision_has_existing,
+            decision_instruction=self._t(
+                "decision_replace_instruction"
+                if existing_count else "decision_blocked_instruction"
+            ),
+            decision_source_heading=self._t("decision_source_heading"),
+            decision_destination_heading=self._t(
+                "decision_destination_heading"
+            ),
+            decision_issue_heading=self._t("decision_issue_heading"),
+            decision_replace_heading=self._t("decision_replace_heading"),
+            decision_blocked_text=self._t("decision_blocked"),
+            decision_replace_help=self._t("decision_replace_help"),
+            decision_blocked_help=self._t("decision_blocked_help"),
+            decision_replaced_one=self._t("decision_replaced_one"),
+            decision_replaced_many=self._t("decision_replaced_many"),
+            decision_kept_one=self._t("decision_kept_one"),
+            decision_kept_many=self._t("decision_kept_many"),
+            continue_text=self._t("continue_generation"),
+            back_text=self._t("back_action"),
+        )
+        action_bar.status_label.configure(
+            style=status_label_style(self._status_key)
         )
 
     def _translated_status(self, key: str, kwargs: dict) -> str:
@@ -456,9 +631,9 @@ class LibreMarkPdfApp(
         self._update_preview_translations()
         self.output_button.config(text=self._t("change_destination"))
         self.output_reset_button.config(text=self._t("reset_destination"))
-        self.cancel_button.config(text=self._t("cancel_button"))
+        self.cancel_button.config(text=self._t("stop_after_current"))
         self.results_frame.config(text=self._t("results_heading"))
-        self._refresh_generate_button()
+        self._refresh_generate_button(preserve_action_state=True)
         self._refresh_css_entry()
         self._refresh_output_entry()
         self._render_theme_cards()
@@ -469,6 +644,7 @@ class LibreMarkPdfApp(
             text=self._translated_status(self._status_key, self._status_kwargs),
             style=status_label_style(self._status_key),
         )
+        self._project_action_bar()
         if self._conversion_results or self._global_conversion_error:
             self._render_results(
                 self._conversion_results,
@@ -541,6 +717,12 @@ class LibreMarkPdfApp(
                 _kind, index, total, result = message
                 if not self._close_requested:
                     self._handle_conversion_progress(index, total, result)
+            elif kind == "conversion_stage":
+                _kind, index, total, input_path, stage = message
+                if not self._close_requested:
+                    self._handle_conversion_stage(
+                        index, total, input_path, stage
+                    )
             elif kind == "generate_done":
                 if not self._close_requested:
                     self._handle_generate_done(message[1])
