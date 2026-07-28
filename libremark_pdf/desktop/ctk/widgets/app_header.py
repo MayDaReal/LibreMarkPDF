@@ -8,7 +8,7 @@ from typing import Callable, Dict, Optional, Tuple
 
 import customtkinter as ctk
 
-from ..components import FocusRing, IconButton
+from ..components import AppMenu, FocusRing, IconButton
 from ..theme import COLORS, RADII, SIZES, SPACING, SystemFontResolver
 
 
@@ -59,6 +59,7 @@ class WindowChrome:
         self._pending_resize_geometry = None
         self._resize_after_id = None  # type: Optional[str]
         self._maximized = False
+        self._maximize_accessible_names = {"maximize": "", "restore": ""}
         self._restore_override_after_map = False
         self._taskbar_registered = False
         self._resize_surfaces = []
@@ -69,6 +70,18 @@ class WindowChrome:
     def attach_maximize_button(self, button: ctk.CTkButton) -> None:
         """Retain the control whose glyph reflects maximize state."""
         self.maximize_button = button
+
+    def set_maximize_accessible_names(
+        self,
+        maximize: str,
+        restore: str,
+    ) -> None:
+        """Refresh the state-dependent name of the maximize control."""
+        self._maximize_accessible_names = {
+            "maximize": maximize,
+            "restore": restore,
+        }
+        self._update_maximize_glyph()
 
     def bind_drag_surface(self, widget: tk.Misc) -> None:
         """Make a non-interactive title-bar surface draggable."""
@@ -546,12 +559,15 @@ class WindowChrome:
 
     def _update_maximize_glyph(self) -> None:
         if self.maximize_button is not None:
+            state = "restore" if self._maximized else "maximize"
             self.maximize_button.configure(
-                text=(
-                    WINDOW_CONTROL_GLYPHS["restore"]
-                    if self._maximized
-                    else WINDOW_CONTROL_GLYPHS["maximize"]
-                )
+                text=WINDOW_CONTROL_GLYPHS[state]
+            )
+            self.maximize_button.accessible_name = (
+                self._maximize_accessible_names[state]
+            )
+            self.maximize_button.tooltip.update_text(
+                self._maximize_accessible_names[state]
             )
 
     def _work_area(self) -> Tuple[int, int, int, int]:
@@ -697,7 +713,8 @@ class AppHeader(ctk.CTkFrame):
             add="+",
         )
 
-        self.help_menu = tk.Menu(root, tearoff=False)
+        menu_font = fonts.font("body")
+        self.help_menu = AppMenu(root, font=menu_font)
         self.help_menu.add_command(command=on_shortcuts)
         self.help_menu.add_command(command=on_manual)
         self.help_menu.add_command(command=on_report)
@@ -716,15 +733,15 @@ class AppHeader(ctk.CTkFrame):
             pady=SPACING["sm"],
         )
 
-        self.language_menu = tk.Menu(root, tearoff=False)
+        self.language_menu = AppMenu(root, font=menu_font)
         self.language_menu.add_radiobutton(
-            label="Français",
+            label="",
             value="fr",
             variable=self._language_var,
             command=lambda: on_language("fr"),
         )
         self.language_menu.add_radiobutton(
-            label="English",
+            label="",
             value="en",
             variable=self._language_var,
             command=lambda: on_language("en"),
@@ -744,13 +761,12 @@ class AppHeader(ctk.CTkFrame):
             padx=(0, SPACING["xs"]),
             pady=SPACING["sm"],
         )
-        self.compact_menu = tk.Menu(root, tearoff=False)
+        self.compact_menu = AppMenu(root, font=menu_font)
         self.compact_menu.add_command(command=on_manual)
         self.compact_menu.add_command(command=on_shortcuts)
         self.compact_menu.add_cascade(menu=self.language_menu)
         self.compact_menu.add_command(command=on_report)
         self.compact_menu.add_separator()
-        self.compact_menu.add_command(command=on_about)
         self.compact_menu.add_command(command=on_about)
         self.compact_menu_button = IconButton(
             self,
@@ -765,9 +781,8 @@ class AppHeader(ctk.CTkFrame):
         )
         self.compact_menu_button.grid(
             row=0,
-            column=2,
-            sticky="w",
-            padx=(SPACING["xs"], 0),
+            column=5,
+            padx=(0, SPACING["xs"]),
             pady=SPACING["sm"],
         )
         self.compact_menu_button.grid_remove()
@@ -777,7 +792,7 @@ class AppHeader(ctk.CTkFrame):
         )
         self.minimize_button.grid(
             row=0,
-            column=5,
+            column=6,
             padx=(0, SPACING["xs"]),
             pady=SPACING["sm"],
         )
@@ -787,7 +802,7 @@ class AppHeader(ctk.CTkFrame):
         )
         self.maximize_button.grid(
             row=0,
-            column=6,
+            column=7,
             padx=(0, SPACING["xs"]),
             pady=SPACING["sm"],
         )
@@ -799,7 +814,7 @@ class AppHeader(ctk.CTkFrame):
         )
         self.close_button.grid(
             row=0,
-            column=7,
+            column=8,
             padx=(0, SPACING["sm"]),
             pady=SPACING["sm"],
         )
@@ -849,8 +864,10 @@ class AppHeader(ctk.CTkFrame):
         command: Callable[[], None],
         close: bool = False,
     ) -> ctk.CTkButton:
-        button = ctk.CTkButton(
+        button = IconButton(
             self,
+            image=None,
+            accessible_name="",
             text=text,
             command=command,
             width=36,
@@ -863,9 +880,6 @@ class AppHeader(ctk.CTkFrame):
             text_color=COLORS["text"],
             font=WINDOW_CONTROL_FONT,
         )
-        tk.Frame.configure(button, takefocus=True)
-        button.bind("<Return>", lambda _event: button.invoke(), add="+")
-        button.bind("<space>", lambda _event: button.invoke(), add="+")
         if close:
             button.bind(
                 "<Enter>",
@@ -913,8 +927,16 @@ class AppHeader(ctk.CTkFrame):
             text=labels["app_version_compact"].format(version=version)
         )
         self.help_button.configure(text="{0} ▾".format(labels["help_menu"]))
-        language_name = "Français" if language == "fr" else "English"
+        language_name = labels["language_{0}_name".format(
+            "french" if language == "fr" else "english"
+        )]
         self.language_button.configure(text="{0} ▾".format(language_name))
+        self.language_menu.entryconfigure(
+            0, label=labels["language_french_name"]
+        )
+        self.language_menu.entryconfigure(
+            1, label=labels["language_english_name"]
+        )
         self.help_menu.entryconfigure(
             0,
             label=labels["keyboard_shortcuts_action"],
@@ -929,18 +951,22 @@ class AppHeader(ctk.CTkFrame):
         )
         self.compact_menu.entryconfigure(
             2,
-            label=labels.get("language_menu", "Language"),
+            label=labels["language_menu"],
         )
         self.compact_menu.entryconfigure(3, label=labels["report_issue_action"])
         self.compact_menu.entryconfigure(5, label=labels["about_action"])
-        self.compact_menu.entryconfigure(
-            6,
-            label=labels.get(
-                "version_information", "Version {version}"
-            ).format(version=version),
-        )
         self.compact_menu_button.update_accessible_name(
-            labels.get("compact_menu_a11y", "Application menu")
+            labels["compact_menu_a11y"]
+        )
+        for button, label in (
+            (self.minimize_button, labels["window_minimize_a11y"]),
+            (self.close_button, labels["window_close_a11y"]),
+        ):
+            button.accessible_name = label
+            button.tooltip.update_text(label)
+        self.window_chrome.set_maximize_accessible_names(
+            labels["window_maximize_a11y"],
+            labels["window_restore_a11y"],
         )
 
     @property

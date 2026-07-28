@@ -10,7 +10,6 @@ import customtkinter as ctk
 from ... import __version__, core
 from ..ctk.app_shell import AppShell
 from ..ctk.assets import UiAssetRegistry, product_logo
-from ..ctk.components import CardFrame, PrimaryButton, SecondaryButton
 from ..ctk.responsive import (
     DebouncedLayoutController,
     resolve_layout_mode,
@@ -36,7 +35,6 @@ from ..ctk.widgets.style_editor import StyleEditorPanel
 from .styles import (
     OUTER_PADDING,
     SECTION_GAP,
-    SECTION_PADDING,
     SPACE_SM,
     SPACE_XS,
 )
@@ -388,267 +386,12 @@ class TkLayoutMixin:
             for drop_target in self.files_panel.drop_targets:
                 self._register_drop_target(drop_target)
 
-        settings_dialog = tk.Toplevel(self.root)
-        settings_dialog.withdraw()
-        settings_dialog.transient(self.root)
-        settings_dialog.configure(background=COLORS["app_bg"])
-        settings_dialog.resizable(True, True)
-        settings_dialog.minsize(560, 520)
-        settings_dialog.maxsize(
-            720,
-            max(520, self.root.winfo_screenheight()),
-        )
-        settings_dialog.protocol(
-            "WM_DELETE_WINDOW",
-            self._cancel_settings_editor,
-        )
-        settings_dialog.bind("<Escape>", self._cancel_settings_editor)
-        settings_dialog.bind(
-            "<Configure>",
-            self._on_settings_dialog_configure,
-            add="+",
-        )
-
-        dialog_shell = ctk.CTkFrame(
-            settings_dialog,
-            fg_color=COLORS["app_bg"],
-            corner_radius=0,
-        )
-        dialog_shell.pack(fill="both", expand=True)
-        dialog_header = ctk.CTkFrame(dialog_shell, fg_color="transparent")
-        dialog_header.pack(
-            fill="x",
-            padx=SPACING["lg"],
-            pady=(SPACING["lg"], SPACING["md"]),
-        )
-        settings_dialog_title = ctk.CTkLabel(
-            dialog_header,
-            text="",
-            anchor="w",
-            text_color=COLORS["text"],
-            font=self.ui_fonts.font("dialog_title"),
-        )
-        settings_dialog_title.pack(fill="x")
-        settings_dialog_description = ctk.CTkLabel(
-            dialog_header,
-            text="",
-            anchor="w",
-            justify="left",
-            wraplength=640,
-            text_color=COLORS["text_secondary"],
-            font=self.ui_fonts.font("secondary"),
-        )
-        settings_dialog_description.pack(fill="x", pady=(SPACING["xs"], 0))
-        settings_scroll = ctk.CTkScrollableFrame(
-            dialog_shell,
-            fg_color="transparent",
-            corner_radius=0,
-        )
-        settings_scroll.pack(
-            fill="both",
-            expand=True,
-            padx=SPACING["lg"],
-        )
-        settings_section_titles = {}
-
-        def build_settings_section(name: str) -> tuple:
-            card = CardFrame(settings_scroll)
-            card.pack(fill="x", pady=(0, SPACING["md"]))
-            title = ctk.CTkLabel(
-                card,
-                text="",
-                anchor="w",
-                text_color=COLORS["text"],
-                font=self.ui_fonts.font("panel_title"),
-            )
-            title.pack(
-                fill="x",
-                padx=SPACING["md"],
-                pady=(SPACING["md"], SPACING["xs"]),
-            )
-            content = ttk.Frame(card, padding=SECTION_PADDING)
-            content.pack(
-                fill="x",
-                padx=SPACING["xs"],
-                pady=(0, SPACING["md"]),
-            )
-            settings_section_titles[name] = title
-            return card, content
-
-        self.theme_group, style_content = build_settings_section("style")
-        self.theme_mode_radio = ttk.Radiobutton(
-            style_content,
-            variable=self._settings_draft_style_mode_var,
-            value="theme",
-            command=self._reset_css,
-        )
-        self.theme_mode_radio.pack(anchor="w")
-        self.theme_cards = ttk.Frame(style_content)
-        self.theme_cards.pack(fill="x", pady=(SPACE_XS, 0))
-        self.css_mode_radio = ttk.Radiobutton(
-            style_content,
-            variable=self._settings_draft_style_mode_var,
-            value="css",
-            command=self._activate_css_mode,
-        )
-        self.css_mode_radio.pack(anchor="w", pady=(SPACE_SM, 0))
-        self.css_row = ttk.Frame(style_content)
-        self.css_row.pack(fill="x", pady=(SPACE_SM, 0))
-        self.css_label = ttk.Label(self.css_row)
-        self.css_label.pack(side="left")
-        self.css_entry = ttk.Entry(self.css_row, state="readonly")
-        self.css_entry.pack(side="left", fill="x", expand=True, padx=SPACE_SM)
-        self.css_button = ttk.Button(self.css_row, command=self._choose_css)
-        self.css_button.pack(side="left")
-        self.css_reset_button = ttk.Button(
-            self.css_row,
-            command=self._reset_css,
-        )
-        self.css_reset_button.pack(side="left", padx=(SPACE_SM, 0))
-
-        self.output_group, destination_content = build_settings_section(
-            "destination"
-        )
-        self.output_row = ttk.Frame(destination_content)
-        self.output_row.pack(fill="x")
-        self.output_entry = ttk.Entry(self.output_row, state="readonly")
-        self.output_entry.pack(side="left", fill="x", expand=True)
-        self.output_button = ttk.Button(
-            self.output_row,
-            command=self._choose_output_dir,
-        )
-        self.output_button.pack(side="left", padx=(SPACE_SM, 0))
-        self.output_reset_button = ttk.Button(
-            self.output_row,
-            command=self._reset_output_dir,
-        )
-        self.output_reset_button.pack(side="left", padx=(SPACE_SM, 0))
-        self._register_automation_widget("output.choose", self.output_button)
-        self._register_automation_widget("output.reset", self.output_reset_button)
-
-        self.advanced_group, self.advanced_content = build_settings_section(
-            "header_footer"
-        )
-        self.tokens_hint_label = ttk.Label(self.advanced_content)
-        self.tokens_hint_label.pack(anchor="w", pady=(0, SPACE_XS))
-        self.header_footer_entry_rows = []
-        self.header_footer_field_rows = []
-        self.hf_position_labels = {
-            "position_left": [],
-            "position_center": [],
-            "position_right": [],
-        }
-        for group_name, keys in (
-            ("header_group_label", ("header_left", "header_center", "header_right")),
-            ("footer_group_label", ("footer_left", "footer_center", "footer_right")),
-        ):
-            label = ttk.Label(self.advanced_content)
-            setattr(self, group_name, label)
-            label.pack(anchor="w", pady=(SPACE_XS, 0))
-            row = ttk.Frame(self.advanced_content)
-            row.pack(fill="x")
-            entries = []
-            fields = []
-            for key, position_key in zip(
-                keys,
-                ("position_left", "position_center", "position_right"),
-            ):
-                field = ttk.Frame(row)
-                position_label = ttk.Label(field)
-                position_label.pack(anchor="w")
-                entry = ttk.Entry(
-                    field,
-                    textvariable=self._settings_draft_hf_vars[key],
-                )
-                entry.pack(fill="x", expand=True)
-                entries.append(entry)
-                fields.append(field)
-                self.hf_position_labels[position_key].append(position_label)
-                self._operation_controls.append(entry)
-            self.header_footer_entry_rows.append(entries)
-            self.header_footer_field_rows.append(fields)
-        self.reset_header_footer_button = ttk.Button(
-            self.advanced_content,
-            command=self._reset_header_footer,
-        )
-        self.reset_header_footer_button.pack(anchor="e", pady=(SPACE_SM, 0))
-
-        self.other_group, other_content = build_settings_section("other")
-        date_row = ttk.Frame(other_content)
-        date_row.pack(fill="x")
-        self.render_date_label = ttk.Label(date_row)
-        self.render_date_label.pack(side="left")
-        self.render_date_entry = ttk.Entry(
-            date_row,
-            textvariable=self._settings_draft_render_date_var,
-            width=12,
-        )
-        self.render_date_entry.pack(side="left", padx=(SPACE_SM, 0))
-        self.trusted_html_check = ttk.Checkbutton(
-            other_content,
-            variable=self._settings_draft_trusted_html_var,
-        )
-        self.trusted_html_check.pack(anchor="w", pady=(SPACE_SM, 0))
-        self.trusted_html_help_label = ttk.Label(
-            other_content,
-            wraplength=420,
-            justify="left",
-        )
-        self.trusted_html_help_label.pack(fill="x", pady=(SPACE_XS, 0))
-
-        # Migrated families retain their legacy widgets only as adapter
-        # consumers; their visible entry points are the dedicated editors.
-        self.theme_group.pack_forget()
-        self.output_group.pack_forget()
-        self.advanced_group.pack_forget()
-
-        dialog_actions = ctk.CTkFrame(
-            dialog_shell,
-            fg_color=COLORS["surface"],
-            corner_radius=0,
-            border_width=1,
-            border_color=COLORS["border"],
-        )
-        dialog_actions.pack(fill="x", side="bottom")
-        settings_cancel_button = SecondaryButton(
-            dialog_actions,
-            text="",
-            command=self._cancel_settings_editor,
-            width=104,
-        )
-        settings_cancel_button.pack(
-            side="right",
-            padx=(SPACING["sm"], SPACING["lg"]),
-            pady=SPACING["md"],
-        )
-        settings_apply_button = PrimaryButton(
-            dialog_actions,
-            text="",
-            command=self._apply_settings_editor,
-            width=104,
-        )
-        settings_apply_button.pack(
-            side="right",
-            pady=SPACING["md"],
-        )
-        self._settings_dialog = {
-            "window": settings_dialog,
-            "title": settings_dialog_title,
-            "description": settings_dialog_description,
-            "section_titles": settings_section_titles,
-            "apply": settings_apply_button,
-            "cancel": settings_cancel_button,
-        }
-        self._settings_dialog_layout_narrow = None
-        self._layout_settings_dialog(680)
-
         self.settings_panel = SettingsSummaryPanel(
             self.workspace,
             labels=self._settings_summary_labels(),
             summaries=self._settings_summaries(),
             fonts=self.ui_fonts,
             assets=self.ui_assets,
-            on_edit=self._open_advanced_editor,
             on_edit_style=self._open_style_editor,
             on_edit_destination=self._open_destination_editor,
             on_edit_header_footer=self._open_header_footer_editor,
@@ -692,6 +435,12 @@ class TkLayoutMixin:
             self.workspace, show_back=True
         )
         self._destination_dialog = destination_dialog
+        self._register_automation_widget(
+            "output.choose", self.destination_dialog_editor.choose_button
+        )
+        self._register_automation_widget(
+            "output.reset", self.destination_dialog_editor.source_radio
+        )
         header_footer_dialog = tk.Toplevel(self.root)
         header_footer_dialog.withdraw()
         header_footer_dialog.transient(self.root)
@@ -844,12 +593,8 @@ class TkLayoutMixin:
         )
 
         self._operation_controls.extend([
-            self.browse_button, self.clear_files_button, self.css_button,
-            self.css_reset_button, self.theme_mode_radio, self.css_mode_radio,
-            self.settings_panel.edit_button,
-            self.reset_header_footer_button,
-            self.render_date_entry, self.trusted_html_check,
-            self.output_button, self.output_reset_button,
+            self.browse_button,
+            self.clear_files_button,
         ])
         self._responsive_controller = DebouncedLayoutController(
             self.root,
@@ -1091,7 +836,6 @@ class TkLayoutMixin:
                     sticky="nsew",
                 )
                 self._apply_results_panel_geometry(mode)
-            self._layout_legacy_setting_rows()
             self._layout_preview_header(mode)
             self._layout_mode = mode
             self._refresh_results_projection()
@@ -1126,6 +870,7 @@ class TkLayoutMixin:
             files_panel = getattr(self, "files_panel", None)
             if files_panel is not None:
                 files_panel.configure(width=legacy_panel_width)
+                files_panel.set_layout_mode(mode)
             else:
                 self.drop_canvas.configure(width=legacy_panel_width)
                 self.file_canvas.configure(width=legacy_panel_width)
@@ -1273,59 +1018,6 @@ class TkLayoutMixin:
                 column=0,
                 sticky="ew",
             )
-
-    def _layout_legacy_setting_rows(self) -> None:
-        """Keep temporary legacy editors usable inside their modal adapters."""
-        for widget in (
-            self.css_label,
-            self.css_entry,
-            self.css_button,
-            self.css_reset_button,
-        ):
-            widget.pack_forget()
-        self.css_label.pack(anchor="w")
-        self.css_entry.pack(fill="x", pady=(SPACE_XS, SPACE_SM))
-        self.css_button.pack(side="left")
-        self.css_reset_button.pack(side="left", padx=(SPACE_SM, 0))
-
-        for widget in (
-            self.output_entry,
-            self.output_button,
-            self.output_reset_button,
-        ):
-            widget.pack_forget()
-        self.output_entry.pack(fill="x", pady=(0, SPACE_SM))
-        self.output_button.pack(side="left")
-        self.output_reset_button.pack(side="left", padx=(SPACE_SM, 0))
-
-    def _on_settings_dialog_configure(self, event) -> None:
-        if (
-            hasattr(self, "_settings_dialog")
-            and event.widget is self._settings_dialog["window"]
-        ):
-            self._layout_settings_dialog(event.width)
-
-    def _layout_settings_dialog(self, width: int) -> None:
-        """Keep the unified legacy adapter readable across its width range."""
-        narrow = width < 640
-        if narrow == getattr(self, "_settings_dialog_layout_narrow", None):
-            return
-        self._settings_dialog_layout_narrow = narrow
-        self._settings_dialog["description"].configure(
-            wraplength=max(480, width - 64)
-        )
-        for fields in self.header_footer_field_rows:
-            for field in fields:
-                field.pack_forget()
-                if narrow:
-                    field.pack(fill="x", pady=(0, SPACE_XS))
-                else:
-                    field.pack(
-                        side="left",
-                        fill="x",
-                        expand=True,
-                        padx=SPACE_XS,
-                    )
 
     def _layout_preview_header(self, mode=None) -> None:
         """Adapt the modern preview toolbar without rebuilding its widgets."""

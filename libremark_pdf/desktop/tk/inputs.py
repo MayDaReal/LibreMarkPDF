@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import tkinter as tk
 from pathlib import Path
-from tkinter import ttk
 from typing import Iterable, Optional, Union
 
 from ... import core
@@ -233,10 +232,9 @@ class TkInputMixin:
         if path:
             self._settings_draft_css_path = path
             self._settings_draft_style_mode_var.set("css")
-            self._refresh_css_entry()
-            self._render_theme_cards()
+            self._refresh_style_editors()
+            self._refresh_accordion_headers()
             if getattr(self, "_style_editor_open", False):
-                self._refresh_style_editors()
                 self._schedule_style_draft_preview()
 
     def _activate_css_mode(self) -> None:
@@ -249,55 +247,7 @@ class TkInputMixin:
     def _reset_css(self) -> None:
         self._settings_draft_css_path = None
         self._settings_draft_style_mode_var.set("theme")
-        self._refresh_css_entry()
-        self._render_theme_cards()
-
-    def _refresh_css_entry(self) -> None:
-        value = (
-            self._settings_draft_css_path
-            or self._t("css_from_theme_value")
-        )
-        self.css_entry.config(state="normal")
-        self.css_entry.delete(0, "end")
-        self.css_entry.insert(0, value)
-        self.css_entry.config(state="readonly")
-        self._refresh_accordion_headers()
-
-    def _select_theme(self, reference: str) -> None:
-        if self.operation != "idle":
-            return
-        self._settings_draft_theme_var.set(reference)
-        self._settings_draft_css_path = None
-        self._settings_draft_style_mode_var.set("theme")
-        self._refresh_css_entry()
-        self._render_theme_cards()
-
-    def _render_theme_cards(self) -> None:
-        for child in self.theme_cards.winfo_children():
-            child.destroy()
-        self._theme_buttons = []
-        self._theme_summaries = {}
-        try:
-            themes = core.list_themes()
-        except Exception as exc:
-            themes = [core.show_theme(core.DEFAULT_THEME_ID)]
-            self._set_status("status_theme_error", error=str(exc))
-        for info in themes:
-            self._theme_summaries[info.reference] = info.names[self.lang]
-            card = ttk.Radiobutton(
-                self.theme_cards,
-                text="{0} ({1})".format(info.names[self.lang], info.reference),
-                value=info.reference,
-                variable=self._settings_draft_theme_var,
-                command=lambda ref=info.reference: self._select_theme(ref),
-            )
-            card.pack(side="left", padx=(0, 8), pady=2)
-            if self._settings_draft_css_path:
-                card.config(state="disabled")
-            self._theme_buttons.append(card)
-        if self.operation != "idle":
-            for card in self._theme_buttons:
-                card.config(state="disabled")
+        self._refresh_style_editors()
         self._refresh_accordion_headers()
 
     def _style_editor_labels(self) -> dict:
@@ -323,6 +273,9 @@ class TkInputMixin:
         if not hasattr(self, "style_dialog_editor"):
             return
         themes = self._style_editor_themes()
+        self._theme_summaries = {
+            info.reference: info.names[self.lang] for info in themes
+        }
         selected = self._settings_draft_theme_var.get()
         selected_info = next(
             (info for info in themes if info.reference == selected),
@@ -449,10 +402,10 @@ class TkInputMixin:
         if self._style_editor_open:
             self._show_style_editor_host()
             return "break"
-        self._settings_dialog["snapshot"] = self._settings_snapshot()
-        self._load_settings_draft(self._settings_dialog["snapshot"])
+        self._settings_editor_state["snapshot"] = self._settings_snapshot()
+        self._load_settings_draft(self._settings_editor_state["snapshot"])
         self._style_editor_preview_snapshot = self._capture_preview_snapshot()
-        self._settings_dialog["return_focus"] = self.root.focus_get()
+        self._settings_editor_state["return_focus"] = self.root.focus_get()
         self._style_error_var.set("")
         self._style_editor_open = True
         self._refresh_style_editors()
@@ -500,7 +453,7 @@ class TkInputMixin:
         self._style_editor_open = False
         if self._layout_mode == "compact":
             self._show_active_compact_section()
-        focus = self._settings_dialog.get("return_focus")
+        focus = self._settings_editor_state.get("return_focus")
         try:
             (focus or self.settings_panel.rows["style"]).focus_set()
         except tk.TclError:
@@ -522,7 +475,7 @@ class TkInputMixin:
     def _cancel_style_editor(self, _event=None) -> str:
         if not getattr(self, "_style_editor_open", False):
             return "break"
-        snapshot = self._settings_dialog.get("snapshot")
+        snapshot = self._settings_editor_state.get("snapshot")
         if snapshot is not None:
             self._load_settings_draft(snapshot)
         preview = self._style_editor_preview_snapshot
@@ -538,23 +491,13 @@ class TkInputMixin:
             self._settings_draft_output_dir = path
             if hasattr(self, "_destination_mode_var"):
                 self._destination_mode_var.set("custom")
-            self._refresh_output_entry()
+            self._refresh_destination_editors()
+            self._refresh_accordion_headers()
 
     def _reset_output_dir(self) -> None:
         self._settings_draft_output_dir = None
         if hasattr(self, "_destination_mode_var"):
             self._destination_mode_var.set("source")
-        self._refresh_output_entry()
-
-    def _refresh_output_entry(self) -> None:
-        value = (
-            self._settings_draft_output_dir
-            or self._t("output_default_value")
-        )
-        self.output_entry.config(state="normal")
-        self.output_entry.delete(0, "end")
-        self.output_entry.insert(0, value)
-        self.output_entry.config(state="readonly")
         self._refresh_destination_editors()
         self._refresh_accordion_headers()
 
@@ -592,7 +535,8 @@ class TkInputMixin:
         self._destination_error_var.set("")
         if mode == "source":
             self._settings_draft_output_dir = None
-            self._refresh_output_entry()
+            self._refresh_destination_editors()
+            self._refresh_accordion_headers()
             return
         if not self._settings_draft_output_dir:
             self._choose_destination_folder()
@@ -628,9 +572,9 @@ class TkInputMixin:
         if self._destination_editor_open:
             self._show_destination_editor_host()
             return "break"
-        self._settings_dialog["snapshot"] = self._settings_snapshot()
-        self._load_settings_draft(self._settings_dialog["snapshot"])
-        self._settings_dialog["return_focus"] = self.root.focus_get()
+        self._settings_editor_state["snapshot"] = self._settings_snapshot()
+        self._load_settings_draft(self._settings_editor_state["snapshot"])
+        self._settings_editor_state["return_focus"] = self.root.focus_get()
         self._destination_error_var.set("")
         self._destination_editor_open = True
         self._refresh_destination_editors()
@@ -679,7 +623,7 @@ class TkInputMixin:
         self._destination_editor_open = False
         if self._layout_mode == "compact":
             self._show_active_compact_section()
-        focus = self._settings_dialog.get("return_focus")
+        focus = self._settings_editor_state.get("return_focus")
         try:
             (focus or self.settings_panel.rows["destination"]).focus_set()
         except tk.TclError:
@@ -690,14 +634,14 @@ class TkInputMixin:
         if not self._validate_destination_draft():
             return "break"
         self.output_dir = self._settings_draft_output_dir
-        self._refresh_output_entry()
+        self._refresh_destination_editors()
         self._refresh_accordion_headers()
         return self._close_destination_editor()
 
     def _cancel_destination_editor(self, _event=None) -> str:
         if not getattr(self, "_destination_editor_open", False):
             return "break"
-        snapshot = self._settings_dialog.get("snapshot")
+        snapshot = self._settings_editor_state.get("snapshot")
         if snapshot is not None:
             self._load_settings_draft(snapshot)
         return self._close_destination_editor()
@@ -798,12 +742,12 @@ class TkInputMixin:
         if self._header_footer_editor_open:
             self._show_header_footer_editor_host()
             return "break"
-        self._settings_dialog["snapshot"] = self._settings_snapshot()
-        self._load_settings_draft(self._settings_dialog["snapshot"])
+        self._settings_editor_state["snapshot"] = self._settings_snapshot()
+        self._load_settings_draft(self._settings_editor_state["snapshot"])
         self._header_footer_editor_preview_snapshot = (
             self._capture_preview_snapshot()
         )
-        self._settings_dialog["return_focus"] = self.root.focus_get()
+        self._settings_editor_state["return_focus"] = self.root.focus_get()
         self._header_footer_editor_open = True
         self._refresh_header_footer_editors()
         self._show_header_footer_editor_host()
@@ -850,7 +794,7 @@ class TkInputMixin:
         self._header_footer_editor_open = False
         if self._layout_mode == "compact":
             self._show_active_compact_section()
-        focus = self._settings_dialog.get("return_focus")
+        focus = self._settings_editor_state.get("return_focus")
         try:
             (focus or self.settings_panel.rows["header_footer"]).focus_set()
         except tk.TclError:
@@ -871,7 +815,7 @@ class TkInputMixin:
         if not getattr(self, "_header_footer_editor_open", False):
             return "break"
         self._header_footer_editor_open = False
-        snapshot = self._settings_dialog.get("snapshot")
+        snapshot = self._settings_editor_state.get("snapshot")
         if snapshot is not None:
             self._load_settings_draft(snapshot)
         preview = self._header_footer_editor_preview_snapshot
@@ -972,10 +916,10 @@ class TkInputMixin:
         if self._advanced_editor_open:
             self._show_advanced_editor_host()
             return "break"
-        self._settings_dialog["snapshot"] = self._settings_snapshot()
-        self._load_settings_draft(self._settings_dialog["snapshot"])
+        self._settings_editor_state["snapshot"] = self._settings_snapshot()
+        self._load_settings_draft(self._settings_editor_state["snapshot"])
         self._advanced_editor_preview_snapshot = self._capture_preview_snapshot()
-        self._settings_dialog["return_focus"] = self.root.focus_get()
+        self._settings_editor_state["return_focus"] = self.root.focus_get()
         self._advanced_error_var.set("")
         self._advanced_editor_open = True
         self._refresh_advanced_editors()
@@ -1023,7 +967,7 @@ class TkInputMixin:
         self._advanced_editor_open = False
         if self._layout_mode == "compact":
             self._show_active_compact_section()
-        focus = self._settings_dialog.get("return_focus")
+        focus = self._settings_editor_state.get("return_focus")
         try:
             (focus or self.settings_panel.rows["other"]).focus_set()
         except tk.TclError:
@@ -1046,7 +990,7 @@ class TkInputMixin:
         if not getattr(self, "_advanced_editor_open", False):
             return "break"
         self._advanced_editor_open = False
-        snapshot = self._settings_dialog.get("snapshot")
+        snapshot = self._settings_editor_state.get("snapshot")
         if snapshot is not None:
             self._load_settings_draft(snapshot)
         preview = self._advanced_editor_preview_snapshot
@@ -1117,7 +1061,6 @@ class TkInputMixin:
             "destination": self._t("destination_heading"),
             "header_footer": self._t("header_footer_heading"),
             "other": self._t("advanced_options_heading"),
-            "edit": self._t("edit_settings"),
         }
 
     def _refresh_accordion_headers(self) -> None:
@@ -1151,161 +1094,10 @@ class TkInputMixin:
             self._settings_draft_hf_vars[key].set(value)
         self._settings_draft_render_date_var.set(settings["render_date"])
         self._settings_draft_trusted_html_var.set(settings["trusted_html"])
-        self._refresh_css_entry()
-        self._refresh_output_entry()
-        self._render_theme_cards()
-
-    def _open_settings_editor(self) -> str:
-        if self.operation != "idle":
-            return "break"
-        details = self._settings_dialog
-        dialog = details["window"]
-        if dialog.state() != "withdrawn":
-            dialog.lift()
-            self._activate_settings_editor()
-            return "break"
-        details["snapshot"] = self._settings_snapshot()
-        self._load_settings_draft(details["snapshot"])
-        details["return_focus"] = self.root.focus_get()
-        width = max(
-            560,
-            min(680, self.root.winfo_screenwidth() - 80),
-        )
-        height = min(
-            700,
-            max(520, self.root.winfo_screenheight() - 80),
-        )
-        x = self.root.winfo_rootx() + max(
-            0, (self.root.winfo_width() - width) // 2
-        )
-        y = self.root.winfo_rooty() + max(
-            0, (self.root.winfo_height() - height) // 2
-        )
-        dialog.geometry("{0}x{1}+{2}+{3}".format(width, height, x, y))
-        self._layout_settings_dialog(width)
-        details["activation_attempts"] = 0
-        details["opening"] = True
-        dialog.deiconify()
-        dialog.lift()
-        dialog.update_idletasks()
-        self._activate_settings_editor()
-        return "break"
-
-    def _activate_settings_editor(self) -> None:
-        """Make the dialog visible before it can own keyboard and pointer input."""
-        details = self._settings_dialog
-        dialog = details["window"]
-        if not details.get("opening", False):
-            return
-        if dialog.state() == "withdrawn":
-            dialog.deiconify()
-        dialog.lift()
-        if not dialog.winfo_viewable():
-            attempts = details.get("activation_attempts", 0) + 1
-            details["activation_attempts"] = attempts
-            if attempts <= 5:
-                dialog.after_idle(self._activate_settings_editor)
-            return
-        dialog.focus_force()
-        dialog.grab_set()
-        self.theme_mode_radio.focus_set()
-
-    def _close_settings_editor(self) -> str:
-        details = self._settings_dialog
-        dialog = details["window"]
-        details["opening"] = False
-        if dialog.grab_current() is dialog:
-            dialog.grab_release()
-        dialog.withdraw()
-        focus = details.get("return_focus")
-        if focus is not None:
-            try:
-                focus.focus_set()
-            except tk.TclError:
-                self.root.focus_set()
-        else:
-            self.root.focus_set()
-        return "break"
-
-    def _apply_settings_editor(self) -> str:
-        details = self._settings_dialog
-        draft_trusted = self._settings_draft_trusted_html_var.get()
-        if draft_trusted and not self._trusted_html_confirmed:
-            confirmed = self.dialogs.ask_trusted_html(
-                self._settings_dialog["window"],
-                self._t("trusted_html_confirm_title"),
-                self._t("trusted_html_confirm"),
-                self._t("trusted_html_allow"),
-                self._t("cancel_settings"),
-            )
-            if not confirmed:
-                self._settings_draft_trusted_html_var.set(False)
-                self.trusted_html_check.focus_set()
-                return "break"
-            self._trusted_html_confirmed = True
-
-        before = self._settings_snapshot()
-        self.css_path = self._settings_draft_css_path
-        self.output_dir = self._settings_draft_output_dir
-        draft_style_mode = self._settings_draft_style_mode_var.get()
-        draft_theme = self._settings_draft_theme_var.get()
-        if self.style_mode_var.get() != draft_style_mode:
-            self.style_mode_var.set(draft_style_mode)
-        if self.theme_var.get() != draft_theme:
-            self.theme_var.set(draft_theme)
-        for key, variable in self.hf_vars.items():
-            draft_value = self._settings_draft_hf_vars[key].get()
-            if variable.get() != draft_value:
-                variable.set(draft_value)
-        draft_date = self._settings_draft_render_date_var.get()
-        if self.render_date_var.get() != draft_date:
-            self.render_date_var.set(draft_date)
-        if self.trusted_html_var.get() != draft_trusted:
-            self.trusted_html_var.set(draft_trusted)
-        self._refresh_css_entry()
-        self._refresh_output_entry()
-        self._render_theme_cards()
-        self._refresh_accordion_headers()
-        after = self._settings_snapshot()
-        if any(
-            before[key] != after[key]
-            for key in (
-                "css_path",
-                "style_mode",
-                "theme",
-                "header_footer",
-                "render_date",
-                "trusted_html",
-            )
-        ):
-            self._schedule_preview()
-        return self._close_settings_editor()
-
-    def _cancel_settings_editor(self, _event=None) -> str:
-        return self._close_settings_editor()
-
-    def _reset_header_footer(self) -> None:
-        for key, value in self._header_footer_defaults().items():
-            self._settings_draft_hf_vars[key].set(value)
-
-    def _on_trusted_html_changed(self) -> None:
-        if not self.trusted_html_var.get():
-            self._refresh_accordion_headers()
-            return
-        if not self._trusted_html_confirmed:
-            confirmed = self.dialogs.ask_trusted_html(
-                self._settings_dialog["window"],
-                self._t("trusted_html_confirm_title"),
-                self._t("trusted_html_confirm"),
-                self._t("trusted_html_allow"),
-                self._t("cancel_settings"),
-            )
-            if not confirmed:
-                self.trusted_html_var.set(False)
-                self.trusted_html_check.focus_set()
-                self._refresh_accordion_headers()
-                return
-            self._trusted_html_confirmed = True
+        self._refresh_style_editors()
+        self._refresh_destination_editors()
+        self._refresh_header_footer_editors()
+        self._refresh_advanced_editors()
         self._refresh_accordion_headers()
 
     def _current_header_footer(self) -> core.HeaderFooterConfig:

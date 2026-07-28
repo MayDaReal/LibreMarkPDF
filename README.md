@@ -12,10 +12,12 @@ agent contract in [`SKILL.md`](SKILL.md).
 
 - batch conversion from `.md` and `.markdown` files;
 - modern file cards with optional drag-and-drop, exact mixed-add feedback,
-  keyboard navigation, row menus, and an independently identified active
-  preview file;
+  keyboard navigation, direct folder/copy/remove actions at every responsive
+  width, and an independently identified active preview
+  file;
 - responsive multipage preview with explicit empty, scheduled, rendering,
-  ready, error, and unavailable states, an active-file label, 10–200% zoom,
+  ready, error, and unavailable states, an active-file label, 10–200% zoom in
+  2-point steps,
   fit-page behavior when the active document changes, fit-page/fit-width
   actions, an explicit refresh-and-fit reset, scrolling, panning, and local
   error reporting;
@@ -31,9 +33,10 @@ agent contract in [`SKILL.md`](SKILL.md).
 - English and French desktop interface;
 - a fixed modern header with native Help and language menus; compact windows
   use one keyboard-accessible application menu for the manual, shortcuts,
-  language, problem reporting, About, and version information;
+  language, problem reporting, and About;
 - responsive keyboard-shortcut and About dialogs with structured local
-  identities, exact technical-information copy, and safe focus restoration;
+  identities, exact technical-information copy, local third-party notices,
+  and safe focus restoration;
 - an editable local problem report with opt-in anonymized diagnostics, copy,
   and UTF-8 save actions, with no automatic submission;
 - a fixed, non-modal action bar with compact per-output replacement decisions,

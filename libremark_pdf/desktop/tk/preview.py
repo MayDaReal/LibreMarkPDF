@@ -14,7 +14,9 @@ from ..contracts import PreviewDocumentRequest, PreviewPageRequest
 
 PREVIEW_DPI = 90
 PREVIEW_DEBOUNCE_MS = 450
-ZOOM_LEVELS = (10, 25, 50, 75, 100, 125, 150, 200)
+MIN_ZOOM_PERCENT = 10
+MAX_ZOOM_PERCENT = 200
+ZOOM_STEP = 2
 CANVAS_MARGIN = 16
 CONTROL_MASK = 0x0004
 SHIFT_MASK = 0x0001
@@ -239,7 +241,7 @@ class TkPreviewMixin:
         filename = active.name if active is not None else ""
         state = getattr(self, "_preview_state", "empty")
         if state == "empty":
-            message = self._t("preview_empty")
+            message = ""
         elif state == "scheduled":
             message = self._t("preview_scheduled")
         elif state in ("loading", "rendering"):
@@ -364,12 +366,7 @@ class TkPreviewMixin:
         if not self._preview_consultation_enabled():
             return "break"
         current = self.zoom_percent.get()
-        index = min(
-            range(len(ZOOM_LEVELS)),
-            key=lambda item: abs(ZOOM_LEVELS[item] - current),
-        )
-        index = max(0, min(len(ZOOM_LEVELS) - 1, index + direction))
-        self._set_zoom(ZOOM_LEVELS[index], anchor)
+        self._set_zoom(current + direction * ZOOM_STEP, anchor)
         return "break"
 
     def _reset_zoom(self) -> str:
@@ -380,7 +377,7 @@ class TkPreviewMixin:
     def _set_zoom(self, percent: int, anchor=None, preserve_fit: bool = False) -> None:
         if not preserve_fit:
             self._preview_fit_mode = None
-        percent = max(ZOOM_LEVELS[0], min(ZOOM_LEVELS[-1], int(percent)))
+        percent = max(MIN_ZOOM_PERCENT, min(MAX_ZOOM_PERCENT, int(percent)))
         old_percent = self.zoom_percent.get()
         source_point = None
         if anchor is not None and self._preview_png is not None:
@@ -428,8 +425,8 @@ class TkPreviewMixin:
                 100.0 * available_height / max(1, image_height),
             )
         return max(
-            ZOOM_LEVELS[0],
-            min(ZOOM_LEVELS[-1], int(percent)),
+            MIN_ZOOM_PERCENT,
+            min(MAX_ZOOM_PERCENT, int(percent)),
         )
 
     def _set_preview_fit(self, mode: str) -> str:
@@ -448,10 +445,10 @@ class TkPreviewMixin:
         self.zoom_label.configure(text=self._t("zoom_value", percent=percent))
         interactive = self._preview_consultation_enabled()
         self.zoom_out_button.config(
-            state="normal" if interactive and percent > ZOOM_LEVELS[0] else "disabled"
+            state="normal" if interactive and percent > MIN_ZOOM_PERCENT else "disabled"
         )
         self.zoom_in_button.config(
-            state="normal" if interactive and percent < ZOOM_LEVELS[-1] else "disabled"
+            state="normal" if interactive and percent < MAX_ZOOM_PERCENT else "disabled"
         )
         for button in (
             getattr(self, "fit_page_button", None),

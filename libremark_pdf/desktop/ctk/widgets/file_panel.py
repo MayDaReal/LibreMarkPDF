@@ -51,6 +51,7 @@ class FilesPanel(CardFrame):
         self._active = None  # type: Optional[Path]
         self._mutation_enabled = True
         self._selection_enabled = True
+        self._layout_mode = "large"
 
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(3, weight=1)
@@ -213,8 +214,14 @@ class FilesPanel(CardFrame):
                     document_icon=self._assets.image(
                         "file-earmark-text", size=24, color="accent"
                     ),
-                    menu_icon=self._assets.image(
-                        "three-dots-vertical", size=16, color="neutral"
+                    reveal_icon=self._assets.image(
+                        "folder2-open", size=16, color="neutral"
+                    ),
+                    copy_icon=self._assets.image(
+                        "copy", size=16, color="neutral"
+                    ),
+                    remove_icon=self._assets.image(
+                        "trash3", size=16, color="neutral"
                     ),
                     on_select=self._on_select,
                     on_focus_relative=self.focus_relative,
@@ -227,6 +234,7 @@ class FilesPanel(CardFrame):
                     self._selection_enabled,
                 )
                 self.rows[path].set_selected(path == active)
+                self.rows[path].set_layout_mode(self._layout_mode)
         for index, path in enumerate(new_paths):
             self.rows[path].grid(
                 row=index,
@@ -267,6 +275,14 @@ class FilesPanel(CardFrame):
     def focus_add(self) -> None:
         """Move focus to the primary add action."""
         self.add_button.focus_set()
+
+    def set_layout_mode(self, mode: str) -> None:
+        """Project the responsive mode into every stable file row."""
+        if mode not in ("large", "medium", "compact"):
+            raise ValueError("Unknown files layout mode: {0}".format(mode))
+        self._layout_mode = mode
+        for row in self.rows.values():
+            row.set_layout_mode(mode)
 
     def set_interaction_enabled(
         self,

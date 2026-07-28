@@ -7,7 +7,7 @@ from typing import Callable, Dict, Mapping, Optional, Sequence
 
 import customtkinter as ctk
 
-from ..components import CardFrame, SecondaryButton, SectionTitle, Tooltip
+from ..components import CardFrame, SectionTitle, Tooltip
 from ..assets import UiAssetRegistry
 from ..theme import COLORS, RADII, SPACING, SystemFontResolver
 
@@ -237,7 +237,6 @@ class SettingsSummaryPanel(CardFrame):
         summaries: Mapping[str, str],
         fonts: SystemFontResolver,
         assets: UiAssetRegistry,
-        on_edit: Callable[[], None],
         on_edit_style: Optional[Callable[[], None]] = None,
         on_edit_destination: Optional[Callable[[], None]] = None,
         on_edit_header_footer: Optional[Callable[[], None]] = None,
@@ -256,20 +255,6 @@ class SettingsSummaryPanel(CardFrame):
             column=0,
             sticky="ew",
             padx=(SPACING["md"], SPACING["sm"]),
-            pady=SPACING["sm"],
-        )
-        self.edit_button = SecondaryButton(
-            self,
-            text=labels["edit"],
-            command=on_edit,
-            height=30,
-            width=76,
-            font=fonts.font("secondary"),
-        )
-        self.edit_button.grid(
-            row=0,
-            column=1,
-            padx=(SPACING["sm"], SPACING["md"]),
             pady=SPACING["sm"],
         )
         self.rows = {}  # type: Dict[str, SettingsSummaryRow]
@@ -296,7 +281,6 @@ class SettingsSummaryPanel(CardFrame):
             row.grid(
                 row=row_number,
                 column=0,
-                columnspan=2,
                 sticky="ew",
                 padx=SPACING["md"],
                 pady=(0, SPACING["xs"]),
@@ -311,7 +295,6 @@ class SettingsSummaryPanel(CardFrame):
     ) -> None:
         """Update copy in place without rebuilding any row."""
         self.title_label.configure(text=labels["settings_heading"])
-        self.edit_button.configure(text=labels["edit"])
         title_width = max(
             132,
             max(
@@ -328,7 +311,6 @@ class SettingsSummaryPanel(CardFrame):
 
     def set_enabled(self, enabled: bool) -> None:
         """Enable or disable every settings mutation entry point."""
-        self.edit_button.configure(state="normal" if enabled else "disabled")
         for row in self.rows.values():
             row.set_enabled(enabled)
 

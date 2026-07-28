@@ -8,7 +8,7 @@ import customtkinter as ctk
 
 from libremark_pdf import i18n
 from libremark_pdf.desktop.ctk.assets import UiAssetRegistry
-from libremark_pdf.desktop.ctk.theme import COLORS, SystemFontResolver
+from libremark_pdf.desktop.ctk.theme import COLORS, SPACING, SystemFontResolver
 from libremark_pdf.desktop.ctk.widgets.advanced_editor import AdvancedEditorPanel
 from libremark_pdf.desktop.ctk.widgets.destination_editor import (
     DestinationEditorPanel,
@@ -55,12 +55,10 @@ class TestSettingsSummaryPanel(unittest.TestCase):
                 "destination": i18n.t("destination_heading", "en"),
                 "header_footer": i18n.t("header_footer_heading", "en"),
                 "other": i18n.t("advanced_options_heading", "en"),
-                "edit": i18n.t("edit_settings", "en"),
             },
             summaries=self.summaries,
             fonts=self.fonts,
             assets=self.assets,
-            on_edit=lambda: self.opened.append(True),
             on_edit_style=lambda: self.opened.append("style"),
             on_edit_destination=lambda: self.opened.append("destination"),
             on_edit_header_footer=lambda: self.opened.append("header_footer"),
@@ -74,7 +72,7 @@ class TestSettingsSummaryPanel(unittest.TestCase):
         self.panel.destroy()
         self.root.update()
 
-    def test_panel_has_exactly_four_stable_rows_and_one_header_action(self):
+    def test_panel_has_exactly_four_stable_rows_and_no_header_action(self):
         self.assertEqual(
             tuple(self.panel.rows),
             ("style", "destination", "header_footer", "other"),
@@ -82,8 +80,7 @@ class TestSettingsSummaryPanel(unittest.TestCase):
         identities = {
             name: id(row) for name, row in self.panel.rows.items()
         }
-        self.panel.edit_button.invoke()
-        self.assertEqual(self.opened, [True])
+        self.assertFalse(hasattr(self.panel, "edit_button"))
         for row in self.panel.rows.values():
             self.assertFalse(hasattr(row, "edit_button"))
             self.assertEqual(row.summary_label.cget("anchor"), "w")
@@ -104,7 +101,6 @@ class TestSettingsSummaryPanel(unittest.TestCase):
             for row in self.panel.rows.values()
         }
         self.assertEqual(len(description_positions), 1)
-        self.assertEqual(self.panel.edit_button.grid_info()["pady"], 8)
 
         french = {
             "settings_heading": i18n.t("settings_heading", "fr"),
@@ -112,16 +108,11 @@ class TestSettingsSummaryPanel(unittest.TestCase):
             "destination": i18n.t("destination_heading", "fr"),
             "header_footer": i18n.t("header_footer_heading", "fr"),
             "other": i18n.t("advanced_options_heading", "fr"),
-            "edit": i18n.t("edit_settings", "fr"),
         }
         self.panel.retranslate(french, self.summaries)
         self.assertEqual(
             {name: id(row) for name, row in self.panel.rows.items()},
             identities,
-        )
-        self.assertEqual(
-            self.panel.edit_button.cget("text"),
-            "Modifier",
         )
 
     def test_long_unicode_summary_is_one_line_elided_and_complete_in_tooltip(self):
@@ -137,7 +128,6 @@ class TestSettingsSummaryPanel(unittest.TestCase):
             "destination": "Destination",
             "header_footer": "En-têtes et pieds de page",
             "other": "Options avancées",
-            "edit": "Modifier",
         }
         self.panel.retranslate(labels, summaries)
         self.root.update()
@@ -147,9 +137,9 @@ class TestSettingsSummaryPanel(unittest.TestCase):
         self.assertIn("…", row.summary_label.cget("text"))
         self.assertEqual(row.summary_tooltip.text, complete)
 
-    def test_disabled_panel_blocks_row_and_button_activation(self):
+    def test_disabled_panel_blocks_row_activation(self):
         self.panel.set_enabled(False)
-        self.panel.edit_button.invoke()
+        self.panel.rows["other"].invoke()
         self.assertEqual(self.opened, [])
 
     def test_style_row_is_keyboard_invokable_without_rebuilding_other_rows(self):
@@ -163,12 +153,10 @@ class TestSettingsSummaryPanel(unittest.TestCase):
                 "destination": "Destination",
                 "header_footer": "Headers and footers",
                 "other": "Advanced options",
-                "edit": "Edit",
             },
             summaries=self.summaries,
             fonts=self.fonts,
             assets=self.assets,
-            on_edit=lambda: None,
             on_edit_style=lambda: opened.append("style"),
         )
         self.panel.pack()
@@ -197,12 +185,10 @@ class TestSettingsSummaryPanel(unittest.TestCase):
                 "destination": "Destination",
                 "header_footer": "Headers and footers",
                 "other": "Advanced options",
-                "edit": "Edit",
             },
             summaries=self.summaries,
             fonts=self.fonts,
             assets=self.assets,
-            on_edit=lambda: None,
             on_edit_destination=lambda: opened.append("destination"),
         )
         self.panel.pack()
@@ -486,6 +472,12 @@ class TestAdvancedEditorPanel(unittest.TestCase):
         self.assertIn("YYYY-MM-DD", editor.date_label.cget("text"))
         self.assertIn("automatically", editor.date_help_label.cget("text"))
         self.assertIn("remote", editor.security_label.cget("text"))
+        self.root.geometry("480x520")
+        self.root.update()
+        self.assertLessEqual(
+            editor.security_label.cget("wraplength"),
+            editor.winfo_width() - 4 * SPACING["lg"],
+        )
         self.assertEqual(error.get(), "Invalid date")
         editor.date_entry.focus_set.assert_called_once_with()
         editor.save_button.invoke()

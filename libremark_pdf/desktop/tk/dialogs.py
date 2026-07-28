@@ -956,6 +956,8 @@ class TkDialogs:
         close_label: str,
         local_conversion_text: str,
         no_network_text: str,
+        notices_label: str,
+        open_notices: Callable[[], None],
     ) -> None:
         """Show structured local identities and an exact clipboard action."""
         dialog = GeneralDialog(root, title, lambda: None)
@@ -1062,7 +1064,17 @@ class TkDialogs:
         )
         copy_button.pack(
             side="left",
-            padx=SPACING["lg"],
+            padx=(SPACING["sm"], 0),
+            pady=SPACING["md"],
+        )
+        notices_button = SecondaryButton(
+            dialog.actions,
+            text=notices_label,
+            command=open_notices,
+        )
+        notices_button.pack(
+            side="left",
+            padx=(SPACING["lg"], 0),
             pady=SPACING["md"],
         )
         close_button = PrimaryButton(

@@ -213,8 +213,6 @@ class TkConversionMixin:
                 widget.config(state="disabled")
             except tk.TclError:
                 pass
-        for card in self._theme_buttons:
-            card.config(state="disabled")
         self.generate_button.config(state="disabled")
         self.cancel_button.config(
             state="normal" if operation == "generate" else "disabled"
@@ -247,13 +245,10 @@ class TkConversionMixin:
                 widget.config(state="normal")
             except tk.TclError:
                 pass
-        self.css_entry.config(state="readonly")
-        self.output_entry.config(state="readonly")
         self.cancel_button.config(state="disabled")
         cancel_now_button = getattr(self, "cancel_now_button", None)
         if cancel_now_button is not None:
             cancel_now_button.config(state="disabled")
-        self._render_theme_cards()
         files_panel = getattr(self, "files_panel", None)
         if files_panel is not None:
             files_panel.set_interaction_enabled(

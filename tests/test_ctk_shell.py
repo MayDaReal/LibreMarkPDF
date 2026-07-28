@@ -14,7 +14,7 @@ from libremark_pdf.desktop.ctk.responsive import (
     DebouncedLayoutController,
     resolve_layout_mode,
 )
-from libremark_pdf.desktop.ctk.theme import SystemFontResolver
+from libremark_pdf.desktop.ctk.theme import COLORS, SystemFontResolver
 from libremark_pdf.desktop.ctk.widgets.action_bar import ActionBar
 from libremark_pdf.desktop.ctk.widgets.app_header import AppHeader, WindowChrome
 from libremark_pdf.desktop.ctk.widgets.preview_panel import PreviewPanel
@@ -550,7 +550,12 @@ class TestModernShellWidgets(unittest.TestCase):
             "about_action": "About LibreMark PDF",
             "language_menu": "Language",
             "compact_menu_a11y": "Application menu",
-            "version_information": "Version {version}",
+            "language_english_name": "English",
+            "language_french_name": "French",
+            "window_minimize_a11y": "Minimize window",
+            "window_maximize_a11y": "Maximize window",
+            "window_restore_a11y": "Restore window",
+            "window_close_a11y": "Close window",
         }
         header.retranslate(labels, __version__, "en")
         self.root.update()
@@ -561,6 +566,20 @@ class TestModernShellWidgets(unittest.TestCase):
         )
         self.assertIsInstance(header.help_menu, tk.Menu)
         self.assertIsInstance(header.language_menu, tk.Menu)
+        self.assertEqual(
+            str(header.help_menu.cget("background")), COLORS["surface"]
+        )
+        self.assertEqual(
+            str(header.help_menu.cget("activebackground")),
+            COLORS["primary_subtle"],
+        )
+        self.assertEqual(header.language_menu.entrycget(0, "label"), "French")
+        self.assertEqual(header.minimize_button.tooltip.text, "Minimize window")
+        self.assertEqual(header.maximize_button.tooltip.text, "Maximize window")
+        self.assertEqual(header.close_button.tooltip.text, "Close window")
+        header.window_chrome._maximized = True
+        header.window_chrome._update_maximize_glyph()
+        self.assertEqual(header.maximize_button.tooltip.text, "Restore window")
         header.help_menu.invoke(0)
         header.help_menu.invoke(1)
         header.help_menu.invoke(2)
@@ -579,13 +598,14 @@ class TestModernShellWidgets(unittest.TestCase):
         self.assertEqual(header.language_button.winfo_manager(), "")
         self.assertEqual(header.version_button.winfo_manager(), "")
         self.assertEqual(header.compact_menu_button.winfo_manager(), "grid")
+        self.assertEqual(
+            int(header.compact_menu_button.grid_info()["column"]),
+            int(header.minimize_button.grid_info()["column"]) - 1,
+        )
         self.assertEqual(header.compact_menu.type(0), "command")
         self.assertEqual(header.compact_menu.type(2), "cascade")
         self.assertEqual(header.compact_menu.type(4), "separator")
-        self.assertEqual(
-            header.compact_menu.entrycget(6, "label"),
-            "Version {0}".format(__version__),
-        )
+        self.assertEqual(header.compact_menu.index("end"), 5)
         header.compact_menu.invoke(0)
         header.compact_menu.invoke(1)
         header.compact_menu.invoke(3)
@@ -599,11 +619,21 @@ class TestModernShellWidgets(unittest.TestCase):
             "manual_action": "Manuel utilisateur",
             "report_issue_action": "Signaler un problème",
             "about_action": "À propos de LibreMark PDF",
+            "language_english_name": "Anglais",
+            "language_french_name": "Français",
+            "window_minimize_a11y": "Réduire la fenêtre",
+            "window_maximize_a11y": "Agrandir la fenêtre",
+            "window_restore_a11y": "Restaurer la fenêtre",
+            "window_close_a11y": "Fermer la fenêtre",
         })
         header.retranslate(french, __version__, "fr")
         self.assertEqual(header.active_language, "fr")
         self.assertEqual(header.help_menu.entrycget(1, "label"), "Manuel utilisateur")
         self.assertEqual(header.language_button.cget("text"), "Français ▾")
+        self.assertEqual(
+            header.language_menu.entrycget(1, "label"), "Anglais"
+        )
+        self.assertEqual(header.maximize_button.tooltip.text, "Restaurer la fenêtre")
 
     def test_layout_only_resize_preserves_state_and_calls_no_business_service(self):
         services = mock.Mock()
@@ -934,6 +964,8 @@ class TestModernShellWidgets(unittest.TestCase):
         application._set_preview_state("empty")
         self.root.update()
         self.assertEqual(panel.add_files_button.winfo_manager(), "")
+        self.assertEqual(panel.message_label.cget("text"), "")
+        self.assertEqual(panel.message_frame.winfo_manager(), "")
 
         self.root.geometry("560x520+0+0")
         self.root.update()
@@ -987,7 +1019,7 @@ class TestModernShellWidgets(unittest.TestCase):
             self.root.winfo_rooty() + self.root.winfo_height(),
         )
 
-    def test_unified_settings_dialog_retranslates_and_applies_or_cancels_all(self):
+    def test_only_dedicated_settings_editors_are_reachable(self):
         services = mock.Mock()
         dialogs = mock.Mock()
         with mock.patch.object(tk_layout, "HAS_DND", False), mock.patch.object(
@@ -1000,116 +1032,33 @@ class TestModernShellWidgets(unittest.TestCase):
                 services=services,
                 dialogs=dialogs,
             )
-        row_identities = {
-            name: id(row)
-            for name, row in application.settings_panel.rows.items()
-        }
-        original = application.hf_vars["header_left"].get()
-        original_output = application.output_dir
-
-        application._open_settings_editor()
         self.root.update()
-        dialog = application._settings_dialog["window"]
-        self.assertTrue(dialog.winfo_viewable())
-        self.assertNotEqual(dialog.winfo_geometry(), "1x1+0+0")
-        self.assertEqual(str(dialog.transient()), str(self.root))
-        self.assertIs(dialog.grab_current(), dialog)
-        self.assertEqual(application.theme_group.winfo_manager(), "")
-        self.assertEqual(application.output_group.winfo_manager(), "")
-        self.assertEqual(application.advanced_group.winfo_manager(), "")
-        self.assertEqual(application.other_group.winfo_manager(), "pack")
-        self.assertEqual(
-            str(self.root.tk.call("wm", "stackorder", ".")[-1]),
-            str(dialog),
-        )
 
-        original_summary = application.settings_panel.rows[
-            "header_footer"
-        ].summary_tooltip.text
-        application._settings_draft_hf_vars["header_left"].set(
-            "Résumé Ω avec espaces"
+        self.assertFalse(hasattr(application, "_settings_dialog"))
+        self.assertFalse(hasattr(application, "_open_settings_editor"))
+        self.assertFalse(hasattr(application.settings_panel, "edit_button"))
+        self.assertEqual(
+            set(application.settings_panel.rows),
+            {"style", "destination", "header_footer", "other"},
         )
-        application._settings_draft_output_dir = (
-            "C:/Projet avec espaces/sortie"
+        titled_dialogs = (
+            (application._style_dialog, "PDF style"),
+            (application._destination_dialog, "Destination"),
+            (application._header_footer_dialog, "Headers and footers"),
+            (application._advanced_dialog, "Advanced options"),
         )
-        application._refresh_output_entry()
+        for dialog, expected_title in titled_dialogs:
+            self.assertEqual(dialog.state(), "withdrawn")
+            self.assertEqual(dialog.title(), expected_title)
+        self.assertEqual(
+            application.status_label.cget("text"),
+            "Add at least one Markdown file to generate a PDF.",
+        )
+        self.assertEqual(application.action_bar.reason_label.cget("text"), "")
+        application._open_style_editor()
         self.root.update()
-        self.assertEqual(
-            application.settings_panel.rows[
-                "header_footer"
-            ].summary_tooltip.text,
-            original_summary,
-        )
-        self.assertEqual(application.output_dir, original_output)
-        application.lang = "fr"
-        application._retranslate()
+        application._cancel_style_editor()
         self.root.update()
-        self.assertEqual(
-            {
-                name: id(row)
-                for name, row in application.settings_panel.rows.items()
-            },
-            row_identities,
-        )
-        self.assertEqual(dialog.title(), "Réglages PDF")
-        self.assertEqual(
-            application._settings_dialog["apply"].cget("text"),
-            "Appliquer",
-        )
-
-        application._cancel_settings_editor()
-
-        self.root.update()
-        self.assertFalse(dialog.winfo_viewable())
-        self.assertEqual(
-            application.hf_vars["header_left"].get(),
-            original,
-        )
-        self.assertEqual(application.output_dir, original_output)
-
-        application._open_settings_editor()
-        application._settings_draft_output_dir = (
-            "C:/Projet avec espaces/sortie"
-        )
-        application._settings_draft_hf_vars["header_left"].set(
-            "Résumé Ω avec espaces"
-        )
-        application._refresh_output_entry()
-        application._apply_settings_editor()
-        self.root.update()
-        self.assertFalse(dialog.winfo_viewable())
-        self.assertEqual(
-            application.output_dir,
-            "C:/Projet avec espaces/sortie",
-        )
-        self.assertEqual(
-            application.hf_vars["header_left"].get(),
-            "Résumé Ω avec espaces",
-        )
-        self.assertEqual(
-            application.settings_panel.rows[
-                "destination"
-            ].summary_tooltip.text,
-            "C:/Projet avec espaces/sortie",
-        )
-        self.assertIn(
-            "En-tête gauche : Résumé Ω avec espaces",
-            application.settings_panel.rows[
-                "header_footer"
-            ].summary_tooltip.text,
-        )
-
-        application._open_settings_editor()
-        application._settings_draft_trusted_html_var.set(True)
-        dialogs.ask_trusted_html.return_value = False
-        application._apply_settings_editor()
-        self.root.update()
-        self.assertTrue(dialog.winfo_viewable())
-        self.assertFalse(application.trusted_html_var.get())
-        self.assertFalse(
-            application._settings_draft_trusted_html_var.get()
-        )
-        application._cancel_settings_editor()
 
     def test_style_editor_retranslates_preserves_draft_and_moves_to_compact(self):
         services = mock.Mock()
@@ -1344,7 +1293,7 @@ class TestModernShellWidgets(unittest.TestCase):
         original = application._settings_snapshot()
         original_preview = application._capture_preview_snapshot()
 
-        application.settings_panel.edit_button.invoke()
+        application.settings_panel.rows["other"].invoke()
         self.root.update()
         self.assertTrue(application._advanced_dialog.winfo_viewable())
         self.assertIs(
@@ -1378,6 +1327,7 @@ class TestModernShellWidgets(unittest.TestCase):
             application.advanced_dialog_editor.title_label.cget("text"),
             "Options avancées",
         )
+        self.assertEqual(application._advanced_dialog.title(), "Options avancées")
         self.assertEqual(
             application._settings_draft_render_date_var.get(), "2026-07-25"
         )

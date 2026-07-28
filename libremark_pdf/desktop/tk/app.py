@@ -113,8 +113,8 @@ class LibreMarkPdfApp(
             "footer_center": tk.StringVar(value="Page {page} / {total}"),
             "footer_right": tk.StringVar(),
         }
-        # The unified settings dialog edits a temporary draft. Authoritative
-        # render state changes only when the user selects Apply.
+        # Dedicated settings editors share one temporary draft. Authoritative
+        # render state changes only when the user selects Save.
         self._settings_draft_css_path = self.css_path
         self._settings_draft_output_dir = self.output_dir
         self._settings_draft_style_mode_var = tk.StringVar(value="theme")
@@ -142,7 +142,8 @@ class LibreMarkPdfApp(
         self._advanced_editor_open = False
         self._advanced_editor_preview_snapshot = None
         self._operation_controls = []  # type: list
-        self._theme_buttons = []  # type: list
+        self._theme_summaries = {}  # type: dict
+        self._settings_editor_state = {}  # type: dict
         self._automation_widgets = {}  # type: dict[str, tk.Misc]
 
         self.ui_styles = install_ui_styles(self.root)
@@ -185,7 +186,6 @@ class LibreMarkPdfApp(
             "drop_active",
             "unsupported_drop",
             "active_preview_badge",
-            "file_menu_a11y",
             "reveal_source",
             "copy_path",
             "remove_from_batch",
@@ -316,9 +316,12 @@ class LibreMarkPdfApp(
         count = len(self.files)
         state = getattr(self, "_action_state", "idle")
         generate_text = self._tp("generate_one", "generate_many", count)
+        status_text = self._translated_status(
+            self._status_key, self._status_kwargs
+        )
         disabled_reason = ""
         if state == "idle" and not self.files:
-            disabled_reason = self._t("action_blocked_no_files")
+            status_text = self._t("action_blocked_no_files")
         elif state == "validating":
             disabled_reason = self._t("action_blocked_validating")
         progress_total = getattr(self, "_action_progress_total", 0)
@@ -402,9 +405,7 @@ class LibreMarkPdfApp(
         )
         action_bar.set_state(
             state,
-            status_text=self._translated_status(
-                self._status_key, self._status_kwargs
-            ),
+            status_text=status_text,
             generate_text=generate_text,
             generate_enabled=(
                 bool(self.files)
@@ -544,7 +545,19 @@ class LibreMarkPdfApp(
             self._t("close_action"),
             self._t("about_local_conversion"),
             self._t("about_no_network"),
+            self._t("third_party_notices_action"),
+            self._show_third_party_notices,
         )
+
+    def _show_third_party_notices(self) -> None:
+        notices_path = core.resource_path("THIRD_PARTY_NOTICES.md")
+        try:
+            self.services.open_path(notices_path)
+        except Exception as exc:
+            self.dialogs.show_error(
+                self._t("error_title"),
+                self._t("notices_open_error", error=str(exc)),
+            )
 
     def _show_problem_report(
         self,
@@ -660,62 +673,37 @@ class LibreMarkPdfApp(
             "about_action",
             "language_menu",
             "compact_menu_a11y",
-            "version_information",
+            "language_english_name",
+            "language_french_name",
+            "window_minimize_a11y",
+            "window_maximize_a11y",
+            "window_restore_a11y",
+            "window_close_a11y",
         )
         self.app_header.retranslate(
             {key: self._t(key) for key in header_keys},
             version=__version__,
             language=self.lang,
         )
+        self._style_dialog.title(self._t("style_editor_title"))
+        self._destination_dialog.title(self._t("destination_editor_title"))
+        self._header_footer_dialog.title(
+            self._t("header_footer_editor_title")
+        )
+        self._advanced_dialog.title(self._t("advanced_editor_title"))
         self._update_language_accessibility()
         self.compact_tabs.retranslate(self._compact_tab_labels())
         self._drop_zone_text = self._t(drop_zone_text_key(HAS_DND))
         self.files_panel.retranslate(self._file_panel_labels())
-        self.theme_mode_radio.config(text=self._t("local_theme"))
-        self.css_mode_radio.config(text=self._t("custom_css"))
-        self.css_label.config(text=self._t("custom_css_label"))
-        self.css_button.config(text=self._t("choose_css"))
-        self.css_reset_button.config(text=self._t("return_to_theme"))
         self._refresh_style_editors()
         self._refresh_destination_editors()
         self._refresh_header_footer_editors()
         self._refresh_advanced_editors()
-        self.tokens_hint_label.config(text=self._t("tokens_help"))
-        self.header_group_label.config(text=self._t("header_label"))
-        self.footer_group_label.config(text=self._t("footer_label"))
-        for position_key, labels in self.hf_position_labels.items():
-            for label in labels:
-                label.config(text=self._t(position_key))
-        self.reset_header_footer_button.config(
-            text=self._t("reset_header_footer")
-        )
-        self.render_date_label.config(text=self._t("render_date"))
-        self.trusted_html_check.config(text=self._t("trusted_html"))
-        self.trusted_html_help_label.config(text=self._t("trusted_html_help"))
-        settings_labels = self._settings_summary_labels()
-        self._settings_dialog["window"].title(
-            self._t("settings_dialog_title")
-        )
-        self._settings_dialog["title"].configure(
-            text=self._t("settings_dialog_title")
-        )
-        self._settings_dialog["description"].configure(
-            text=self._t("settings_dialog_description")
-        )
-        for name, title in self._settings_dialog["section_titles"].items():
-            title.configure(text=settings_labels[name])
-        self._settings_dialog["apply"].config(text=self._t("apply_settings"))
-        self._settings_dialog["cancel"].config(text=self._t("cancel_settings"))
         self.preview_group.retranslate(self._preview_labels())
         self._update_preview_translations()
-        self.output_button.config(text=self._t("change_destination"))
-        self.output_reset_button.config(text=self._t("reset_destination"))
         self.cancel_button.config(text=self._t("stop_after_current"))
         self.results_view.retranslate(self._results_labels())
         self._refresh_generate_button(preserve_action_state=True)
-        self._refresh_css_entry()
-        self._refresh_output_entry()
-        self._render_theme_cards()
         self._render_file_list()
         self._refresh_accordion_headers()
         self._refresh_preview_ui()

@@ -8,7 +8,7 @@ from typing import Callable, Mapping, Optional
 
 import customtkinter as ctk
 
-from ..components import CardFrame, IconButton, StatusBadge, Tooltip
+from ..components import AppMenu, CardFrame, IconButton, StatusBadge, Tooltip
 from ..theme import COLORS, SPACING, SystemFontResolver
 
 
@@ -41,7 +41,9 @@ class FileRow(CardFrame):
         labels: Mapping[str, str],
         fonts: SystemFontResolver,
         document_icon: ctk.CTkImage,
-        menu_icon: ctk.CTkImage,
+        reveal_icon: ctk.CTkImage,
+        copy_icon: ctk.CTkImage,
+        remove_icon: ctk.CTkImage,
         on_select: Callable[[Path], None],
         on_focus_relative: Callable[[Path, int], None],
         on_show_source: Callable[[Path], None],
@@ -119,20 +121,31 @@ class FileRow(CardFrame):
         )
         self.conversion_badge = None  # type: Optional[StatusBadge]
 
-        self.menu_button = IconButton(
-            self,
-            image=menu_icon,
-            accessible_name=self._labels["file_menu_a11y"].format(
-                name=path.name
-            ),
-            command=self.open_menu,
+        self.actions = ctk.CTkFrame(self, fg_color="transparent")
+        self.reveal_button = IconButton(
+            self.actions,
+            image=reveal_icon,
+            accessible_name=self._labels["reveal_source"],
+            command=lambda: self._on_show_source(self.path),
         )
-        self.menu_button.grid(
-            row=0,
-            column=3,
+        self.copy_button = IconButton(
+            self.actions,
+            image=copy_icon,
+            accessible_name=self._labels["copy_path"],
+            command=lambda: self._on_copy_path(self.path),
+        )
+        self.remove_button = IconButton(
+            self.actions,
+            image=remove_icon,
+            accessible_name=self._labels["remove_from_batch"],
+            command=self.remove,
+        )
+        self.actions.grid(
+            row=0, column=3,
             padx=(SPACING["sm"], SPACING["sm"]),
             pady=SPACING["sm"],
         )
+        self.set_layout_mode("large")
 
         for widget in (
             self,
@@ -216,8 +229,8 @@ class FileRow(CardFrame):
         self.path_label.configure(text=display_text)
 
     def open_menu(self) -> None:
-        """Open the reliable native row menu without activating the row."""
-        menu = tk.Menu(self, tearoff=False)
+        """Open the keyboard-native row menu without activating the row."""
+        menu = AppMenu(self, font=self._path_font)
         menu.add_command(
             label=self._labels["reveal_source"],
             command=lambda: self._on_show_source(self.path),
@@ -232,12 +245,30 @@ class FileRow(CardFrame):
             command=lambda: self._on_remove(self.path),
             state="normal" if self._mutation_enabled else "disabled",
         )
-        x = self.menu_button.winfo_rootx()
-        y = self.menu_button.winfo_rooty() + self.menu_button.winfo_height()
+        x = self.winfo_rootx()
+        y = self.winfo_rooty() + self.winfo_height()
         try:
             menu.tk_popup(x, y)
         finally:
             menu.grab_release()
+
+    def set_layout_mode(self, mode: str) -> None:
+        """Keep direct row actions available at every supported width."""
+        if mode not in ("large", "medium", "compact"):
+            raise ValueError("Unknown file-row layout mode: {0}".format(mode))
+        for button in (
+            self.reveal_button,
+            self.copy_button,
+            self.remove_button,
+        ):
+            button.grid_forget()
+        self.reveal_button.grid(row=0, column=0)
+        self.copy_button.grid(
+            row=0, column=1, padx=(SPACING["xs"], 0)
+        )
+        self.remove_button.grid(
+            row=0, column=2, padx=(SPACING["xs"], 0)
+        )
 
     def set_selected(self, selected: bool) -> None:
         """Update active-preview styling without rebuilding the row."""
@@ -287,6 +318,9 @@ class FileRow(CardFrame):
         """Apply conversion-time interaction restrictions."""
         self._mutation_enabled = mutation_enabled
         self._selection_enabled = selection_enabled
+        self.remove_button.configure(
+            state="normal" if mutation_enabled else "disabled"
+        )
 
     def set_conversion_status(self, status: Optional[str]) -> None:
         """Update a per-file conversion badge without replacing the row."""
@@ -310,8 +344,10 @@ class FileRow(CardFrame):
         """Refresh visible and accessible copy without replacing the row."""
         self._labels = dict(labels)
         self.active_badge.configure(text=self._labels["active_preview_badge"])
-        self.menu_button.update_accessible_name(
-            self._labels["file_menu_a11y"].format(name=self.path.name)
+        self.reveal_button.update_accessible_name(self._labels["reveal_source"])
+        self.copy_button.update_accessible_name(self._labels["copy_path"])
+        self.remove_button.update_accessible_name(
+            self._labels["remove_from_batch"]
         )
         if self._conversion_status is not None:
             self.conversion_badge.configure(

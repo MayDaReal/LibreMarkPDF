@@ -10,6 +10,7 @@ import customtkinter as ctk
 
 from ..assets import UiAssetRegistry
 from ..components import (
+    AppMenu,
     CardFrame,
     IconButton,
     SecondaryButton,
@@ -111,7 +112,7 @@ class PreviewToolbar(ctk.CTkFrame):
             accessible_name=labels["preview_more_a11y"],
             command=self._post_overflow,
         )
-        self.overflow_menu = tk.Menu(self, tearoff=False)
+        self.overflow_menu = AppMenu(self, font=fonts.font("body"))
         self._on_fit_page = on_fit_page
         self._on_fit_width = on_fit_width
         self.grid_columnconfigure(2, weight=1)
@@ -431,6 +432,8 @@ class PreviewPanel(CardFrame):
             )
             return
         if state == "ready":
+            return
+        if state == "empty" and self._layout_mode != "compact":
             return
         self.message_frame.grid(
             row=2,

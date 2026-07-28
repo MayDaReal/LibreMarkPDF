@@ -32,9 +32,10 @@ automatiquement une version pyenv `3.9.x` déjà installée.
    nombres exacts d’ajouts, de doublons et d’éléments non pris en charge.
    Sélectionnez une ligne pour choisir le fichier d’aperçu actif sans modifier
    l’ordre du lot. La ligne active porte le badge **Aperçu actif** ; toutes les
-   autres lignes restent incluses dans le lot. Le menu **Actions** de chaque
-   ligne permet d’afficher le dossier source, de copier le chemin ou de retirer
-   le fichier. Lorsqu’une ligne a le focus, utilisez Haut/Bas pour vous
+   autres lignes restent incluses dans le lot. Quelle que soit la largeur de
+   la fenêtre, utilisez les boutons icône dossier, copie et poubelle pour
+   afficher le dossier source, copier le chemin ou retirer le fichier.
+   Lorsqu’une ligne a le focus, utilisez Haut/Bas pour vous
    déplacer, Entrée ou Espace pour activer son aperçu, Suppr pour la retirer,
    et Menu ou Maj+F10 pour ouvrir ses actions. La poubelle du bandeau retire
    directement tous les fichiers. L’ajout et le retrait sont indisponibles
@@ -80,8 +81,8 @@ automatiquement une version pyenv `3.9.x` déjà installée.
    pied conservent leurs trois colonnes ; une barre de défilement verticale
    interne apparaît uniquement lorsque la hauteur restante ne permet pas
    d’afficher les variables et l’action de réinitialisation. Sélectionnez
-   **Options avancées**, ou l’action **Modifier** à côté du titre Réglages, pour
-   ouvrir son éditeur dédié. Laissez la date de rendu vide pour utiliser
+   **Options avancées** pour ouvrir son éditeur dédié. Laissez la date de rendu
+   vide pour utiliser
    automatiquement la date du jour, ou saisissez une valeur `AAAA-MM-JJ`
    valide. Une date incorrecte est signalée en ligne. L’activation du HTML
    statique de confiance demande confirmation la première fois de la session ;
@@ -105,7 +106,8 @@ automatiquement une version pyenv `3.9.x` déjà installée.
    document revient à la page 1 ; le zoom conserve la page courante. Lorsque
    l’aperçu a le focus, les flèches Gauche et Droite changent de page.
    Utilisez **− 100 % +**, `Ctrl+-`, `Ctrl++` ou `Ctrl+0` pour régler le zoom de
-   10 % à 200 %. **Ajuster à la page** utilise la largeur et la hauteur
+   10 % à 200 % ; chaque action de zoom avant ou arrière le modifie de 2 points
+   de pourcentage. **Ajuster à la page** utilise la largeur et la hauteur
    disponibles, tandis que **Ajuster à la largeur** utilise la largeur
    disponible. Ces deux actions redimensionnent l’image d’aperçu existante sans
    relancer le rendu du document ; redimensionner la fenêtre recalcule le mode
@@ -278,10 +280,10 @@ fichier d’aperçu actif ni les réglages PDF.
 
 Dans une fenêtre compacte, ouvrez le menu image de l’application à côté du
 nom du produit. Il contient **Manuel utilisateur**, **Raccourcis clavier**, le
-sous-menu **Langue** avec le choix actif coché, **Signaler un problème**, **À
-propos de LibreMark PDF** et la version courante. Le logo, le nom du produit,
-le menu et les contrôles natifs de fenêtre restent visibles à la largeur
-minimale de 560 px.
+sous-menu **Langue** avec le choix actif coché, **Signaler un problème** et **À
+propos de LibreMark PDF**. Le logo, le nom du produit, le menu et les contrôles
+natifs de fenêtre restent visibles à la largeur minimale de 560 px. La version
+courante reste disponible dans **À propos de LibreMark PDF**.
 
 Appuyez sur `F1` pour afficher les raccourcis clavier disponibles.
 Ils sont présentés dans un tableau localisé à deux colonnes action/touche avec
@@ -299,6 +301,8 @@ réseau. Le dialogue indique aussi que la conversion de Markdown en PDF est
 locale et qu’aucune donnée n’est envoyée sur le réseau. Il identifie le mode
 sources ou artefact uniquement lorsque l’application en cours peut le
 déterminer de manière fiable.
+**Mentions des composants tiers** ouvre le document local inclus dans
+l’application système, sans contacter de service réseau.
 
 **Aide → Signaler un problème** ouvre un rapport entièrement local et
 modifiable. Décrivez le problème ; les étapes de reproduction et le résultat

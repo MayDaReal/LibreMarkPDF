@@ -343,7 +343,6 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
         app.results_view = app.results_frame
         app.results_view.collapsed = True
         app._refresh_results_projection = mock.Mock()
-        app._layout_legacy_setting_rows = mock.Mock()
         app._layout_preview_header = mock.Mock()
         app.body = mock.Mock()
         app.action_bar = mock.Mock()
@@ -527,8 +526,8 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
         app.css_path = None
         app._settings_draft_css_path = None
         app._settings_draft_style_mode_var = mock.Mock()
-        app._refresh_css_entry = mock.Mock()
-        app._render_theme_cards = mock.Mock()
+        app._refresh_style_editors = mock.Mock()
+        app._refresh_accordion_headers = mock.Mock()
         app._schedule_preview = mock.Mock()
 
         app._choose_css()
@@ -689,20 +688,6 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
         app._set_status.assert_called_once_with("status_ready")
 
     def test_header_footer_reset_changes_only_the_six_fields(self):
-        app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
-        app._settings_draft_hf_vars = {
-            key: mock.Mock()
-            for key in (
-                "header_left", "header_center", "header_right",
-                "footer_left", "footer_center", "footer_right",
-            )
-        }
-        app._settings_draft_render_date_var = mock.Mock()
-        app._settings_draft_trusted_html_var = mock.Mock()
-        app._refresh_accordion_headers = mock.Mock()
-
-        app._reset_header_footer()
-
         expected = {
             "header_left": "",
             "header_center": "",
@@ -711,10 +696,7 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
             "footer_center": "Page {page} / {total}",
             "footer_right": "",
         }
-        for key, value in expected.items():
-            app._settings_draft_hf_vars[key].set.assert_called_once_with(value)
-        app._settings_draft_render_date_var.set.assert_not_called()
-        app._settings_draft_trusted_html_var.set.assert_not_called()
+        self.assertEqual(gui.LibreMarkPdfApp._header_footer_defaults(), expected)
 
     def test_header_footer_draft_matches_render_boundary_and_saves_only_six_fields(self):
         class Value:
@@ -805,7 +787,8 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
         app._t = lambda key, **kwargs: key
         app.output_dir = None
         app._settings_draft_output_dir = None
-        app._refresh_output_entry = mock.Mock()
+        app._refresh_destination_editors = mock.Mock()
+        app._refresh_accordion_headers = mock.Mock()
 
         app._choose_output_dir()
         self.assertIsNone(app.output_dir)
@@ -813,7 +796,7 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
         app._reset_output_dir()
         self.assertIsNone(app.output_dir)
         self.assertIsNone(app._settings_draft_output_dir)
-        self.assertEqual(app._refresh_output_entry.call_count, 2)
+        self.assertEqual(app._refresh_destination_editors.call_count, 2)
 
     def test_destination_draft_save_cancel_and_preview_isolation(self):
         app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
@@ -822,7 +805,7 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
         app._destination_mode_var = mock.Mock()
         app._destination_mode_var.get.return_value = "custom"
         app._destination_error_var = mock.Mock()
-        app._refresh_output_entry = mock.Mock()
+        app._refresh_destination_editors = mock.Mock()
         app._refresh_accordion_headers = mock.Mock()
         app._close_destination_editor = mock.Mock(return_value="break")
         app._schedule_preview = mock.Mock()
@@ -834,7 +817,7 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
         app._schedule_preview.assert_not_called()
 
         app._destination_editor_open = True
-        app._settings_dialog = {
+        app._settings_editor_state = {
             "snapshot": {
                 "output_dir": "C:/Données Ω/Exports PDF",
             }
@@ -842,7 +825,7 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
         app._load_settings_draft = mock.Mock()
         app._cancel_destination_editor()
         app._load_settings_draft.assert_called_once_with(
-            app._settings_dialog["snapshot"]
+            app._settings_editor_state["snapshot"]
         )
         app._schedule_preview.assert_not_called()
 
@@ -932,48 +915,6 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
             app._style_summary(),
             "Custom CSS · C:/Projet avec espaces/élégant.css",
         )
-
-    def test_trusted_html_decline_restores_value_and_keyboard_focus(self):
-        app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
-        app._trusted_html_confirmed = False
-        app.trusted_html_var = mock.Mock()
-        app.trusted_html_var.get.return_value = True
-        app.trusted_html_check = mock.Mock()
-        app._settings_dialog = {"window": mock.sentinel.settings_window}
-        app.dialogs = mock.Mock()
-        app.dialogs.ask_trusted_html.return_value = False
-        app._t = lambda key, **kwargs: key
-        app._refresh_accordion_headers = mock.Mock()
-
-        app._on_trusted_html_changed()
-
-        app.trusted_html_var.set.assert_called_once_with(False)
-        app.trusted_html_check.focus_set.assert_called_once_with()
-        self.assertFalse(app._trusted_html_confirmed)
-
-    def test_trusted_html_confirmation_is_once_per_session(self):
-        app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
-        app._trusted_html_confirmed = False
-        app.trusted_html_var = mock.Mock()
-        app.trusted_html_var.get.return_value = True
-        app.trusted_html_check = mock.Mock()
-        app._settings_dialog = {"window": mock.sentinel.settings_window}
-        app.dialogs = mock.Mock()
-        app.dialogs.ask_trusted_html.return_value = True
-        app._t = lambda key, **kwargs: key
-        app._refresh_accordion_headers = mock.Mock()
-
-        app._on_trusted_html_changed()
-        app._on_trusted_html_changed()
-
-        app.dialogs.ask_trusted_html.assert_called_once_with(
-            mock.sentinel.settings_window,
-            "trusted_html_confirm_title",
-            "trusted_html_confirm",
-            "trusted_html_allow",
-            "cancel_settings",
-        )
-        self.assertTrue(app._trusted_html_confirmed)
 
     def test_generation_passes_a_snapshot_of_files_and_options_to_service(self):
         app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
@@ -1147,7 +1088,7 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
         )
         self.assertEqual(app.files, [Path("first.md"), Path("second.md")])
 
-    def test_zoom_follows_supported_levels_and_stops_at_bounds(self):
+    def test_zoom_uses_two_percent_steps_and_stops_at_bounds(self):
         app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
         app.zoom_percent = mock.Mock()
         current = [100]
@@ -1155,15 +1096,23 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
         app.zoom_percent.set.side_effect = lambda value: current.__setitem__(0, value)
         app._redraw_preview = mock.Mock()
 
-        expected = (125, 150, 200, 200, 150, 125, 100, 75, 50, 25, 10, 10)
-        directions = (1, 1, 1, 1, -1, -1, -1, -1, -1, -1, -1, -1)
+        expected = (102, 104, 102, 100)
+        directions = (1, 1, -1, -1)
         observed = []
         for direction in directions:
             app._change_zoom(direction)
             observed.append(current[0])
 
         self.assertEqual(tuple(observed), expected)
-        self.assertEqual(app._redraw_preview.call_count, len(directions))
+        current[0] = 199
+        app._change_zoom(1)
+        app._change_zoom(1)
+        self.assertEqual(current[0], 200)
+        current[0] = 11
+        app._change_zoom(-1)
+        app._change_zoom(-1)
+        self.assertEqual(current[0], 10)
+        self.assertEqual(app._redraw_preview.call_count, len(directions) + 4)
 
     def test_new_preview_document_resets_page_and_cache_to_first_page(self):
         app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
@@ -1627,6 +1576,33 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
             "Fermer",
             "Conversion locale de Markdown en PDF",
             "Aucune donnée envoyée sur le réseau",
+            "Mentions des composants tiers",
+            app._show_third_party_notices,
+        )
+
+    def test_third_party_notices_use_packaged_local_document(self):
+        app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
+        app.services = mock.Mock()
+        app.dialogs = mock.Mock()
+        app.lang = "en"
+
+        app._show_third_party_notices()
+
+        app.services.open_path.assert_called_once_with(
+            core.resource_path("THIRD_PARTY_NOTICES.md")
+        )
+
+    def test_third_party_notices_report_local_open_error(self):
+        app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
+        app.services = mock.Mock()
+        app.services.open_path.side_effect = RuntimeError("unavailable")
+        app.dialogs = mock.Mock()
+        app.lang = "en"
+
+        app._show_third_party_notices()
+        app.dialogs.show_error.assert_called_once_with(
+            "Error",
+            "Could not open the third-party notices: unavailable",
         )
 
     def test_user_manual_uses_localized_packaged_document_and_service(self):
@@ -2135,7 +2111,9 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
     def test_advanced_cancel_restores_authoritative_draft_and_exact_preview(self):
         app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
         app._advanced_editor_open = True
-        app._settings_dialog = {"snapshot": {"render_date": "2026-07-20"}}
+        app._settings_editor_state = {
+            "snapshot": {"render_date": "2026-07-20"}
+        }
         app._advanced_editor_preview_snapshot = {"png": b"previous"}
         app._load_settings_draft = mock.Mock()
         app._restore_preview_snapshot = mock.Mock()
@@ -2558,7 +2536,6 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
         app.operation = "idle"
         app.files = [Path("one.md"), Path("two.md")]
         app._operation_controls = [mock.Mock(), mock.Mock()]
-        app._theme_buttons = [mock.Mock()]
         app.generate_button = mock.Mock()
         app.cancel_button = mock.Mock()
         app.files_panel = mock.Mock()
@@ -2591,9 +2568,6 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
 
         app._close_requested = False
         app.root = mock.Mock()
-        app.css_entry = mock.Mock()
-        app.output_entry = mock.Mock()
-        app._render_theme_cards = mock.Mock()
         app._update_zoom_controls = mock.Mock()
         app._update_page_controls = mock.Mock()
         app._refresh_generate_button = mock.Mock()
@@ -2911,7 +2885,7 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
         )
         for marker in (
             "body_canvas", "file_canvas", "preview_canvas",
-            "ZOOM_LEVELS", "<Control-o>", "<Control-r>", "focus_set()",
+            "ZOOM_STEP", "<Control-o>", "<Control-r>", "focus_set()",
         ):
             self.assertIn(marker, source)
 
@@ -3175,9 +3149,11 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
                 "Close",
                 "Local Markdown-to-PDF conversion",
                 "No data is sent over the network",
+                "Third-party notices",
+                mock.sentinel.open_notices,
             )
 
-        copy_command = secondary.call_args.kwargs["command"]
+        copy_command = secondary.call_args_list[0].kwargs["command"]
         copy_command()
         root.clipboard_clear.assert_called_once_with()
         root.clipboard_append.assert_called_once_with(

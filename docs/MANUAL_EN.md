@@ -29,9 +29,10 @@ install CPython 3.9 with pyenv first; the Linux bootstrap detects an installed
    files and reports exact added, duplicate, and unsupported counts in the
    status area. Select any file row to make it the active preview file without
    changing the batch order. The active row is identified by an **Active
-   preview** badge; every other row remains part of the batch. Use the row
-   **Actions** menu to show the source folder, copy the path, or remove the
-   file. With a row focused, use Up/Down to move, Enter or Space to activate
+   preview** badge; every other row remains part of the batch. At every window
+   width, use the folder, copy, and trash icon buttons to show the source
+   folder, copy the path, or remove the file. With a row focused, use Up/Down
+   to move, Enter or Space to activate
    its preview, Delete to remove it, and Menu or Shift+F10 to open its actions.
    The header trash action removes all files directly. Add and remove actions
    are unavailable during conversion, with the reason shown in the file panel.
@@ -70,8 +71,8 @@ install CPython 3.9 with pyenv first; the Linux bootstrap detects an installed
    compact mode each dedicated editor fills the Settings tab and keeps Save
    visible. The header/footer fields retain their three-column layout; an
    internal vertical scrollbar appears only when the remaining height cannot
-   show the variables and reset action. Select **Advanced options**, or the
-   **Edit** action beside the Settings heading, to open its dedicated editor.
+   show the variables and reset action. Select **Advanced options** to open its
+   dedicated editor.
    Leave the render date empty for the automatic current date, or enter a valid
    `YYYY-MM-DD` value. Invalid dates are reported inline. Enabling trusted
    static HTML asks for confirmation on its first activation in the application
@@ -94,7 +95,8 @@ install CPython 3.9 with pyenv first; the Linux bootstrap detects an installed
    1; zoom keeps the current page. With the preview focused, Left and Right
    move between pages. Use
    **− 100% +**, `Ctrl+-`, `Ctrl++`, or `Ctrl+0` to set zoom from 10% through
-   200%. **Fit page** uses the available width and height, while **Fit width**
+   200%; each zoom-in or zoom-out action changes it by 2 percentage points.
+   **Fit page** uses the available width and height, while **Fit width**
    uses the available width. Both actions resize the existing preview image
    without rendering the document again; resizing the window recalculates an
    active fit mode, and a manual zoom exits it. In compact windows, both Fit
@@ -256,9 +258,10 @@ settings.
 
 In compact windows, open the image-only application menu beside the product
 name. It contains **User manual**, **Keyboard shortcuts**, the checked
-**Language** submenu, **Report a problem**, **About LibreMark PDF**, and the
-current version. The logo, product name, menu, and native window controls stay
-visible at the minimum 560 px width.
+**Language** submenu, **Report a problem**, and **About LibreMark PDF**. The
+logo, product name, menu, and native window controls stay visible at the
+minimum 560 px width. The current version remains available in **About
+LibreMark PDF**.
 
 Press `F1` to display the available keyboard shortcuts.
 They are presented in a localized two-column action/key table with one
@@ -273,6 +276,8 @@ environment variables, or logs, and it does not send anything over the
 network. The dialog also states that Markdown-to-PDF conversion is local and
 that no data is sent over the network. It identifies source or artifact mode
 only when the running application can determine that mode reliably.
+**Third-party notices** opens the packaged local notices document in the
+system application; it does not contact a network service.
 
 **Help → Report a problem** opens an entirely local, editable report. Describe
 what happened; reproduction steps and the expected result are optional. If the

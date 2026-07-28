@@ -194,6 +194,19 @@ class AdvancedEditorPanel(ctk.CTkFrame):
             padx=(SPACING["sm"], SPACING["lg"]),
             pady=SPACING["sm"],
         )
+        self.bind("<Configure>", self._layout_copy, add="+")
+
+    def _layout_copy(self, event) -> None:
+        """Wrap help copy inside the editor at compact widths."""
+        outer_width = max(240, event.width - 2 * SPACING["lg"])
+        inner_width = max(220, event.width - 4 * SPACING["lg"])
+        self.description_label.configure(wraplength=outer_width)
+        for label in (
+            self.date_help_label,
+            self.error_label,
+            self.security_label,
+        ):
+            label.configure(wraplength=inner_width)
 
     def _sync_date_message(self, *unused) -> None:
         """Use one compact inline row for automatic help or validation."""

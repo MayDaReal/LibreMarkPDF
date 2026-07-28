@@ -153,13 +153,27 @@ class TestModernFilesPanel(unittest.TestCase):
         second.remove()
         self.assertEqual(self.removed, [paths[1]])
 
-    def test_native_row_menu_does_not_activate_the_preview_row(self):
+    def test_row_exposes_direct_actions_at_every_supported_width(self):
         path = Path("folder/report.md")
         self.panel.set_files([path], active=None)
         row = self.panel.rows[path]
+
+        self.assertEqual(row.reveal_button.winfo_manager(), "grid")
+        self.assertEqual(row.copy_button.winfo_manager(), "grid")
+        self.assertEqual(row.remove_button.winfo_manager(), "grid")
+        row.reveal_button.invoke()
+        row.copy_button.invoke()
+        self.assertEqual(self.shown, [path])
+        self.assertEqual(self.copied, [path])
+        self.assertEqual(self.selected, [])
+
+        self.panel.set_layout_mode("compact")
+        self.assertEqual(row.reveal_button.winfo_manager(), "grid")
+        self.assertEqual(row.copy_button.winfo_manager(), "grid")
+        self.assertEqual(row.remove_button.winfo_manager(), "grid")
         menu = mock.Mock()
-        with mock.patch.object(file_row.tk, "Menu", return_value=menu):
-            row.menu_button.invoke()
+        with mock.patch.object(file_row, "AppMenu", return_value=menu):
+            row._open_menu_keyboard()
 
         self.assertEqual(self.selected, [])
         labels = [
@@ -174,6 +188,8 @@ class TestModernFilesPanel(unittest.TestCase):
                 "Remove from list",
             ],
         )
+        self.panel.set_interaction_enabled(False, False)
+        self.assertEqual(row.remove_button.cget("state"), "disabled")
 
     def test_long_unicode_parent_path_is_elided_in_the_middle(self):
         value = "C:/Utilisateurs/Élodie/projets/très-long/dossier/source"

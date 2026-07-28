@@ -11,6 +11,28 @@ import customtkinter as ctk
 from .theme import COLORS, RADII, SIZES, SPACING, SystemFontResolver
 
 
+class AppMenu(tk.Menu):
+    """Render keyboard-native menus with the application's visual tokens."""
+
+    def __init__(self, master, font=None, **kwargs) -> None:
+        defaults = {
+            "tearoff": False,
+            "background": COLORS["surface"],
+            "foreground": COLORS["text"],
+            "activebackground": COLORS["primary_subtle"],
+            "activeforeground": COLORS["text"],
+            "disabledforeground": COLORS["text_muted"],
+            "selectcolor": COLORS["primary"],
+            "activeborderwidth": 0,
+            "borderwidth": 1,
+            "relief": "solid",
+        }
+        if font is not None:
+            defaults["font"] = font
+        defaults.update(kwargs)
+        super().__init__(master, **defaults)
+
+
 def monitor_work_area(widget: tk.Misc):
     """Return the work area containing a widget, including virtual offsets."""
     if os.name == "nt":

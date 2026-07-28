@@ -66,7 +66,7 @@ class TestTranslations(unittest.TestCase):
         expected = ("{titre}", "{title}", "{date}", "{page}", "{total}")
         for lang in i18n.LANGUAGES:
             with self.subTest(lang=lang):
-                text = i18n.STRINGS[lang]["tokens_help"]
+                text = i18n.STRINGS[lang]["header_footer_token_help"]
                 self.assertTrue(all(token in text for token in expected))
 
     def test_about_copy_matches_the_approved_english_and_french_text(self):
