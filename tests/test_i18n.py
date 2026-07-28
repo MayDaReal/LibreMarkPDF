@@ -85,6 +85,34 @@ class TestTranslations(unittest.TestCase):
                     values[1],
                 )
 
+    def test_general_dialog_copy_is_structured_and_bilingual(self):
+        expected = {
+            "en": (
+                "Add files", "Refresh preview", "Cancel active batch",
+                "Local Markdown-to-PDF conversion",
+                "No data is sent over the network",
+                "Execution mode", "Source", "Artifact",
+            ),
+            "fr": (
+                "Ajouter des fichiers", "Actualiser l’aperçu",
+                "Annuler le lot actif", "Conversion locale de Markdown en PDF",
+                "Aucune donnée envoyée sur le réseau",
+                "Mode d’exécution", "Sources", "Artefact",
+            ),
+        }
+        keys = (
+            "shortcut_add_files", "shortcut_refresh_preview",
+            "shortcut_cancel_batch", "about_local_conversion",
+            "about_no_network", "technical_execution_mode",
+            "execution_mode_source", "execution_mode_artifact",
+        )
+        for lang, values in expected.items():
+            with self.subTest(lang=lang):
+                self.assertEqual(
+                    tuple(i18n.t(key, lang) for key in keys),
+                    values,
+                )
+
     def test_problem_reporting_copy_is_local_explicit_and_bilingual(self):
         expected = {
             "en": (

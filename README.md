@@ -32,6 +32,8 @@ agent contract in [`SKILL.md`](SKILL.md).
 - a fixed modern header with native Help and language menus; compact windows
   use one keyboard-accessible application menu for the manual, shortcuts,
   language, problem reporting, About, and version information;
+- responsive keyboard-shortcut and About dialogs with structured local
+  identities, exact technical-information copy, and safe focus restoration;
 - an editable local problem report with opt-in anonymized diagnostics, copy,
   and UTF-8 save actions, with no automatic submission;
 - a fixed, non-modal action bar with compact per-output replacement decisions,

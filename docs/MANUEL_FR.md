@@ -284,6 +284,9 @@ le menu et les contrôles natifs de fenêtre restent visibles à la largeur
 minimale de 560 px.
 
 Appuyez sur `F1` pour afficher les raccourcis clavier disponibles.
+Ils sont présentés dans un tableau localisé à deux colonnes action/touche avec
+une seule action **Fermer** et restent utilisables au clavier à la taille
+minimale de la fenêtre.
 **Aide → Manuel utilisateur** ouvre ce guide local dans l’application système.
 
 **À propos de LibreMark PDF** affiche les identités de l’application, du
@@ -292,7 +295,10 @@ l’architecture. **Copier les informations techniques** copie uniquement ces
 valeurs : ni fichiers
 sélectionnés, ni contenu des documents, ni chemins privés, variables
 d’environnement ou journaux ne sont inclus, et rien n’est envoyé sur le
-réseau.
+réseau. Le dialogue indique aussi que la conversion de Markdown en PDF est
+locale et qu’aucune donnée n’est envoyée sur le réseau. Il identifie le mode
+sources ou artefact uniquement lorsque l’application en cours peut le
+déterminer de manière fiable.
 
 **Aide → Signaler un problème** ouvre un rapport entièrement local et
 modifiable. Décrivez le problème ; les étapes de reproduction et le résultat

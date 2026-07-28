@@ -5,7 +5,177 @@ from __future__ import annotations
 import tkinter as tk
 from pathlib import Path
 from tkinter import filedialog, messagebox, ttk
-from typing import Callable
+from typing import Callable, Optional, Sequence, Tuple
+
+import customtkinter as ctk
+
+from ..ctk.assets import product_logo
+from ..ctk.components import (
+    PrimaryButton,
+    SecondaryButton,
+    monitor_work_area,
+)
+from ..ctk.theme import COLORS, SPACING, SystemFontResolver
+
+
+def dialog_geometry(
+    anchor_bounds: Tuple[int, int, int, int],
+    requested_size: Tuple[int, int],
+    work_area: Tuple[int, int, int, int],
+    maximum_size: Tuple[int, int],
+) -> Tuple[int, int, int, int]:
+    """Return a parent-centred dialog rectangle clamped to one work area."""
+    anchor_x, anchor_y, anchor_width, anchor_height = anchor_bounds
+    requested_width, requested_height = requested_size
+    work_x, work_y, work_width, work_height = work_area
+    margin = SPACING["lg"]
+    available_width = max(1, work_width - (2 * margin))
+    available_height = max(1, work_height - (2 * margin))
+    width = min(requested_width, maximum_size[0], available_width)
+    height = min(requested_height, maximum_size[1], available_height)
+    desired_x = anchor_x + (anchor_width - width) // 2
+    desired_y = anchor_y + (anchor_height - height) // 2
+    x = max(work_x, min(desired_x, work_x + work_width - width))
+    y = max(work_y, min(desired_y, work_y + work_height - height))
+    return int(width), int(height), int(x), int(y)
+
+
+class GeneralDialog:
+    """Reusable modal CTk shell with safe dismissal and focus restoration."""
+
+    def __init__(
+        self,
+        parent: tk.Misc,
+        title: str,
+        dismiss: Callable[[], None],
+        scrollable: bool = True,
+    ) -> None:
+        self.parent = parent
+        self.owner = parent.winfo_toplevel()
+        self.trigger = self.owner.focus_get()
+        self._dismiss = dismiss
+        self._closed = False
+        self.initial_focus = None  # type: Optional[tk.Misc]
+        self.fonts = SystemFontResolver(self.owner)
+        self.window = ctk.CTkToplevel(self.owner)
+        self.window.withdraw()
+        self.window.title(title)
+        self.window.transient(self.owner)
+        self.window.resizable(True, True)
+        self.window.configure(fg_color=COLORS["app_bg"])
+        self.window.protocol("WM_DELETE_WINDOW", self.dismiss)
+        self.window.bind("<Escape>", self.dismiss)
+
+        self.shell = ctk.CTkFrame(
+            self.window,
+            fg_color=COLORS["app_bg"],
+            corner_radius=0,
+        )
+        self.shell.pack(fill="both", expand=True)
+        self.title_label = ctk.CTkLabel(
+            self.shell,
+            text=title,
+            anchor="w",
+            text_color=COLORS["text"],
+            font=self.fonts.font("dialog_title"),
+        )
+        self.title_label.pack(
+            fill="x",
+            padx=SPACING["lg"],
+            pady=(SPACING["lg"], SPACING["md"]),
+        )
+        content_type = ctk.CTkScrollableFrame if scrollable else ctk.CTkFrame
+        self.content = content_type(
+            self.shell, fg_color="transparent", corner_radius=0
+        )
+        self.content.pack(
+            fill="both",
+            expand=True,
+            padx=SPACING["lg"],
+        )
+        self.actions = ctk.CTkFrame(
+            self.shell,
+            fg_color=COLORS["surface"],
+            corner_radius=0,
+            border_width=1,
+            border_color=COLORS["border"],
+        )
+        self.actions.pack(fill="x", side="bottom")
+
+    def set_initial_focus(self, widget: tk.Misc) -> None:
+        """Select the deterministic control focused after the dialog appears."""
+        self.initial_focus = widget
+
+    def _focus_initial(self) -> None:
+        """Activate the modal before moving focus to its safe first control."""
+        try:
+            self.window.focus_force()
+            self.window.after(100, self._focus_initial_control)
+        except tk.TclError:
+            pass
+
+    def _focus_initial_control(self) -> None:
+        if self.initial_focus is not None:
+            self.initial_focus.focus_force()
+
+    def dismiss(self, _event=None) -> str:
+        """Apply the configured safe dismissal policy and close the window."""
+        if not self._closed:
+            self._dismiss()
+            self.close()
+        return "break"
+
+    def close(self) -> None:
+        """Destroy the modal exactly once."""
+        if self._closed:
+            return
+        self._closed = True
+        self.window.destroy()
+
+    def show(
+        self,
+        preferred_size: Tuple[int, int],
+        maximum_size: Tuple[int, int],
+    ) -> None:
+        """Place, show, wait for, and restore focus from the modal."""
+        self.window.update_idletasks()
+        requested_size = (
+            max(self.window.winfo_reqwidth(), preferred_size[0]),
+            max(self.window.winfo_reqheight(), preferred_size[1]),
+        )
+        owner_width = max(1, self.owner.winfo_width())
+        owner_height = max(1, self.owner.winfo_height())
+        responsive_maximum = (
+            min(maximum_size[0], max(360, owner_width - (2 * SPACING["lg"]))),
+            min(maximum_size[1], max(280, owner_height - (2 * SPACING["lg"]))),
+        )
+        width, height, x, y = dialog_geometry(
+            (
+                self.owner.winfo_rootx(),
+                self.owner.winfo_rooty(),
+                self.owner.winfo_width(),
+                self.owner.winfo_height(),
+            ),
+            requested_size,
+            monitor_work_area(self.owner),
+            responsive_maximum,
+        )
+        self.window.geometry(
+            "{0}x{1}+{2}+{3}".format(width, height, x, y)
+        )
+        self.window.minsize(min(360, width), min(280, height))
+        self.window.deiconify()
+        self.window.grab_set()
+        if self.initial_focus is not None:
+            self.window.after_idle(self._focus_initial)
+        self.window.wait_window()
+        trigger = self.trigger
+        try:
+            if trigger is not None and trigger.winfo_exists():
+                self.owner.focus_force()
+                self.owner.after(100, trigger.focus_force)
+        except (AttributeError, tk.TclError):
+            pass
 
 
 class TkDialogs:
@@ -94,17 +264,54 @@ class TkDialogs:
         cancel_close_label: str,
     ) -> str:
         """Return the explicit close choice, defaulting dismissal to continue."""
-        return self._ask_explicit_choice(
-            root,
-            title,
-            message,
-            (
-                ("continue", continue_label),
-                ("cancel_close", cancel_close_label),
-            ),
-            default_choice="continue",
-            dismiss_choice="continue",
+        choice = "continue"
+
+        def select(value: str) -> None:
+            nonlocal choice
+            choice = value
+
+        dialog = GeneralDialog(
+            root, title, lambda: select("continue"), scrollable=False
         )
+        message_label = ctk.CTkLabel(
+            dialog.content,
+            text=message,
+            anchor="w",
+            justify="left",
+            wraplength=500,
+            text_color=COLORS["text_secondary"],
+            font=dialog.fonts.font("body"),
+        )
+        message_label.pack(fill="x", pady=(0, SPACING["md"]))
+
+        def finish(value: str) -> None:
+            select(value)
+            dialog.close()
+
+        cancel_button = SecondaryButton(
+            dialog.actions,
+            text=cancel_close_label,
+            command=lambda: finish("cancel_close"),
+            tone="danger",
+        )
+        cancel_button.pack(
+            fill="x",
+            padx=SPACING["lg"],
+            pady=(SPACING["md"], SPACING["xs"]),
+        )
+        continue_button = PrimaryButton(
+            dialog.actions,
+            text=continue_label,
+            command=lambda: finish("continue"),
+        )
+        continue_button.pack(
+            fill="x",
+            padx=SPACING["lg"],
+            pady=(SPACING["xs"], SPACING["md"]),
+        )
+        dialog.set_initial_focus(continue_button)
+        dialog.show((520, 280), (560, 420))
+        return choice
 
     def _ask_explicit_choice(
         self,
@@ -185,6 +392,70 @@ class TkDialogs:
     def show_info(self, title: str, message: str) -> None:
         messagebox.showinfo(title, message)
 
+    def show_shortcuts(
+        self,
+        root: tk.Misc,
+        title: str,
+        rows: Sequence[Tuple[str, str]],
+        close_label: str,
+    ) -> None:
+        """Show localized actions and keys as a readable two-column table."""
+        dialog = GeneralDialog(root, title, lambda: None)
+        table = ctk.CTkFrame(
+            dialog.content,
+            fg_color=COLORS["surface"],
+            corner_radius=8,
+            border_width=1,
+            border_color=COLORS["border"],
+        )
+        table.pack(fill="x", pady=(0, SPACING["md"]))
+        table.grid_columnconfigure(0, weight=1)
+        for row_index, (action, key_value) in enumerate(rows):
+            action_label = ctk.CTkLabel(
+                table,
+                text=action,
+                anchor="w",
+                text_color=COLORS["text"],
+                font=dialog.fonts.font("body"),
+            )
+            action_label.grid(
+                row=row_index,
+                column=0,
+                sticky="ew",
+                padx=(SPACING["md"], SPACING["sm"]),
+                pady=SPACING["xs"],
+            )
+            key_label = ctk.CTkLabel(
+                table,
+                text=key_value,
+                anchor="center",
+                fg_color=COLORS["surface_subtle"],
+                corner_radius=6,
+                text_color=COLORS["text"],
+                font=dialog.fonts.font("technical", monospace=True),
+                padx=SPACING["sm"],
+            )
+            key_label.grid(
+                row=row_index,
+                column=1,
+                sticky="e",
+                padx=(SPACING["sm"], SPACING["md"]),
+                pady=SPACING["xs"],
+            )
+        close_button = PrimaryButton(
+            dialog.actions,
+            text=close_label,
+            command=dialog.close,
+            width=112,
+        )
+        close_button.pack(
+            side="right",
+            padx=SPACING["lg"],
+            pady=SPACING["md"],
+        )
+        dialog.set_initial_focus(close_button)
+        dialog.show((520, 500), (560, 520))
+
     def show_about(
         self,
         root: tk.Misc,
@@ -195,60 +466,172 @@ class TkDialogs:
         copy_label: str,
         copied_text: str,
         close_label: str,
+        local_conversion_text: str,
+        no_network_text: str,
     ) -> None:
-        """Show selectable local identities and an explicit clipboard action."""
-        dialog = tk.Toplevel(root)
-        dialog.title(title)
-        dialog.transient(root)
-        dialog.resizable(True, True)
+        """Show structured local identities and an exact clipboard action."""
+        dialog = GeneralDialog(root, title, lambda: None)
+        body = ctk.CTkFrame(dialog.content, fg_color="transparent")
+        body.pack(fill="both", expand=True)
+        body.grid_columnconfigure(0, weight=1)
+        body.grid_columnconfigure(1, weight=1)
 
-        content = ttk.Frame(dialog, padding=16)
-        content.pack(fill="both", expand=True)
-        ttk.Label(content, text=version_text).pack(anchor="w")
-        ttk.Label(content, text=technical_heading).pack(
-            anchor="w", pady=(16, 4)
+        identity = ctk.CTkFrame(
+            body,
+            fg_color=COLORS["surface"],
+            corner_radius=8,
+            border_width=1,
+            border_color=COLORS["border"],
         )
-        details = tk.Text(
-            content,
-            width=62,
-            height=8,
-            wrap="none",
-            takefocus=True,
+        logo = product_logo(64)
+        logo_label = ctk.CTkLabel(identity, text="", image=logo)
+        logo_label.pack(anchor="w", padx=SPACING["md"], pady=(SPACING["md"], 0))
+        product_label = ctk.CTkLabel(
+            identity,
+            text=version_text,
+            anchor="w",
+            text_color=COLORS["text"],
+            font=dialog.fonts.font("panel_title"),
         )
-        details.insert("1.0", technical_text)
-        details.configure(state="disabled")
-        details.pack(fill="both", expand=True)
-        status = ttk.Label(content, takefocus=True)
-        status.pack(fill="x", pady=(4, 0))
-        actions = ttk.Frame(content)
-        actions.pack(fill="x", pady=(12, 0))
+        product_label.pack(fill="x", padx=SPACING["md"], pady=SPACING["sm"])
+        for message in (local_conversion_text, no_network_text):
+            ctk.CTkLabel(
+                identity,
+                text=message,
+                anchor="w",
+                justify="left",
+                wraplength=300,
+                text_color=COLORS["text_secondary"],
+                font=dialog.fonts.font("body"),
+            ).pack(fill="x", padx=SPACING["md"], pady=(0, SPACING["sm"]))
+
+        technical = ctk.CTkFrame(
+            body,
+            fg_color=COLORS["surface"],
+            corner_radius=8,
+            border_width=1,
+            border_color=COLORS["border"],
+        )
+        ctk.CTkLabel(
+            technical,
+            text=technical_heading,
+            anchor="w",
+            text_color=COLORS["text"],
+            font=dialog.fonts.font("panel_title"),
+        ).pack(fill="x", padx=SPACING["md"], pady=SPACING["md"])
+        technical_rows = ctk.CTkFrame(technical, fg_color="transparent")
+        technical_rows.pack(
+            fill="both",
+            expand=True,
+            padx=SPACING["md"],
+            pady=(0, SPACING["md"]),
+        )
+        technical_rows.grid_columnconfigure(1, weight=1)
+        for row_index, line in enumerate(technical_text.splitlines()):
+            label, separator, value = line.partition(": ")
+            if not separator:
+                value = ""
+            ctk.CTkLabel(
+                technical_rows,
+                text=label,
+                anchor="w",
+                text_color=COLORS["text_secondary"],
+                font=dialog.fonts.font("secondary"),
+            ).grid(row=row_index, column=0, sticky="nw", pady=SPACING["xs"])
+            ctk.CTkLabel(
+                technical_rows,
+                text=value,
+                anchor="w",
+                justify="left",
+                wraplength=300,
+                text_color=COLORS["text"],
+                font=dialog.fonts.font("technical", monospace=True),
+            ).grid(
+                row=row_index,
+                column=1,
+                sticky="new",
+                padx=(SPACING["md"], 0),
+                pady=SPACING["xs"],
+            )
+        status = ctk.CTkLabel(
+            dialog.content,
+            text="",
+            anchor="w",
+            text_color=COLORS["success"],
+            font=dialog.fonts.font("secondary"),
+        )
+        status.pack(fill="x", pady=(SPACING["sm"], 0))
 
         def copy_information() -> None:
             root.clipboard_clear()
             root.clipboard_append(technical_text)
             status.configure(text=copied_text)
 
-        def close(event=None) -> str:
-            dialog.destroy()
-            return "break"
-
-        def select_all(event=None) -> str:
-            details.tag_add("sel", "1.0", "end-1c")
-            return "break"
-
-        copy_button = ttk.Button(
-            actions,
+        copy_button = SecondaryButton(
+            dialog.actions,
             text=copy_label,
             command=copy_information,
         )
-        copy_button.pack(side="left")
-        ttk.Button(actions, text=close_label, command=close).pack(side="right")
-        details.bind("<Control-a>", select_all)
-        dialog.protocol("WM_DELETE_WINDOW", close)
-        dialog.bind("<Escape>", close)
-        dialog.grab_set()
-        copy_button.focus_set()
-        dialog.wait_window()
+        copy_button.pack(
+            side="left",
+            padx=SPACING["lg"],
+            pady=SPACING["md"],
+        )
+        close_button = PrimaryButton(
+            dialog.actions,
+            text=close_label,
+            command=dialog.close,
+            width=112,
+        )
+        close_button.pack(
+            side="right",
+            padx=SPACING["lg"],
+            pady=SPACING["md"],
+        )
+
+        def layout_columns(event) -> None:
+            if event.widget is not dialog.window:
+                return
+            identity.grid_forget()
+            technical.grid_forget()
+            if event.width < 680:
+                identity.grid(row=0, column=0, columnspan=2, sticky="ew")
+                technical.grid(
+                    row=1,
+                    column=0,
+                    columnspan=2,
+                    sticky="ew",
+                    pady=(SPACING["md"], 0),
+                )
+            else:
+                identity.grid(
+                    row=0,
+                    column=0,
+                    sticky="nsew",
+                    padx=(0, SPACING["sm"]),
+                )
+                technical.grid(
+                    row=0,
+                    column=1,
+                    sticky="nsew",
+                    padx=(SPACING["sm"], 0),
+                )
+
+        dialog.window.bind("<Configure>", layout_columns, add="+")
+        identity.grid(
+            row=0,
+            column=0,
+            sticky="nsew",
+            padx=(0, SPACING["sm"]),
+        )
+        technical.grid(
+            row=0,
+            column=1,
+            sticky="nsew",
+            padx=(SPACING["sm"], 0),
+        )
+        dialog.set_initial_focus(close_button)
+        dialog.show((760, 560), (820, 680))
 
     def show_problem_report(
         self,

@@ -49,6 +49,8 @@ STRINGS = {
         "manual_open_error": "Could not open the user manual: {error}",
         "about_action": "About LibreMark PDF",
         "about_version": "LibreMark PDF {version}",
+        "about_local_conversion": "Local Markdown-to-PDF conversion",
+        "about_no_network": "No data is sent over the network",
         "technical_information": "Technical information",
         "copy_technical_information": "Copy technical information",
         "technical_information_copied": "Technical information copied.",
@@ -61,6 +63,9 @@ STRINGS = {
         "technical_python": "Python",
         "technical_system": "System",
         "technical_architecture": "Architecture",
+        "technical_execution_mode": "Execution mode",
+        "execution_mode_source": "Source",
+        "execution_mode_artifact": "Artifact",
         "report_issue_action": "Report a problem",
         "report_title": "Report a problem",
         "report_document_title": "LibreMark PDF problem report",
@@ -276,13 +281,15 @@ STRINGS = {
         "keyboard_shortcuts_action": "Keyboard shortcuts",
         "language_english_a11y": "Change language to English",
         "language_french_a11y": "Change language to French",
-        "keyboard_shortcuts_body": (
-            "Add files: Ctrl+O\nReset preview and fit page: Ctrl+R\n"
-            "Generate: Ctrl+G\nZoom in/out: Ctrl++ / Ctrl+-\n"
-            "Reset zoom: Ctrl+0\nPreview page (focused): Left / Right\n"
-            "File row: Up / Down / Enter / Space / Delete / Shift+F10\n"
-            "Cancel active batch: Esc"
-        ),
+        "shortcut_add_files": "Add files",
+        "shortcut_refresh_preview": "Refresh preview",
+        "shortcut_generate": "Generate",
+        "shortcut_zoom_in": "Zoom in",
+        "shortcut_zoom_out": "Zoom out",
+        "shortcut_reset_zoom": "Reset zoom",
+        "shortcut_previous_page": "Previous page",
+        "shortcut_next_page": "Next page",
+        "shortcut_cancel_batch": "Cancel active batch",
         "output_label": "Output",
         "destination_heading": "Destination",
         "output_default_value": "Next to each source file",
@@ -466,6 +473,8 @@ STRINGS = {
         ),
         "about_action": "À propos de LibreMark PDF",
         "about_version": "LibreMark PDF {version}",
+        "about_local_conversion": "Conversion locale de Markdown en PDF",
+        "about_no_network": "Aucune donnée envoyée sur le réseau",
         "technical_information": "Informations techniques",
         "copy_technical_information": "Copier les informations techniques",
         "technical_information_copied": "Informations techniques copiées.",
@@ -478,6 +487,9 @@ STRINGS = {
         "technical_python": "Python",
         "technical_system": "Système",
         "technical_architecture": "Architecture",
+        "technical_execution_mode": "Mode d’exécution",
+        "execution_mode_source": "Sources",
+        "execution_mode_artifact": "Artefact",
         "report_issue_action": "Signaler un problème",
         "report_title": "Signaler un problème",
         "report_document_title": "Rapport de problème LibreMark PDF",
@@ -718,14 +730,15 @@ STRINGS = {
         "keyboard_shortcuts_action": "Raccourcis clavier",
         "language_english_a11y": "Passer l’interface en anglais",
         "language_french_a11y": "Passer l’interface en français",
-        "keyboard_shortcuts_body": (
-            "Ajouter des fichiers : Ctrl+O\nRéinitialiser l’aperçu et ajuster à la page : Ctrl+R\n"
-            "Générer : Ctrl+G\nZoom avant/arrière : Ctrl++ / Ctrl+-\n"
-            "Réinitialiser le zoom : Ctrl+0\n"
-            "Page d’aperçu (avec focus) : Gauche / Droite\n"
-            "Ligne de fichier : Haut / Bas / Entrée / Espace / Suppr / Maj+F10\n"
-            "Annuler le lot actif : Échap"
-        ),
+        "shortcut_add_files": "Ajouter des fichiers",
+        "shortcut_refresh_preview": "Actualiser l’aperçu",
+        "shortcut_generate": "Générer",
+        "shortcut_zoom_in": "Zoom avant",
+        "shortcut_zoom_out": "Zoom arrière",
+        "shortcut_reset_zoom": "Réinitialiser le zoom",
+        "shortcut_previous_page": "Page précédente",
+        "shortcut_next_page": "Page suivante",
+        "shortcut_cancel_batch": "Annuler le lot actif",
         "output_label": "Sortie",
         "destination_heading": "Destination",
         "output_default_value": "À côté de chaque fichier source",

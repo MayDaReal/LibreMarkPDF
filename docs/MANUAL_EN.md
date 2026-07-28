@@ -261,6 +261,8 @@ current version. The logo, product name, menu, and native window controls stay
 visible at the minimum 560 px width.
 
 Press `F1` to display the available keyboard shortcuts.
+They are presented in a localized two-column action/key table with one
+**Close** action and remain keyboard-usable at the minimum window size.
 **Help → User manual** opens this local guide in the system application.
 
 **About LibreMark PDF** shows the application, render profile, Playwright,
@@ -268,7 +270,9 @@ Chromium, Python, system, and architecture identities. **Copy technical
 information** copies only these
 values: it does not include selected files, document contents, private paths,
 environment variables, or logs, and it does not send anything over the
-network.
+network. The dialog also states that Markdown-to-PDF conversion is local and
+that no data is sent over the network. It identifies source or artifact mode
+only when the running application can determine that mode reliably.
 
 **Help → Report a problem** opens an entirely local, editable report. Describe
 what happened; reproduction steps and the expected result are optional. If the

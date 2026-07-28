@@ -11,7 +11,7 @@ import customtkinter as ctk
 from .theme import COLORS, RADII, SIZES, SPACING, SystemFontResolver
 
 
-def _monitor_work_area(widget: tk.Misc):
+def monitor_work_area(widget: tk.Misc):
     """Return the work area containing a widget, including virtual offsets."""
     if os.name == "nt":
         try:
@@ -203,7 +203,7 @@ class Tooltip:
                 self.widget.winfo_height(),
             ),
             (width, height),
-            _monitor_work_area(self.widget),
+            monitor_work_area(self.widget),
         )
         window.wm_geometry("+{0}+{1}".format(x, y))
         self._window = window
@@ -337,27 +337,43 @@ class SecondaryButton(_ButtonBase):
     """Outlined secondary application action."""
 
     def __init__(self, master, text: str, command: Callable[[], None], **kwargs):
+        tone = kwargs.pop("tone", "default")
+        if tone not in ("default", "danger"):
+            raise ValueError("Unknown secondary button tone: {0}".format(tone))
+        border_color = (
+            COLORS["error"] if tone == "danger" else COLORS["border_strong"]
+        )
+        text_color = COLORS["error"] if tone == "danger" else COLORS["primary"]
+        hover_color = (
+            COLORS["error_subtle"]
+            if tone == "danger"
+            else COLORS["surface_hover"]
+        )
         defaults = {
             "text": text,
             "command": command,
             "height": SIZES["button"],
             "corner_radius": RADII["control"],
             "fg_color": "transparent",
-            "hover_color": COLORS["surface_hover"],
-            "border_color": COLORS["border_strong"],
+            "hover_color": hover_color,
+            "border_color": border_color,
             "border_width": 1,
-            "text_color": COLORS["primary"],
+            "text_color": text_color,
             "text_color_disabled": COLORS["text_muted"],
         }
         defaults.update(kwargs)
         super().__init__(
             master,
             focus_color=COLORS["primary"],
-            normal_border_color=COLORS["border_strong"],
+            normal_border_color=border_color,
             normal_border_width=1,
             normal_fg_color="transparent",
-            hover_fg_color=COLORS["surface_hover"],
-            pressed_fg_color=COLORS["surface_selected"],
+            hover_fg_color=hover_color,
+            pressed_fg_color=(
+                COLORS["error_subtle"]
+                if tone == "danger"
+                else COLORS["surface_selected"]
+            ),
             disabled_fg_color=COLORS["surface_hover"],
             **defaults
         )

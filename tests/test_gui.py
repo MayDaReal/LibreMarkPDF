@@ -1548,14 +1548,27 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
         app.operation = "idle"
         app._set_zoom = mock.Mock()
         app.dialogs = mock.Mock()
+        app.root = mock.Mock()
         app._t = lambda key, **kwargs: key
 
         self.assertEqual(app._reset_zoom(), "break")
         app._set_zoom.assert_called_once_with(100)
         self.assertEqual(app._show_keyboard_shortcuts(), "break")
-        app.dialogs.show_info.assert_called_once_with(
+        app.dialogs.show_shortcuts.assert_called_once_with(
+            app.root,
             "keyboard_shortcuts_action",
-            "keyboard_shortcuts_body",
+            (
+                ("shortcut_add_files", "Ctrl+O"),
+                ("shortcut_refresh_preview", "Ctrl+R"),
+                ("shortcut_generate", "Ctrl+G"),
+                ("shortcut_zoom_in", "Ctrl++"),
+                ("shortcut_zoom_out", "Ctrl+-"),
+                ("shortcut_reset_zoom", "Ctrl+0"),
+                ("shortcut_previous_page", "←"),
+                ("shortcut_next_page", "→"),
+                ("shortcut_cancel_batch", "Esc"),
+            ),
+            "close_action",
         )
 
     def test_about_information_uses_package_and_pinned_identities_without_paths(self):
@@ -1578,10 +1591,21 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
             "Python: 3.9.13",
             "System: Windows 10",
             "Architecture: AMD64",
+            "Execution mode: Source",
         ):
             self.assertIn(expected, information)
         for excluded in (str(Path.home()), "PLAYWRIGHT_BROWSERS_PATH", ".md"):
             self.assertNotIn(excluded, information)
+
+    def test_about_execution_mode_is_reported_only_when_reliable(self):
+        app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
+        app.lang = "en"
+        with mock.patch.object(tk_app.sys, "frozen", True, create=True):
+            self.assertEqual(app._execution_mode(), "Artifact")
+        with mock.patch.object(tk_app.sys, "frozen", False, create=True), \
+                mock.patch.object(tk_app.sys, "_MEIPASS", None, create=True), \
+                mock.patch.object(tk_app.Path, "is_file", return_value=False):
+            self.assertIsNone(app._execution_mode())
 
     def test_about_action_passes_localized_copyable_information_to_dialog(self):
         app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
@@ -1601,6 +1625,8 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
             "Copier les informations techniques",
             "Informations techniques copiées.",
             "Fermer",
+            "Conversion locale de Markdown en PDF",
+            "Aucune donnée envoyée sur le réseau",
         )
 
     def test_user_manual_uses_localized_packaged_document_and_service(self):
@@ -2623,34 +2649,98 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
     def test_close_dialog_dismissal_and_escape_continue_by_default(self):
         dialogs = tk_dialogs.TkDialogs()
         dialog = mock.Mock()
-        content = mock.Mock()
-        actions = mock.Mock()
+        dialog.fonts.font.return_value = mock.sentinel.font
         cancel_button = mock.Mock()
         continue_button = mock.Mock()
-        with mock.patch.object(tk_dialogs.tk, "Toplevel", return_value=dialog), \
-                mock.patch.object(
-                    tk_dialogs.ttk, "Frame", side_effect=[content, actions]
-                ), mock.patch.object(tk_dialogs.ttk, "Label", return_value=mock.Mock()), \
-                mock.patch.object(
-                    tk_dialogs.ttk,
-                    "Button",
-                    side_effect=[cancel_button, continue_button],
-                ):
+        with mock.patch.object(
+            tk_dialogs, "GeneralDialog", return_value=dialog
+        ) as dialog_type, mock.patch.object(
+            tk_dialogs.ctk, "CTkLabel", return_value=mock.Mock()
+        ), mock.patch.object(
+            tk_dialogs, "SecondaryButton", return_value=cancel_button
+        ) as secondary, mock.patch.object(
+            tk_dialogs, "PrimaryButton", return_value=continue_button
+        ) as primary:
             self.assertEqual(
                 dialogs.ask_close_during_conversion(
                     mock.Mock(), "Closing", "Keep going?", "Continue", "Cancel"
                 ),
                 "continue",
             )
-        continue_button.focus_set.assert_called_once_with()
-        protocol_callback = dialog.protocol.call_args.args[1]
-        bindings = {call.args[0]: call.args[1] for call in dialog.bind.call_args_list}
-        escape_callback = bindings["<Escape>"]
-        return_callback = bindings["<Return>"]
-        protocol_callback()
-        self.assertEqual(escape_callback(mock.Mock()), "break")
-        self.assertEqual(return_callback(mock.Mock()), "break")
-        self.assertGreaterEqual(dialog.destroy.call_count, 3)
+        dialog_type.assert_called_once()
+        secondary.assert_called_once_with(
+            dialog.actions,
+            text="Cancel",
+            command=mock.ANY,
+            tone="danger",
+        )
+        primary.assert_called_once_with(
+            dialog.actions,
+            text="Continue",
+            command=mock.ANY,
+        )
+        dialog.set_initial_focus.assert_called_once_with(continue_button)
+        dialog.show.assert_called_once_with((520, 280), (560, 420))
+
+        dialog.reset_mock()
+        with mock.patch.object(
+            tk_dialogs, "GeneralDialog", return_value=dialog
+        ), mock.patch.object(
+            tk_dialogs.ctk, "CTkLabel", return_value=mock.Mock()
+        ), mock.patch.object(
+            tk_dialogs, "SecondaryButton", return_value=cancel_button
+        ) as secondary, mock.patch.object(
+            tk_dialogs, "PrimaryButton", return_value=continue_button
+        ):
+            dialog.show.side_effect = lambda *_args: (
+                secondary.call_args.kwargs["command"]()
+            )
+            self.assertEqual(
+                dialogs.ask_close_during_conversion(
+                    mock.Mock(), "Closing", "Keep going?", "Continue", "Cancel"
+                ),
+                "cancel_close",
+            )
+
+    def test_general_dialog_safe_dismissal_and_focus_restoration(self):
+        foundation = tk_dialogs.GeneralDialog.__new__(tk_dialogs.GeneralDialog)
+        foundation._closed = False
+        foundation._dismiss = mock.Mock()
+        foundation.close = mock.Mock()
+
+        self.assertEqual(foundation.dismiss(mock.Mock()), "break")
+        foundation._dismiss.assert_called_once_with()
+        foundation.close.assert_called_once_with()
+
+        trigger = mock.Mock()
+        trigger.winfo_exists.return_value = True
+        foundation.trigger = trigger
+        foundation.owner = mock.Mock()
+        foundation.owner.winfo_rootx.return_value = 100
+        foundation.owner.winfo_rooty.return_value = 80
+        foundation.owner.winfo_width.return_value = 560
+        foundation.owner.winfo_height.return_value = 520
+        foundation.window = mock.Mock()
+        foundation.window.winfo_reqwidth.return_value = 520
+        foundation.window.winfo_reqheight.return_value = 500
+        foundation.initial_focus = mock.Mock()
+        with mock.patch.object(
+            tk_dialogs, "monitor_work_area", return_value=(0, 0, 1920, 1040)
+        ):
+            foundation.show((520, 500), (560, 520))
+        foundation.window.geometry.assert_called_once_with("520x488+120+96")
+        foundation.window.after_idle.assert_called_once_with(
+            foundation._focus_initial
+        )
+        foundation.owner.focus_force.assert_called_once_with()
+        foundation.owner.after.assert_called_once_with(100, trigger.focus_force)
+        foundation._focus_initial()
+        foundation.window.focus_force.assert_called_once_with()
+        foundation.window.after.assert_called_once_with(
+            100, foundation._focus_initial_control
+        )
+        foundation._focus_initial_control()
+        foundation.initial_focus.focus_force.assert_called_once_with()
 
     def test_cancel_and_close_after_terminal_event_closes_immediately(self):
         app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
@@ -2860,29 +2950,104 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
             dialogs.show_info("Shortcuts", "Ctrl+O")
         info.assert_called_once_with("Shortcuts", "Ctrl+O")
 
+    def test_general_dialog_geometry_clamps_to_visible_workspace(self):
+        self.assertEqual(
+            tk_dialogs.dialog_geometry(
+                (-1900, 900, 560, 520),
+                (820, 680),
+                (-1920, 0, 1920, 1040),
+                (820, 680),
+            ),
+            (820, 680, -1920, 360),
+        )
+        self.assertEqual(
+            tk_dialogs.dialog_geometry(
+                (0, 0, 560, 520),
+                (820, 680),
+                (0, 0, 560, 520),
+                (820, 680),
+            ),
+            (528, 488, 16, 16),
+        )
+
+    def test_shortcuts_dialog_builds_one_localized_action_key_table(self):
+        dialogs = tk_dialogs.TkDialogs()
+        dialog = mock.Mock()
+        dialog.fonts.font.return_value = mock.sentinel.font
+        table = mock.Mock()
+        close_button = mock.Mock()
+        labels = []
+
+        def label(*_args, **kwargs):
+            widget = mock.Mock()
+            widget.creation_options = kwargs
+            labels.append(widget)
+            return widget
+
+        rows = (
+            ("Add files", "Ctrl+O"),
+            ("Refresh preview", "Ctrl+R"),
+            ("Generate", "Ctrl+G"),
+        )
+        with mock.patch.object(
+            tk_dialogs, "GeneralDialog", return_value=dialog
+        ), mock.patch.object(
+            tk_dialogs.ctk, "CTkFrame", return_value=table
+        ), mock.patch.object(
+            tk_dialogs.ctk, "CTkLabel", side_effect=label
+        ), mock.patch.object(
+            tk_dialogs, "PrimaryButton", return_value=close_button
+        ):
+            dialogs.show_shortcuts(
+                mock.Mock(), "Keyboard shortcuts", rows, "Close"
+            )
+
+        self.assertEqual(
+            [item.creation_options["text"] for item in labels],
+            [
+                "Add files", "Ctrl+O",
+                "Refresh preview", "Ctrl+R",
+                "Generate", "Ctrl+G",
+            ],
+        )
+        dialog.fonts.font.assert_any_call("technical", monospace=True)
+        dialog.set_initial_focus.assert_called_once_with(close_button)
+        dialog.show.assert_called_once_with((520, 500), (560, 520))
+
     def test_about_dialog_copies_exact_text_and_supports_keyboard_dismissal(self):
         dialogs = tk_dialogs.TkDialogs()
         root = mock.Mock()
         dialog = mock.Mock()
-        content = mock.Mock()
-        actions = mock.Mock()
-        details = mock.Mock()
-        status = mock.Mock()
+        dialog.fonts.font.return_value = mock.sentinel.font
         copy_button = mock.Mock()
         close_button = mock.Mock()
-        labels = [mock.Mock(), mock.Mock(), status]
-        with mock.patch.object(tk_dialogs.tk, "Toplevel", return_value=dialog), \
-                mock.patch.object(
-                    tk_dialogs.ttk, "Frame", side_effect=[content, actions]
-                ), mock.patch.object(
-                    tk_dialogs.ttk, "Label", side_effect=labels
-                ), mock.patch.object(
-                    tk_dialogs.tk, "Text", return_value=details
-                ), mock.patch.object(
-                    tk_dialogs.ttk,
-                    "Button",
-                    side_effect=[copy_button, close_button],
-                ) as button_type:
+        frames = []
+        labels = []
+
+        def frame(*_args, **_kwargs):
+            widget = mock.Mock()
+            frames.append(widget)
+            return widget
+
+        def label(*_args, **kwargs):
+            widget = mock.Mock()
+            widget.creation_options = kwargs
+            labels.append(widget)
+            return widget
+
+        with mock.patch.object(
+            tk_dialogs, "GeneralDialog", return_value=dialog
+        ), mock.patch.object(
+            tk_dialogs.ctk, "CTkFrame", side_effect=frame
+        ), mock.patch.object(
+            tk_dialogs.ctk, "CTkLabel", side_effect=label
+        ), mock.patch.object(
+            tk_dialogs, "product_logo", return_value=mock.sentinel.logo
+        ), mock.patch.object(
+            tk_dialogs, "SecondaryButton", return_value=copy_button
+        ) as secondary, mock.patch.object(
+            tk_dialogs, "PrimaryButton", return_value=close_button
+        ):
             dialogs.show_about(
                 root,
                 "About",
@@ -2892,24 +3057,31 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
                 "Copy technical information",
                 "Technical information copied.",
                 "Close",
+                "Local Markdown-to-PDF conversion",
+                "No data is sent over the network",
             )
 
-        copy_command = button_type.call_args_list[0].kwargs["command"]
+        copy_command = secondary.call_args.kwargs["command"]
         copy_command()
         root.clipboard_clear.assert_called_once_with()
         root.clipboard_append.assert_called_once_with(
             "LibreMark PDF: 1.0.0\nSystem: Windows 10"
         )
-        status.configure.assert_called_once_with(
-            text="Technical information copied."
-        )
-        copy_button.focus_set.assert_called_once_with()
-        dialog.grab_set.assert_called_once_with()
-        escape = {
-            call.args[0]: call.args[1] for call in dialog.bind.call_args_list
-        }["<Escape>"]
-        self.assertEqual(escape(mock.Mock()), "break")
-        dialog.destroy.assert_called_once_with()
+        visible_text = {
+            item.creation_options.get("text") for item in labels
+        }
+        self.assertTrue({
+            "LibreMark PDF 1.0.0",
+            "Local Markdown-to-PDF conversion",
+            "No data is sent over the network",
+            "Technical information",
+            "LibreMark PDF",
+            "1.0.0",
+            "System",
+            "Windows 10",
+        }.issubset(visible_text))
+        dialog.set_initial_focus.assert_called_once_with(close_button)
+        dialog.show.assert_called_once_with((760, 560), (820, 680))
 
     def test_native_dialog_calls_are_confined_to_the_dialog_boundary(self):
         for module in (tk_app, tk_layout, tk_preview):

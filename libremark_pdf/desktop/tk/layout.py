@@ -1423,9 +1423,22 @@ class TkLayoutMixin:
         target.yview_scroll(-1 if event.delta > 0 else 1, "units")
 
     def _show_keyboard_shortcuts(self) -> str:
-        self.dialogs.show_info(
+        shortcut_keys = (
+            ("shortcut_add_files", "Ctrl+O"),
+            ("shortcut_refresh_preview", "Ctrl+R"),
+            ("shortcut_generate", "Ctrl+G"),
+            ("shortcut_zoom_in", "Ctrl++"),
+            ("shortcut_zoom_out", "Ctrl+-"),
+            ("shortcut_reset_zoom", "Ctrl+0"),
+            ("shortcut_previous_page", "←"),
+            ("shortcut_next_page", "→"),
+            ("shortcut_cancel_batch", "Esc"),
+        )
+        self.dialogs.show_shortcuts(
+            self.root,
             self._t("keyboard_shortcuts_action"),
-            self._t("keyboard_shortcuts_body"),
+            tuple((self._t(key), value) for key, value in shortcut_keys),
+            self._t("close_action"),
         )
         return "break"
 

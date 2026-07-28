@@ -505,7 +505,7 @@ class LibreMarkPdfApp(
         system = " ".join(
             part for part in (platform.system(), platform.release()) if part
         )
-        values = (
+        values = [
             ("technical_app_version", __version__),
             ("technical_render_profile", core.DEFAULT_PROFILE_VERSION),
             ("technical_playwright", core.PLAYWRIGHT_VERSION),
@@ -514,11 +514,23 @@ class LibreMarkPdfApp(
             ("technical_python", platform.python_version()),
             ("technical_system", system or sys.platform),
             ("technical_architecture", platform.machine() or "unknown"),
-        )
+        ]
+        execution_mode = self._execution_mode()
+        if execution_mode is not None:
+            values.append(("technical_execution_mode", execution_mode))
         return "\n".join(
             "{0}: {1}".format(self._t(label_key), value)
             for label_key, value in values
         )
+
+    def _execution_mode(self) -> Optional[str]:
+        """Return source/artifact mode only when the runtime proves it."""
+        if getattr(sys, "frozen", False) or getattr(sys, "_MEIPASS", None):
+            return self._t("execution_mode_artifact")
+        source_root = Path(__file__).resolve().parents[3]
+        if (source_root / "pyproject.toml").is_file():
+            return self._t("execution_mode_source")
+        return None
 
     def _show_about(self) -> None:
         self.dialogs.show_about(
@@ -530,6 +542,8 @@ class LibreMarkPdfApp(
             self._t("copy_technical_information"),
             self._t("technical_information_copied"),
             self._t("close_action"),
+            self._t("about_local_conversion"),
+            self._t("about_no_network"),
         )
 
     def _show_problem_report(
