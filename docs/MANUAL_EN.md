@@ -276,7 +276,8 @@ only when the running application can determine that mode reliably.
 
 **Help → Report a problem** opens an entirely local, editable report. Describe
 what happened; reproduction steps and the expected result are optional. If the
-dialog was opened from a failed file, its error code is prefilled. **Include
+dialog was opened from a failed file, its error context and code are prefilled
+without filling the user description. **Include
 anonymized technical diagnostics** is off by default. When enabled, it adds
 application and renderer identities, operating-system details, resource
 presence, the selected theme identifier, file count, drag-and-drop state, and

@@ -29,6 +29,39 @@ class TestDesktopReporting(unittest.TestCase):
         self.assertIn("<private-path>", result)
         self.assertIn("<source-1.md>", result)
 
+    def test_sanitization_uses_stable_aliases_for_case_and_escaped_paths(self):
+        source = Path("C:/Users/Élodie/Project File/source.md")
+        output = Path("D:/PDF exports")
+        aliases = {
+            source: "<source-1.md>",
+            output: "<output-folder>",
+        }
+        message = (
+            r"C:\\USERS\\ÉLODIE\\PROJECT FILE\\SOURCE.MD then "
+            r"D:\\PDF exports and C:\Users\Élodie\Project File\source.md"
+        )
+
+        result = reporting.sanitize_report_text(
+            message, (source, output), aliases
+        )
+
+        self.assertEqual(result.count("<source-1.md>"), 2)
+        self.assertIn("<output-folder>", result)
+        for private_value in ("ÉLODIE", "Project File", "PDF exports"):
+            self.assertNotIn(private_value.lower(), result.lower())
+
+    def test_sanitization_removes_unknown_unc_posix_and_windows_paths(self):
+        text = (
+            r"\\server\private share\file.md, "
+            r"C:\Users\Alice\notes.md; /home/alice/private/notes.md"
+        )
+
+        result = reporting.sanitize_report_text(text)
+
+        self.assertEqual(result.count("<private-path>"), 3)
+        for private_value in ("server", "Alice", "home", "notes.md"):
+            self.assertNotIn(private_value.lower(), result.lower())
+
     def test_report_excludes_diagnostics_until_explicitly_requested(self):
         service = reporting.ReportingService()
         report = service.build_report(
@@ -43,6 +76,23 @@ class TestDesktopReporting(unittest.TestCase):
         self.assertIn("PREVIEW_FAILED", report)
         self.assertNotIn("application_version", report)
         self.assertNotIn("technical diagnostics", report.lower())
+
+    def test_report_sanitizes_error_context_before_display(self):
+        service = reporting.ReportingService()
+        source = Path("C:/Users/Alice/private.md")
+
+        report = service.build_report(
+            language="en",
+            summary="Preview failed",
+            error_code="PREVIEW_FAILED",
+            error_context="Could not read C:\\Users\\Alice\\private.md",
+            private_paths=(source,),
+            path_aliases={source: "<source-1.md>"},
+        )
+
+        self.assertIn("Error context\nCould not read <source-1.md>", report)
+        self.assertNotIn("Alice", report)
+        self.assertNotIn("private.md", report)
 
     def test_diagnostics_contain_only_safe_identifiers_and_anonymized_error(self):
         service = reporting.ReportingService()
@@ -79,6 +129,17 @@ class TestDesktopReporting(unittest.TestCase):
             "markdown", "pdf", "css_content", "user", "hostname", "clipboard"
         ):
             self.assertNotIn(forbidden_key, payload)
+
+        self.assertEqual(
+            set(payload),
+            {
+                "application_version", "architecture", "chromium_revision",
+                "chromium_version", "drag_and_drop", "error_code",
+                "error_message", "file_count", "generated_at",
+                "interface_language", "playwright_version", "python_version",
+                "render_profile", "resources", "system", "theme",
+            },
+        )
 
     def test_save_report_writes_the_reviewed_utf8_text_exactly(self):
         service = reporting.ReportingService()

@@ -1661,7 +1661,7 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
             self.assertNotIn("gear", text.lower(), relative_path)
             self.assertNotIn("engrenage", text.lower(), relative_path)
 
-    def test_problem_report_uses_optional_diagnostics_and_never_passes_paths_to_report(self):
+    def test_problem_report_uses_optional_diagnostics_and_stable_path_aliases(self):
         app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
         app.root = mock.Mock()
         app.dialogs = mock.Mock()
@@ -1692,7 +1692,16 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
             steps="Steps",
             expected="Expected",
             error_code="RENDER_FAILED",
+            error_context="failed private.md",
             diagnostics=None,
+            private_paths=(
+                Path("C:/Users/Alice/private.md"),
+                Path("C:/Users/Alice"),
+            ),
+            path_aliases={
+                Path("C:/Users/Alice/private.md"): "<source-1.md>",
+                Path("C:/Users/Alice"): "<source-folder>",
+            },
         )
 
         build("Summary", "", "", True)
@@ -1700,7 +1709,14 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
         self.assertEqual(diagnostic_call["file_count"], 1)
         self.assertEqual(
             diagnostic_call["private_paths"],
-            (Path("C:/Users/Alice/private.md"),),
+            (
+                Path("C:/Users/Alice/private.md"),
+                Path("C:/Users/Alice"),
+            ),
+        )
+        self.assertEqual(
+            diagnostic_call["path_aliases"][Path("C:/Users/Alice/private.md")],
+            "<source-1.md>",
         )
         app.reporting.build_report.assert_called_with(
             language="en",
@@ -1708,14 +1724,114 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
             steps="",
             expected="",
             error_code="RENDER_FAILED",
+            error_context="failed private.md",
             diagnostics={"safe": True},
+            private_paths=(
+                Path("C:/Users/Alice/private.md"),
+                Path("C:/Users/Alice"),
+            ),
+            path_aliases=mock.ANY,
+        )
+        sanitize = call.kwargs["sanitize_report"]
+        sanitize("edited C:/Users/Alice/private.md")
+        app.reporting.sanitize_report.assert_called_once_with(
+            "edited C:/Users/Alice/private.md",
+            (
+                Path("C:/Users/Alice/private.md"),
+                Path("C:/Users/Alice"),
+            ),
+            mock.ANY,
         )
 
     def test_problem_report_dialog_starts_without_diagnostic_consent(self):
-        source = inspect.getsource(tk_dialogs.TkDialogs.show_problem_report)
+        source = inspect.getsource(tk_dialogs.ProblemReportDialog)
         self.assertIn("tk.BooleanVar(value=False)", source)
-        self.assertIn("summary.focus_set()", source)
-        self.assertIn('dialog.bind("<Escape>", close)', source)
+        self.assertIn("set_initial_focus(self.summary)", source)
+        self.assertIn("GeneralDialog(", source)
+        self.assertEqual(tk_dialogs.problem_report_mode(819), "compact")
+        self.assertEqual(tk_dialogs.problem_report_mode(820), "large")
+        self.assertGreaterEqual(tk_dialogs.REPORT_DEBOUNCE_MS, 150)
+        self.assertLessEqual(tk_dialogs.REPORT_DEBOUNCE_MS, 250)
+
+    def test_problem_report_debounce_preserves_an_edited_preview(self):
+        workflow = tk_dialogs.ProblemReportDialog.__new__(
+            tk_dialogs.ProblemReportDialog
+        )
+        workflow._after_id = "pending"
+        workflow._report_edited = True
+        workflow._generated_report = ""
+        workflow.summary = mock.Mock()
+        workflow.summary.get.return_value = "Unicode failure — échec"
+        workflow.steps = mock.Mock()
+        workflow.steps.get.return_value = "1. Open\n2. Convert"
+        workflow.expected = mock.Mock()
+        workflow.expected.get.return_value = "A PDF"
+        workflow.validation = mock.Mock()
+        workflow.include_diagnostics = mock.Mock()
+        workflow.include_diagnostics.get.return_value = False
+        workflow.build_report = mock.Mock(return_value="new generated report\n")
+        workflow.report = mock.Mock()
+        workflow.status = mock.Mock()
+        workflow.labels = {"report_preview_edited": "Edits preserved"}
+
+        self.assertTrue(workflow._refresh_report(auto=True))
+
+        workflow.build_report.assert_called_once_with(
+            "Unicode failure — échec",
+            "1. Open\n2. Convert",
+            "A PDF",
+            False,
+        )
+        workflow.report.delete.assert_not_called()
+        workflow.report.insert.assert_not_called()
+        workflow.status.configure.assert_called_with(text="Edits preserved")
+
+        self.assertTrue(workflow._refresh_report(auto=False))
+        workflow.report.delete.assert_called_once_with("1.0", "end")
+        workflow.report.insert.assert_called_once_with(
+            "1.0", "new generated report\n"
+        )
+        self.assertFalse(workflow._report_edited)
+
+    def test_problem_report_copy_sanitizes_the_edited_text_explicitly(self):
+        workflow = tk_dialogs.ProblemReportDialog.__new__(
+            tk_dialogs.ProblemReportDialog
+        )
+        workflow._ensure_reviewed = mock.Mock(return_value=True)
+        workflow._reviewed_text = mock.Mock(
+            return_value="edited C:/Users/Alice/private.md"
+        )
+        workflow.sanitize_report = mock.Mock(return_value="edited <source-1.md>")
+        workflow.root = mock.Mock()
+        workflow.status = mock.Mock()
+        workflow.labels = {
+            "report_copied": "Copied",
+            "report_copy_error": "Copy failed: {error}",
+        }
+
+        workflow._copy()
+
+        workflow.sanitize_report.assert_called_once_with(
+            "edited C:/Users/Alice/private.md"
+        )
+        workflow.root.clipboard_clear.assert_called_once_with()
+        workflow.root.clipboard_append.assert_called_once_with(
+            "edited <source-1.md>"
+        )
+
+    def test_problem_report_multiline_fields_are_unicode_safe_and_bounded(self):
+        workflow = tk_dialogs.ProblemReportDialog.__new__(
+            tk_dialogs.ProblemReportDialog
+        )
+        widget = mock.Mock()
+        widget.get.return_value = "é" * (tk_dialogs.REPORT_TEXT_LIMIT + 25)
+
+        value = workflow._bounded(widget)
+
+        self.assertEqual(len(value), tk_dialogs.REPORT_TEXT_LIMIT)
+        self.assertEqual(value, "é" * tk_dialogs.REPORT_TEXT_LIMIT)
+        widget.delete.assert_called_once_with("1.0", "end")
+        widget.insert.assert_called_once_with("1.0", value)
 
     def test_preview_error_details_copy_only_the_worker_message(self):
         app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)

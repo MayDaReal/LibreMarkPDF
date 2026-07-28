@@ -68,12 +68,18 @@ STRINGS = {
         "execution_mode_artifact": "Artifact",
         "report_issue_action": "Report a problem",
         "report_title": "Report a problem",
+        "report_intro": (
+            "Describe the problem, then review the complete local report. "
+            "Nothing is sent automatically."
+        ),
         "report_document_title": "LibreMark PDF problem report",
         "report_summary": "What happened?",
+        "report_summary_placeholder": "Briefly describe the problem…",
         "report_summary_required": "Describe what happened before reviewing the report.",
         "report_steps": "Steps to reproduce (optional)",
         "report_expected": "Expected result (optional)",
         "report_error_code": "Error code",
+        "report_error_context": "Error context",
         "include_diagnostics": "Include anonymized technical diagnostics",
         "diagnostics_consent": (
             "Nothing is sent automatically. Review the report before copying "
@@ -86,6 +92,14 @@ STRINGS = {
         ),
         "preview_report": "Review report",
         "report_preview": "Editable report",
+        "report_preview_help": (
+            "Review and edit this complete report before copying or saving it."
+        ),
+        "report_preview_expand": "Show editable report",
+        "report_preview_collapse": "Hide editable report",
+        "report_preview_edited": (
+            "Your report edits are preserved. Select Review report to rebuild it."
+        ),
         "report_diagnostics_heading": "Anonymized technical diagnostics (JSON)",
         "copy_report": "Copy report",
         "save_report": "Save report…",
@@ -94,7 +108,7 @@ STRINGS = {
             "No support page is configured. Copy or save the report instead."
         ),
         "report_copied": "Report copied.",
-        "report_saved": "Report saved to {path}.",
+        "report_saved": "Report saved.",
         "report_copy_error": "Could not copy the report: {error}",
         "report_save_error": "Could not save the report: {error}",
         "support_open_error": "Could not open the support page: {error}",
@@ -492,14 +506,20 @@ STRINGS = {
         "execution_mode_artifact": "Artefact",
         "report_issue_action": "Signaler un problème",
         "report_title": "Signaler un problème",
+        "report_intro": (
+            "Décrivez le problème, puis vérifiez le rapport local complet. "
+            "Rien n’est envoyé automatiquement."
+        ),
         "report_document_title": "Rapport de problème LibreMark PDF",
         "report_summary": "Que s’est-il passé ?",
+        "report_summary_placeholder": "Décrivez brièvement le problème…",
         "report_summary_required": (
             "Décrivez ce qui s’est passé avant de vérifier le rapport."
         ),
         "report_steps": "Étapes pour reproduire le problème (facultatif)",
         "report_expected": "Résultat attendu (facultatif)",
         "report_error_code": "Code d’erreur",
+        "report_error_context": "Contexte de l’erreur",
         "include_diagnostics": "Inclure un diagnostic technique anonymisé",
         "diagnostics_consent": (
             "Rien n’est envoyé automatiquement. Vérifiez le rapport avant de "
@@ -513,6 +533,16 @@ STRINGS = {
         ),
         "preview_report": "Vérifier le rapport",
         "report_preview": "Rapport modifiable",
+        "report_preview_help": (
+            "Vérifiez et modifiez ce rapport complet avant de le copier ou de "
+            "l’enregistrer."
+        ),
+        "report_preview_expand": "Afficher le rapport modifiable",
+        "report_preview_collapse": "Masquer le rapport modifiable",
+        "report_preview_edited": (
+            "Vos modifications sont conservées. Sélectionnez Vérifier le "
+            "rapport pour le reconstruire."
+        ),
         "report_diagnostics_heading": "Diagnostic technique anonymisé (JSON)",
         "copy_report": "Copier le rapport",
         "save_report": "Enregistrer le rapport…",
@@ -522,7 +552,7 @@ STRINGS = {
             "le rapport."
         ),
         "report_copied": "Rapport copié.",
-        "report_saved": "Rapport enregistré dans {path}.",
+        "report_saved": "Rapport enregistré.",
         "report_copy_error": "Impossible de copier le rapport : {error}",
         "report_save_error": "Impossible d’enregistrer le rapport : {error}",
         "support_open_error": (

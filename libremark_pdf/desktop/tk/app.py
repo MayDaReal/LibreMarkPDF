@@ -551,7 +551,27 @@ class LibreMarkPdfApp(
         error_code: str = "",
         error_message: str = "",
     ) -> None:
-        private_paths = tuple(self.files)
+        path_aliases = {}
+        source_folder_index = 0
+        for index, source_path in enumerate(self.files, start=1):
+            source = Path(source_path)
+            path_aliases[source] = "<source-{0}{1}>".format(
+                index, source.suffix.lower()
+            )
+            if (
+                str(source.parent) not in ("", ".")
+                and source.parent not in path_aliases
+            ):
+                source_folder_index += 1
+                suffix = "" if source_folder_index == 1 else "-{0}".format(
+                    source_folder_index
+                )
+                path_aliases[source.parent] = "<source-folder{0}>".format(suffix)
+        if getattr(self, "output_dir", None):
+            path_aliases[Path(self.output_dir)] = "<output-folder>"
+        if getattr(self, "css_path", None):
+            path_aliases[Path(self.css_path)] = "<custom-css>"
+        private_paths = tuple(path_aliases)
 
         def build_report(
             summary: str,
@@ -569,6 +589,7 @@ class LibreMarkPdfApp(
                     error_code=error_code,
                     error_message=error_message,
                     private_paths=private_paths,
+                    path_aliases=path_aliases,
                 )
             return self.reporting.build_report(
                 language=self.lang,
@@ -576,21 +597,31 @@ class LibreMarkPdfApp(
                 steps=steps,
                 expected=expected,
                 error_code=error_code,
+                error_context=error_message,
                 diagnostics=diagnostics,
+                private_paths=private_paths,
+                path_aliases=path_aliases,
             )
 
         keys = (
             "report_title",
+            "report_intro",
             "report_summary",
+            "report_summary_placeholder",
             "report_summary_required",
             "report_steps",
             "report_expected",
             "report_error_code",
+            "report_error_context",
             "include_diagnostics",
             "diagnostics_consent",
             "report_local_help",
             "preview_report",
             "report_preview",
+            "report_preview_help",
+            "report_preview_expand",
+            "report_preview_collapse",
+            "report_preview_edited",
             "copy_report",
             "save_report",
             "open_support_channel",
@@ -609,6 +640,9 @@ class LibreMarkPdfApp(
             labels={key: self._t(key) for key in keys},
             error_code=error_code,
             build_report=build_report,
+            sanitize_report=lambda text: self.reporting.sanitize_report(
+                text, private_paths, path_aliases
+            ),
             save_report=self.reporting.save_report,
             has_support_channel=self.reporting.has_support_channel,
             open_support_page=self.reporting.open_support_page,

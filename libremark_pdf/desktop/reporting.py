@@ -8,7 +8,7 @@ import re
 import webbrowser
 from datetime import datetime
 from pathlib import Path
-from typing import Callable, Iterable, Optional
+from typing import Callable, Iterable, Mapping, Optional, Sequence
 
 from .. import __version__, core, i18n
 
@@ -33,21 +33,49 @@ def _replace_path_match(match: "re.Match[str]") -> str:
     return "<private-path>" + suffix
 
 
-def anonymize_text(text: str, private_paths: Iterable[Path] = ()) -> str:
-    """Replace known names and path-shaped text with non-identifying aliases."""
+def _path_spellings(path: Path) -> tuple:
+    value = str(path)
+    spellings = {
+        value,
+        value.replace("/", "\\"),
+        value.replace("\\", "/"),
+        value.replace("\\", "\\\\"),
+        path.name,
+    }
+    return tuple(item for item in spellings if item)
+
+
+def sanitize_report_text(
+    text: str,
+    known_paths: Sequence[Path] = (),
+    aliases: Optional[Mapping[Path, str]] = None,
+) -> str:
+    """Remove path-shaped private data using stable aliases for known paths."""
     anonymized = text
     known_values = []
-    for index, path in enumerate(private_paths, start=1):
+    for index, path in enumerate(known_paths, start=1):
         candidate = Path(path)
-        alias = "<source-{0}{1}>".format(index, candidate.suffix.lower())
-        for value in (str(candidate), candidate.name):
-            if value:
-                known_values.append((value, alias))
+        alias = (aliases or {}).get(
+            candidate,
+            "<source-{0}{1}>".format(index, candidate.suffix.lower()),
+        )
+        for value in _path_spellings(candidate):
+            known_values.append((value, alias))
     for value, alias in sorted(known_values, key=lambda item: len(item[0]), reverse=True):
-        anonymized = anonymized.replace(value, alias)
+        anonymized = re.sub(
+            re.escape(value),
+            lambda _match, replacement=alias: replacement,
+            anonymized,
+            flags=re.IGNORECASE,
+        )
     anonymized = _WINDOWS_PATH.sub(_replace_path_match, anonymized)
     anonymized = _POSIX_PATH.sub(_replace_path_match, anonymized)
     return anonymized
+
+
+def anonymize_text(text: str, private_paths: Iterable[Path] = ()) -> str:
+    """Compatibility wrapper for path-safe report text."""
+    return sanitize_report_text(text, tuple(private_paths))
 
 
 def _resource_presence() -> dict:
@@ -92,6 +120,15 @@ class ReportingService:
     def has_support_channel(self) -> bool:
         return bool(self.support_url)
 
+    def sanitize_report(
+        self,
+        text: str,
+        private_paths: Sequence[Path] = (),
+        path_aliases: Optional[Mapping[Path, str]] = None,
+    ) -> str:
+        """Return display/copy/save-safe report text with stable aliases."""
+        return sanitize_report_text(text, private_paths, path_aliases)
+
     def diagnostic_payload(
         self,
         *,
@@ -102,10 +139,12 @@ class ReportingService:
         error_code: str = "",
         error_message: str = "",
         private_paths: Iterable[Path] = (),
+        path_aliases: Optional[Mapping[Path, str]] = None,
         generated_at: Optional[datetime] = None,
     ) -> dict:
         """Return the minimal consent-only diagnostic without private paths."""
         private_path_values = tuple(private_paths)
+        aliases = path_aliases or {}
         timestamp = generated_at or datetime.now().astimezone()
         payload = {
             "application_version": __version__,
@@ -114,7 +153,7 @@ class ReportingService:
             "chromium_version": core.CHROMIUM_VERSION,
             "drag_and_drop": bool(has_drag_and_drop),
             "error_code": (
-                anonymize_text(error_code, private_paths=private_path_values)
+                sanitize_report_text(error_code, private_path_values, aliases)
                 if error_code else None
             ),
             "file_count": int(file_count),
@@ -130,8 +169,8 @@ class ReportingService:
             "theme": theme,
         }
         if error_message:
-            payload["error_message"] = anonymize_text(
-                error_message, private_paths=private_path_values
+            payload["error_message"] = sanitize_report_text(
+                error_message, private_path_values, aliases
             )
         return payload
 
@@ -143,7 +182,10 @@ class ReportingService:
         steps: str = "",
         expected: str = "",
         error_code: str = "",
+        error_context: str = "",
         diagnostics: Optional[dict] = None,
+        private_paths: Sequence[Path] = (),
+        path_aliases: Optional[Mapping[Path, str]] = None,
     ) -> str:
         """Format a readable UTF-8 report with an optional JSON block."""
         sections = [
@@ -163,8 +205,16 @@ class ReportingService:
                 "",
                 "{0}: {1}".format(
                     i18n.t("report_error_code", language),
-                    anonymize_text(error_code.strip()),
+                    sanitize_report_text(
+                        error_code.strip(), private_paths, path_aliases or {}
+                    ),
                 ),
+            ))
+        if error_context.strip():
+            sections.extend((
+                "",
+                i18n.t("report_error_context", language),
+                error_context.strip(),
             ))
         if diagnostics is not None:
             sections.extend((
@@ -172,7 +222,11 @@ class ReportingService:
                 i18n.t("report_diagnostics_heading", language),
                 json.dumps(diagnostics, ensure_ascii=False, indent=2, sort_keys=True),
             ))
-        return "\n".join(sections).rstrip() + "\n"
+        return sanitize_report_text(
+            "\n".join(sections).rstrip() + "\n",
+            private_paths,
+            path_aliases or {},
+        )
 
     def save_report(self, path: Path, report: str) -> None:
         """Save exactly the reviewed report as UTF-8 text."""

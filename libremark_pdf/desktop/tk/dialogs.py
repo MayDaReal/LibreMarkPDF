@@ -18,6 +18,11 @@ from ..ctk.components import (
 from ..ctk.theme import COLORS, SPACING, SystemFontResolver
 
 
+REPORT_COMPACT_BREAKPOINT = 820
+REPORT_DEBOUNCE_MS = 200
+REPORT_TEXT_LIMIT = 10000
+
+
 def dialog_geometry(
     anchor_bounds: Tuple[int, int, int, int],
     requested_size: Tuple[int, int],
@@ -176,6 +181,489 @@ class GeneralDialog:
                 self.owner.after(100, trigger.focus_force)
         except (AttributeError, tk.TclError):
             pass
+
+
+def problem_report_mode(width: int) -> str:
+    """Return the report layout selected for the available dialog width."""
+    return "compact" if width < REPORT_COMPACT_BREAKPOINT else "large"
+
+
+class ProblemReportDialog:
+    """Responsive, local-only editor for one privacy-reviewed problem report."""
+
+    def __init__(
+        self,
+        root: tk.Misc,
+        *,
+        labels: dict,
+        error_code: str,
+        build_report: Callable[[str, str, str, bool], str],
+        sanitize_report: Callable[[str], str],
+        save_report: Callable[[Path, str], None],
+        has_support_channel: bool,
+        open_support_page: Callable[[], None],
+    ) -> None:
+        self.root = root
+        self.labels = labels
+        self.error_code = error_code
+        self.build_report = build_report
+        self.sanitize_report = sanitize_report
+        self.save_report = save_report
+        self.has_support_channel = has_support_channel
+        self.open_support_page = open_support_page
+        self._after_id = None
+        self._report_edited = False
+        self._generated_report = ""
+        self._mode = "large"
+        self._preview_expanded = True
+        self.dialog = GeneralDialog(
+            root, labels["report_title"], self._dismiss, scrollable=True
+        )
+        self.include_diagnostics = tk.BooleanVar(value=False)
+        self._build_widgets()
+
+    def _build_widgets(self) -> None:
+        fonts = self.dialog.fonts
+        self.introduction = ctk.CTkLabel(
+            self.dialog.content,
+            text=self.labels["report_intro"],
+            anchor="w",
+            justify="left",
+            wraplength=400,
+            text_color=COLORS["text_secondary"],
+            font=fonts.font("body"),
+        )
+        self.introduction.pack(fill="x", pady=(0, SPACING["md"]))
+        self.body = ctk.CTkFrame(self.dialog.content, fg_color="transparent")
+        self.body.pack(fill="both", expand=True)
+        self.body.grid_columnconfigure(0, weight=1)
+        self.body.grid_columnconfigure(1, weight=1)
+
+        self.form = ctk.CTkFrame(self.body, fg_color="transparent")
+        self.preview_section = ctk.CTkFrame(
+            self.body,
+            fg_color=COLORS["surface"],
+            corner_radius=8,
+            border_width=1,
+            border_color=COLORS["border"],
+        )
+        self._build_form(fonts)
+        self._build_preview(fonts)
+        self._build_actions(fonts)
+        self._apply_layout("large")
+        self.dialog.window.bind("<Configure>", self._on_configure, add="+")
+        self.dialog.set_initial_focus(self.summary)
+
+    def _field_label(self, parent: tk.Misc, text: str) -> ctk.CTkLabel:
+        label = ctk.CTkLabel(
+            parent,
+            text=text,
+            anchor="w",
+            text_color=COLORS["text"],
+            font=self.dialog.fonts.font("body"),
+        )
+        label.pack(fill="x", pady=(0, SPACING["xs"]))
+        return label
+
+    def _build_form(self, fonts: SystemFontResolver) -> None:
+        self._field_label(self.form, self.labels["report_summary"] + " *")
+        self.summary = ctk.CTkEntry(
+            self.form,
+            placeholder_text=self.labels["report_summary_placeholder"],
+            height=36,
+            font=fonts.font("body"),
+        )
+        self.summary.pack(fill="x")
+        self.validation = ctk.CTkLabel(
+            self.form,
+            text="",
+            anchor="w",
+            justify="left",
+            wraplength=400,
+            text_color=COLORS["error"],
+            font=fonts.font("secondary"),
+        )
+        self.validation.pack(fill="x", pady=(SPACING["xs"], SPACING["sm"]))
+
+        self._field_label(self.form, self.labels["report_steps"])
+        self.steps = ctk.CTkTextbox(
+            self.form, height=112, wrap="word", font=fonts.font("body")
+        )
+        self.steps.pack(fill="x", pady=(0, SPACING["sm"]))
+        self._field_label(self.form, self.labels["report_expected"])
+        self.expected = ctk.CTkTextbox(
+            self.form, height=88, wrap="word", font=fonts.font("body")
+        )
+        self.expected.pack(fill="x", pady=(0, SPACING["sm"]))
+        if self.error_code:
+            ctk.CTkLabel(
+                self.form,
+                text="{0}: {1}".format(
+                    self.labels["report_error_code"], self.error_code
+                ),
+                anchor="w",
+                text_color=COLORS["text_secondary"],
+                font=fonts.font("technical", monospace=True),
+            ).pack(fill="x", pady=(0, SPACING["sm"]))
+        self.diagnostics = ctk.CTkCheckBox(
+            self.form,
+            text=self.labels["include_diagnostics"],
+            variable=self.include_diagnostics,
+            command=self._schedule_refresh,
+            font=fonts.font("body"),
+        )
+        self.diagnostics.pack(fill="x", pady=(0, SPACING["xs"]))
+        for message in (
+            self.labels["diagnostics_consent"],
+            self.labels["report_local_help"],
+        ):
+            ctk.CTkLabel(
+                self.form,
+                text=message,
+                anchor="w",
+                justify="left",
+                wraplength=400,
+                text_color=COLORS["text_secondary"],
+                font=fonts.font("secondary"),
+            ).pack(fill="x", pady=(0, SPACING["sm"]))
+        if not self.has_support_channel:
+            self.offline_help = ctk.CTkLabel(
+                self.form,
+                text=self.labels["support_not_configured"],
+                anchor="w",
+                justify="left",
+                wraplength=400,
+                fg_color=COLORS["primary_subtle"],
+                corner_radius=6,
+                text_color=COLORS["info"],
+                font=fonts.font("secondary"),
+                padx=SPACING["sm"],
+                pady=SPACING["sm"],
+            )
+            self.offline_help.pack(fill="x", pady=(0, SPACING["sm"]))
+        for widget in (self.summary, self.steps, self.expected):
+            widget.bind("<KeyRelease>", self._on_form_changed, add="+")
+
+    def _build_preview(self, fonts: SystemFontResolver) -> None:
+        heading = ctk.CTkFrame(self.preview_section, fg_color="transparent")
+        heading.pack(fill="x", padx=SPACING["md"], pady=(SPACING["md"], 0))
+        self.preview_title = ctk.CTkLabel(
+            heading,
+            text=self.labels["report_preview"],
+            anchor="w",
+            text_color=COLORS["text"],
+            font=fonts.font("panel_title"),
+        )
+        self.preview_title.pack(side="left", fill="x", expand=True)
+        self.preview_toggle = SecondaryButton(
+            heading,
+            text=self.labels["report_preview_collapse"],
+            command=self._toggle_preview,
+            width=156,
+            height=32,
+        )
+        self.preview_help = ctk.CTkLabel(
+            self.preview_section,
+            text=self.labels["report_preview_help"],
+            anchor="w",
+            justify="left",
+            wraplength=400,
+            text_color=COLORS["text_secondary"],
+            font=fonts.font("secondary"),
+        )
+        self.preview_help.pack(
+            fill="x", padx=SPACING["md"], pady=(SPACING["xs"], SPACING["sm"])
+        )
+        self.report = ctk.CTkTextbox(
+            self.preview_section,
+            height=360,
+            wrap="word",
+            font=fonts.font("technical", monospace=True),
+        )
+        self.report.pack(
+            fill="both",
+            expand=True,
+            padx=SPACING["md"],
+            pady=(0, SPACING["md"]),
+        )
+        self.report.bind("<KeyRelease>", self._on_report_changed, add="+")
+
+    def _build_actions(self, fonts: SystemFontResolver) -> None:
+        self.status = ctk.CTkLabel(
+            self.dialog.actions,
+            text="",
+            anchor="w",
+            justify="left",
+            wraplength=440,
+            text_color=COLORS["text_secondary"],
+            font=fonts.font("secondary"),
+        )
+        self.status.pack(
+            side="left",
+            fill="x",
+            expand=True,
+            padx=(SPACING["lg"], SPACING["sm"]),
+            pady=SPACING["md"],
+        )
+        self.close_button = SecondaryButton(
+            self.dialog.actions,
+            text=self.labels["close_action"],
+            command=self.dialog.close,
+            width=96,
+        )
+        self.close_button.pack(
+            side="right", padx=(SPACING["xs"], SPACING["lg"]), pady=SPACING["md"]
+        )
+        self.save_button = SecondaryButton(
+            self.dialog.actions,
+            text=self.labels["save_report"],
+            command=self._save,
+            width=132,
+        )
+        self.save_button.pack(side="right", padx=SPACING["xs"], pady=SPACING["md"])
+        self.copy_button = PrimaryButton(
+            self.dialog.actions,
+            text=self.labels["copy_report"],
+            command=self._copy,
+            width=128,
+        )
+        self.copy_button.pack(side="right", padx=SPACING["xs"], pady=SPACING["md"])
+        self.review_button = SecondaryButton(
+            self.dialog.actions,
+            text=self.labels["preview_report"],
+            command=lambda: self._refresh_report(auto=False),
+            width=128,
+        )
+        self.review_button.pack(side="right", padx=SPACING["xs"], pady=SPACING["md"])
+        if self.has_support_channel:
+            self.support_button = SecondaryButton(
+                self.dialog.actions,
+                text=self.labels["open_support_channel"],
+                command=self._open_support,
+                width=140,
+            )
+            self.support_button.pack(
+                side="right", padx=SPACING["xs"], pady=SPACING["md"]
+            )
+
+    def _on_configure(self, event) -> None:
+        if event.widget is not self.dialog.window:
+            return
+        available = max(280, event.width - (6 * SPACING["lg"]))
+        self.introduction.configure(wraplength=available)
+        mode = problem_report_mode(event.width)
+        column_wrap = (
+            available if mode == "compact"
+            else max(240, available // 2 - SPACING["md"])
+        )
+        self.validation.configure(wraplength=column_wrap)
+        self.preview_help.configure(wraplength=column_wrap)
+        if hasattr(self, "offline_help"):
+            self.offline_help.configure(wraplength=column_wrap)
+        self._apply_layout(mode)
+
+    def _apply_layout(self, mode: str) -> None:
+        if mode == self._mode and self.form.winfo_manager():
+            return
+        self._mode = mode
+        self.form.grid_forget()
+        self.preview_section.grid_forget()
+        if mode == "compact":
+            self._preview_expanded = False
+            self.form.grid(row=0, column=0, columnspan=2, sticky="ew")
+            self.preview_section.grid(
+                row=1,
+                column=0,
+                columnspan=2,
+                sticky="ew",
+                pady=(SPACING["md"], 0),
+            )
+            self.preview_toggle.pack(side="right")
+            self._project_preview_visibility()
+        else:
+            self._preview_expanded = True
+            self.form.grid(
+                row=0, column=0, sticky="nsew", padx=(0, SPACING["sm"])
+            )
+            self.preview_section.grid(
+                row=0, column=1, sticky="nsew", padx=(SPACING["sm"], 0)
+            )
+            self.preview_toggle.pack_forget()
+            self._project_preview_visibility()
+        self._apply_action_layout(mode)
+
+    def _apply_action_layout(self, mode: str) -> None:
+        buttons = [
+            self.review_button,
+            self.copy_button,
+            self.save_button,
+            self.close_button,
+        ]
+        support_button = getattr(self, "support_button", None)
+        if support_button is not None:
+            buttons.insert(0, support_button)
+        self.status.pack_forget()
+        for button in buttons:
+            button.pack_forget()
+        if mode == "compact":
+            self.status.pack(
+                side="top",
+                fill="x",
+                padx=SPACING["md"],
+                pady=(SPACING["sm"], SPACING["xs"]),
+            )
+            for button in reversed(buttons):
+                button.configure(width=92)
+                button.pack(
+                    side="right",
+                    padx=SPACING["xs"],
+                    pady=(SPACING["xs"], SPACING["sm"]),
+                )
+        else:
+            self.status.pack(
+                side="left",
+                fill="x",
+                expand=True,
+                padx=(SPACING["lg"], SPACING["sm"]),
+                pady=SPACING["md"],
+            )
+            for button in reversed(buttons):
+                button.configure(width=128)
+                button.pack(
+                    side="right",
+                    padx=SPACING["xs"],
+                    pady=SPACING["md"],
+                )
+
+    def _toggle_preview(self) -> None:
+        self._preview_expanded = not self._preview_expanded
+        self._project_preview_visibility()
+
+    def _project_preview_visibility(self) -> None:
+        if self._preview_expanded:
+            self.preview_help.pack(
+                fill="x",
+                padx=SPACING["md"],
+                pady=(SPACING["xs"], SPACING["sm"]),
+            )
+            self.report.pack(
+                fill="both",
+                expand=True,
+                padx=SPACING["md"],
+                pady=(0, SPACING["md"]),
+            )
+            self.preview_toggle.configure(text=self.labels["report_preview_collapse"])
+        else:
+            self.preview_help.pack_forget()
+            self.report.pack_forget()
+            self.preview_toggle.configure(text=self.labels["report_preview_expand"])
+
+    def _bounded(self, widget: tk.Misc) -> str:
+        value = widget.get("1.0", "end-1c")
+        if len(value) > REPORT_TEXT_LIMIT:
+            value = value[:REPORT_TEXT_LIMIT]
+            widget.delete("1.0", "end")
+            widget.insert("1.0", value)
+        return value
+
+    def _on_form_changed(self, _event=None) -> None:
+        self._bounded(self.steps)
+        self._bounded(self.expected)
+        self._schedule_refresh()
+
+    def _on_report_changed(self, _event=None) -> None:
+        self._bounded(self.report)
+        self._report_edited = True
+
+    def _schedule_refresh(self) -> None:
+        if self._after_id is not None:
+            self.dialog.window.after_cancel(self._after_id)
+        self._after_id = self.dialog.window.after(
+            REPORT_DEBOUNCE_MS, lambda: self._refresh_report(auto=True)
+        )
+
+    def _refresh_report(self, auto: bool) -> bool:
+        self._after_id = None
+        summary = self.summary.get().strip()
+        if not summary:
+            self.validation.configure(text=self.labels["report_summary_required"])
+            return False
+        self.validation.configure(text="")
+        self._generated_report = self.build_report(
+            summary,
+            self._bounded(self.steps),
+            self._bounded(self.expected),
+            bool(self.include_diagnostics.get()),
+        )
+        if auto and self._report_edited:
+            self.status.configure(text=self.labels["report_preview_edited"])
+            return True
+        self.report.delete("1.0", "end")
+        self.report.insert("1.0", self._generated_report)
+        self._report_edited = False
+        self.status.configure(text="")
+        return True
+
+    def _reviewed_text(self) -> str:
+        return self.report.get("1.0", "end-1c")
+
+    def _ensure_reviewed(self) -> bool:
+        if not self.summary.get().strip():
+            self.validation.configure(text=self.labels["report_summary_required"])
+            self.summary.focus_set()
+            return False
+        if not self._reviewed_text().strip():
+            return self._refresh_report(auto=False)
+        return True
+
+    def _copy(self) -> None:
+        if not self._ensure_reviewed():
+            return
+        try:
+            reviewed = self.sanitize_report(self._reviewed_text())
+            self.root.clipboard_clear()
+            self.root.clipboard_append(reviewed)
+            self.status.configure(text=self.labels["report_copied"])
+        except Exception as exc:
+            self.status.configure(
+                text=self.labels["report_copy_error"].format(error=str(exc))
+            )
+
+    def _save(self) -> None:
+        if not self._ensure_reviewed():
+            return
+        selected = filedialog.asksaveasfilename(
+            parent=self.dialog.window,
+            title=self.labels["report_save_title"],
+            defaultextension=".txt",
+            filetypes=[(self.labels["report_text_filter"], "*.txt")],
+        )
+        if not selected:
+            return
+        try:
+            reviewed = self.sanitize_report(self._reviewed_text())
+            self.save_report(Path(selected), reviewed)
+            self.status.configure(text=self.labels["report_saved"])
+        except Exception as exc:
+            self.status.configure(
+                text=self.labels["report_save_error"].format(error=str(exc))
+            )
+
+    def _open_support(self) -> None:
+        try:
+            self.open_support_page()
+        except Exception as exc:
+            self.status.configure(
+                text=self.labels["support_open_error"].format(error=str(exc))
+            )
+
+    def _dismiss(self) -> None:
+        if self._after_id is not None:
+            self.dialog.window.after_cancel(self._after_id)
+            self._after_id = None
+
+    def show(self) -> None:
+        self.dialog.show((980, 700), (1120, 820))
 
 
 class TkDialogs:
@@ -640,196 +1128,23 @@ class TkDialogs:
         labels: dict,
         error_code: str,
         build_report: Callable[[str, str, str, bool], str],
+        sanitize_report: Callable[[str], str],
         save_report: Callable[[Path, str], None],
         has_support_channel: bool,
         open_support_page: Callable[[], None],
     ) -> None:
         """Collect, review, copy, and save a report entirely on the device."""
-        dialog = tk.Toplevel(root)
-        dialog.title(labels["report_title"])
-        dialog.transient(root)
-        dialog.resizable(True, True)
-        dialog.minsize(600, 620)
-
-        content = ttk.Frame(dialog, padding=16)
-        content.pack(fill="both", expand=True)
-        content.columnconfigure(0, weight=1)
-
-        row = 0
-        ttk.Label(content, text=labels["report_summary"]).grid(
-            row=row, column=0, sticky="w"
+        workflow = ProblemReportDialog(
+            root,
+            labels=labels,
+            error_code=error_code,
+            build_report=build_report,
+            sanitize_report=sanitize_report,
+            save_report=save_report,
+            has_support_channel=has_support_channel,
+            open_support_page=open_support_page,
         )
-        row += 1
-        summary = ttk.Entry(content, takefocus=True)
-        summary.grid(row=row, column=0, sticky="ew", pady=(4, 10))
-        row += 1
-        ttk.Label(content, text=labels["report_steps"]).grid(
-            row=row, column=0, sticky="w"
-        )
-        row += 1
-        steps = tk.Text(content, height=3, wrap="word", takefocus=True)
-        steps.grid(row=row, column=0, sticky="ew", pady=(4, 10))
-        row += 1
-        ttk.Label(content, text=labels["report_expected"]).grid(
-            row=row, column=0, sticky="w"
-        )
-        row += 1
-        expected = tk.Text(content, height=2, wrap="word", takefocus=True)
-        expected.grid(row=row, column=0, sticky="ew", pady=(4, 10))
-        row += 1
-        if error_code:
-            ttk.Label(
-                content,
-                text="{0}: {1}".format(labels["report_error_code"], error_code),
-            ).grid(row=row, column=0, sticky="w", pady=(0, 8))
-            row += 1
-
-        include_diagnostics = tk.BooleanVar(value=False)
-        ttk.Checkbutton(
-            content,
-            text=labels["include_diagnostics"],
-            variable=include_diagnostics,
-            takefocus=True,
-        ).grid(row=row, column=0, sticky="w")
-        row += 1
-        ttk.Label(
-            content,
-            text=labels["diagnostics_consent"],
-            justify="left",
-            wraplength=680,
-        ).grid(row=row, column=0, sticky="ew", pady=(2, 8))
-        row += 1
-        ttk.Label(
-            content,
-            text=labels["report_local_help"],
-            justify="left",
-            wraplength=680,
-        ).grid(row=row, column=0, sticky="ew", pady=(0, 8))
-        row += 1
-
-        review_button = ttk.Button(content, text=labels["preview_report"])
-        review_button.grid(row=row, column=0, sticky="w", pady=(0, 8))
-        row += 1
-        ttk.Label(content, text=labels["report_preview"]).grid(
-            row=row, column=0, sticky="w"
-        )
-        row += 1
-        report = tk.Text(content, height=12, wrap="word", takefocus=True)
-        content.rowconfigure(row, weight=1)
-        report.grid(row=row, column=0, sticky="nsew", pady=(4, 4))
-        row += 1
-        status = ttk.Label(content, takefocus=True, wraplength=680)
-        status.grid(row=row, column=0, sticky="ew")
-        row += 1
-        if not has_support_channel:
-            ttk.Label(
-                content,
-                text=labels["support_not_configured"],
-                justify="left",
-                wraplength=680,
-            ).grid(row=row, column=0, sticky="ew", pady=(4, 0))
-            row += 1
-        actions = ttk.Frame(content)
-        actions.grid(row=row, column=0, sticky="ew", pady=(12, 0))
-
-        def reviewed_text() -> str:
-            return report.get("1.0", "end-1c")
-
-        def refresh_report() -> bool:
-            summary_text = summary.get().strip()
-            if not summary_text:
-                status.configure(text=labels["report_summary_required"])
-                summary.focus_set()
-                return False
-            text = build_report(
-                summary_text,
-                steps.get("1.0", "end-1c"),
-                expected.get("1.0", "end-1c"),
-                bool(include_diagnostics.get()),
-            )
-            report.delete("1.0", "end")
-            report.insert("1.0", text)
-            report.focus_set()
-            status.configure(text="")
-            return True
-
-        def ensure_reviewed() -> bool:
-            if reviewed_text().strip():
-                return True
-            refresh_report()
-            return False
-
-        def copy() -> None:
-            if not ensure_reviewed():
-                return
-            try:
-                root.clipboard_clear()
-                root.clipboard_append(reviewed_text())
-                status.configure(text=labels["report_copied"])
-            except Exception as exc:
-                status.configure(
-                    text=labels["report_copy_error"].format(error=str(exc))
-                )
-
-        def save() -> None:
-            if not ensure_reviewed():
-                return
-            selected = filedialog.asksaveasfilename(
-                parent=dialog,
-                title=labels["report_save_title"],
-                defaultextension=".txt",
-                filetypes=[(labels["report_text_filter"], "*.txt")],
-            )
-            if not selected:
-                return
-            try:
-                save_report(Path(selected), reviewed_text())
-                status.configure(
-                    text=labels["report_saved"].format(path=selected)
-                )
-            except Exception as exc:
-                status.configure(
-                    text=labels["report_save_error"].format(error=str(exc))
-                )
-
-        def open_support() -> None:
-            try:
-                open_support_page()
-            except Exception as exc:
-                status.configure(
-                    text=labels["support_open_error"].format(error=str(exc))
-                )
-
-        def close(event=None) -> str:
-            dialog.destroy()
-            return "break"
-
-        def select_report(event=None) -> str:
-            report.tag_add("sel", "1.0", "end-1c")
-            return "break"
-
-        review_button.configure(command=refresh_report)
-        ttk.Button(actions, text=labels["copy_report"], command=copy).pack(
-            side="left"
-        )
-        ttk.Button(actions, text=labels["save_report"], command=save).pack(
-            side="left", padx=(8, 0)
-        )
-        if has_support_channel:
-            ttk.Button(
-                actions,
-                text=labels["open_support_channel"],
-                command=open_support,
-            ).pack(side="left", padx=(8, 0))
-        ttk.Button(actions, text=labels["close_action"], command=close).pack(
-            side="right"
-        )
-        report.bind("<Control-a>", select_report)
-        dialog.protocol("WM_DELETE_WINDOW", close)
-        dialog.bind("<Escape>", close)
-        dialog.grab_set()
-        summary.focus_set()
-        dialog.wait_window()
+        workflow.show()
 
 
 DEFAULT_TK_DIALOGS = TkDialogs()

@@ -303,7 +303,8 @@ déterminer de manière fiable.
 **Aide → Signaler un problème** ouvre un rapport entièrement local et
 modifiable. Décrivez le problème ; les étapes de reproduction et le résultat
 attendu sont facultatifs. Si le dialogue est ouvert depuis l’échec d’un
-fichier, son code d’erreur est prérempli. **Inclure un diagnostic technique
+fichier, son contexte et son code d’erreur sont préremplis sans remplir la
+description utilisateur. **Inclure un diagnostic technique
 anonymisé** est décoché par défaut. Une fois activé, il ajoute les identités de
 l’application et du moteur, le système, la présence des ressources,
 l’identifiant du thème sélectionné, le nombre de fichiers, l’état du
