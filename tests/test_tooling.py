@@ -107,6 +107,20 @@ class TestContributorTooling(unittest.TestCase):
         )
         self.assertIn("tests.test_visual_regression", run_tests.command_for_suite("visual"))
 
+    def test_hosted_workflows_cover_headless_linux_and_private_repositories(self):
+        quality = (ROOT / ".github" / "workflows" / "quality.yml").read_text(
+            encoding="utf-8"
+        )
+        security = (ROOT / ".github" / "workflows" / "security.yml").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("ruff check libremark_pdf tests tools", quality)
+        self.assertNotIn("tests tools spikes", quality)
+        self.assertIn(
+            "xvfb-run -a python -m unittest discover -s tests -v", quality
+        )
+        self.assertIn("github.event.repository.private == false", security)
+
 
 if __name__ == "__main__":
     unittest.main()

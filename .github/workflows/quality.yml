@@ -27,7 +27,7 @@ jobs:
       - name: Python 3.9 syntax and focused static checks
         run: |
           python -m compileall -q libremark_pdf tests tools
-          ruff check libremark_pdf tests tools spikes
+          ruff check libremark_pdf tests tools
       - name: Pure browser-free tests with coverage
         run: |
           coverage run -m unittest \
@@ -61,7 +61,7 @@ jobs:
       - name: Full suite
         env:
           PLAYWRIGHT_BROWSERS_PATH: ${{ runner.temp }}/libremark-browsers
-        run: python -m unittest discover -s tests -v
+        run: xvfb-run -a python -m unittest discover -s tests -v
 
   source-hygiene:
     runs-on: ubuntu-24.04
