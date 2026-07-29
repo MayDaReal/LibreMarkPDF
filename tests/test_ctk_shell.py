@@ -89,6 +89,25 @@ class TestResponsiveShellContract(unittest.TestCase):
 
 
 class TestWindowChromeContract(unittest.TestCase):
+    def test_resize_cursors_use_only_portable_names_outside_windows(self):
+        self.assertEqual(
+            WindowChrome._resize_cursors("win32")["n"],
+            "size_ns",
+        )
+        self.assertEqual(
+            WindowChrome._resize_cursors("x11"),
+            {
+                "n": "top_side",
+                "s": "bottom_side",
+                "w": "left_side",
+                "e": "right_side",
+                "nw": "top_left_corner",
+                "ne": "top_right_corner",
+                "sw": "bottom_left_corner",
+                "se": "bottom_right_corner",
+            },
+        )
+
     def test_compact_menu_is_clamped_to_the_current_monitor_work_area(self):
         header = AppHeader.__new__(AppHeader)
         header.window_chrome = mock.Mock()

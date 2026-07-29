@@ -48,6 +48,26 @@ class WindowChrome:
     _RESIZE_BORDER = SIZES["window_resize_border"]
     _RESIZE_CORNER = 10
     _RESIZE_FRAME_MS = 16
+    _WINDOWS_RESIZE_CURSORS = {
+        "n": "size_ns",
+        "s": "size_ns",
+        "w": "size_we",
+        "e": "size_we",
+        "nw": "size_nw_se",
+        "ne": "size_ne_sw",
+        "sw": "size_ne_sw",
+        "se": "size_nw_se",
+    }
+    _PORTABLE_RESIZE_CURSORS = {
+        "n": "top_side",
+        "s": "bottom_side",
+        "w": "left_side",
+        "e": "right_side",
+        "nw": "top_left_corner",
+        "ne": "top_right_corner",
+        "sw": "bottom_left_corner",
+        "se": "bottom_right_corner",
+    }
 
     def __init__(self, root: tk.Misc) -> None:
         self.root = root
@@ -89,6 +109,12 @@ class WindowChrome:
         widget.bind("<B1-Motion>", self._drag, add="+")
         widget.bind("<ButtonRelease-1>", self._stop_drag, add="+")
         widget.bind("<Double-Button-1>", self.toggle_maximize, add="+")
+
+    @classmethod
+    def _resize_cursors(cls, windowing_system: str) -> Dict[str, str]:
+        if windowing_system == "win32":
+            return cls._WINDOWS_RESIZE_CURSORS
+        return cls._PORTABLE_RESIZE_CURSORS
 
     def _enable_custom_chrome(self) -> None:
         self.root.overrideredirect(True)
@@ -190,10 +216,14 @@ class WindowChrome:
     def _create_resize_surfaces(self) -> None:
         border = self._RESIZE_BORDER
         corner = self._RESIZE_CORNER
+        windowing_system = str(
+            self.root.tk.call("tk", "windowingsystem")
+        )
+        cursors = self._resize_cursors(windowing_system)
         surface_specs = (
             (
                 "n",
-                "size_ns",
+                cursors["n"],
                 {
                     "x": corner,
                     "y": 0,
@@ -204,7 +234,7 @@ class WindowChrome:
             ),
             (
                 "s",
-                "size_ns",
+                cursors["s"],
                 {
                     "x": corner,
                     "rely": 1,
@@ -216,7 +246,7 @@ class WindowChrome:
             ),
             (
                 "w",
-                "size_we",
+                cursors["w"],
                 {
                     "x": 0,
                     "y": corner,
@@ -227,7 +257,7 @@ class WindowChrome:
             ),
             (
                 "e",
-                "size_we",
+                cursors["e"],
                 {
                     "relx": 1,
                     "x": -border,
@@ -239,12 +269,12 @@ class WindowChrome:
             ),
             (
                 "nw",
-                "size_nw_se",
+                cursors["nw"],
                 {"x": 0, "y": 0, "width": corner, "height": border},
             ),
             (
                 "nw",
-                "size_nw_se",
+                cursors["nw"],
                 {
                     "x": 0,
                     "y": border,
@@ -254,7 +284,7 @@ class WindowChrome:
             ),
             (
                 "ne",
-                "size_ne_sw",
+                cursors["ne"],
                 {
                     "relx": 1,
                     "x": -corner,
@@ -265,7 +295,7 @@ class WindowChrome:
             ),
             (
                 "ne",
-                "size_ne_sw",
+                cursors["ne"],
                 {
                     "relx": 1,
                     "x": -border,
@@ -276,7 +306,7 @@ class WindowChrome:
             ),
             (
                 "sw",
-                "size_ne_sw",
+                cursors["sw"],
                 {
                     "x": 0,
                     "rely": 1,
@@ -287,7 +317,7 @@ class WindowChrome:
             ),
             (
                 "sw",
-                "size_ne_sw",
+                cursors["sw"],
                 {
                     "x": 0,
                     "rely": 1,
@@ -298,7 +328,7 @@ class WindowChrome:
             ),
             (
                 "se",
-                "size_nw_se",
+                cursors["se"],
                 {
                     "relx": 1,
                     "rely": 1,
@@ -310,7 +340,7 @@ class WindowChrome:
             ),
             (
                 "se",
-                "size_nw_se",
+                cursors["se"],
                 {
                     "relx": 1,
                     "rely": 1,
