@@ -16,9 +16,24 @@ SPEC = importlib.util.spec_from_file_location("visual_regression", HARNESS_PATH)
 visual_regression = importlib.util.module_from_spec(SPEC)
 sys.modules[SPEC.name] = visual_regression
 SPEC.loader.exec_module(visual_regression)
+UPDATE_PATH = ROOT / "tools" / "update_visual_goldens.py"
+UPDATE_SPEC = importlib.util.spec_from_file_location(
+    "update_visual_goldens_for_test", UPDATE_PATH
+)
+update_visual_goldens = importlib.util.module_from_spec(UPDATE_SPEC)
+UPDATE_SPEC.loader.exec_module(update_visual_goldens)
 
 
 class TestVisualRegression(unittest.TestCase):
+    def test_source_generation_uses_the_current_chromium_owner(self):
+        self.assertIs(
+            visual_regression.chromium.BrowserRenderer,
+            __import__(
+                "libremark_pdf.engine.chromium", fromlist=["BrowserRenderer"]
+            ).BrowserRenderer,
+        )
+        self.assertFalse(hasattr(visual_regression.core, "_BrowserRenderer"))
+
     def test_fixture_manifest_has_the_required_corpus_size(self):
         manifest, fixtures = visual_regression.fixture_inputs(
             ROOT / "tests" / "fixtures" / "canonical" / "manifest.json"
@@ -129,3 +144,68 @@ class TestVisualRegression(unittest.TestCase):
             )
             self.assertEqual(report["result"], "fail")
             self.assertFalse(report["fixtures"][0]["pages"][0]["structural_pass"])
+
+    def test_platform_geometry_remains_exact_per_reviewed_platform(self):
+        page = {
+            "text_geometry_sha256": "linux",
+            "text_geometry_sha256_by_platform": {
+                "linux-x86_64": "linux",
+                "windows-x64": "windows",
+            },
+        }
+        self.assertEqual(
+            visual_regression.expected_page_hash(
+                page, "text_geometry_sha256", "windows-x64"
+            ), "windows"
+        )
+        self.assertEqual(
+            visual_regression.expected_page_hash(
+                page, "text_geometry_sha256", "linux-x86_64"
+            ), "linux"
+        )
+        self.assertIsNone(
+            visual_regression.expected_page_hash(
+                page, "text_geometry_sha256", "macos-arm64"
+            )
+        )
+
+    def test_platform_geometry_merge_preserves_non_geometry_contract(self):
+        common = {
+            "canonical_html_sha256": "html", "embedded_image_sha256": [],
+            "fixture": "sample", "links": [], "markdown_sha256": "markdown",
+            "page_count": 1, "profile_canonical_sha256": "profile-json",
+            "profile_fingerprint": "profile", "renderer_resource_hashes": {},
+        }
+        expected = {
+            "fixtures": [dict(common, pages=[{
+                "height_points": 842.0, "image": "page-001.png", "image_count": 0,
+                "text_geometry_sha256": "linux", "text_sha256": "text",
+                "width_points": 595.0,
+            }])],
+            "pdfium_version": "5.11.0", "raster_dpi": 144, "schema": 1,
+        }
+        evidence = {
+            "fixtures": [dict(common, pages=[{
+                "height_points": 842.0, "image": "page-001.png", "image_count": 0,
+                "text_geometry_sha256": "windows", "text_sha256": "text",
+                "width_points": 595.0,
+            }])],
+            "pdfium_version": "5.11.0", "platform_id": "windows-x64",
+            "raster_dpi": 144, "schema": 1,
+        }
+        merged = update_visual_goldens._merge_platform_structure(
+            expected, evidence, "windows-x64"
+        )
+        self.assertEqual(
+            merged["fixtures"][0]["pages"][0][
+                "text_geometry_sha256_by_platform"
+            ],
+            {"linux-x86_64": "linux", "windows-x64": "windows"},
+        )
+        self.assertEqual(
+            merged["fixtures"][0]["pages"][0]["text_sha256_by_platform"],
+            {"linux-x86_64": "text", "windows-x64": "text"},
+        )
+        self.assertEqual(
+            merged["structure_platforms"], ["linux-x86_64", "windows-x64"]
+        )

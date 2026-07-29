@@ -3,6 +3,7 @@
 import os
 import sys
 
+from PyInstaller.building.datastruct import Tree
 from PyInstaller.utils.hooks import collect_data_files
 
 
@@ -10,6 +11,11 @@ browser_source = os.environ.get(
     "LIBREMARK_PDF_BROWSER_SOURCE",
     "browser-win" if sys.platform == "win32" else "browser-linux",
 )
+manual_source = os.environ.get("LIBREMARK_PDF_MANUAL_SOURCE")
+if not manual_source:
+    raise SystemExit(
+        "LIBREMARK_PDF_MANUAL_SOURCE is required; use a native build script."
+    )
 
 
 a = Analysis(
@@ -27,9 +33,8 @@ a = Analysis(
         ("THIRD_PARTY_NOTICES.md", "."),
         ("docs/THEME_CONTRIBUTING.md", "docs"),
         ("docs/CLI_JSON_SCHEMA.json", "docs"),
-        ("docs/MANUAL_EN.md", "docs"),
-        ("docs/MANUEL_FR.md", "docs"),
-        (browser_source, "browsers"),
+        (os.path.join(manual_source, "MANUAL_EN.pdf"), "docs"),
+        (os.path.join(manual_source, "MANUEL_FR.pdf"), "docs"),
     ],
     hiddenimports=["customtkinter"],
     hookspath=[],
@@ -38,6 +43,11 @@ a = Analysis(
     excludes=[],
     noarchive=False,
     optimize=0,
+)
+a.datas += Tree(
+    browser_source,
+    prefix="browsers",
+    excludes=[".links", ".links/*"],
 )
 pyz = PYZ(a.pure)
 

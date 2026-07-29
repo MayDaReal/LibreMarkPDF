@@ -15,6 +15,16 @@ from libremark_pdf import cli
 
 
 class TestConvertCommand(unittest.TestCase):
+    def test_cli_standard_streams_are_forced_to_utf8_when_supported(self):
+        stdout = mock.Mock()
+        stderr = mock.Mock()
+        with mock.patch.object(cli.sys, "stdout", stdout), mock.patch.object(
+            cli.sys, "stderr", stderr
+        ):
+            cli._configure_utf8_standard_streams()
+        stdout.reconfigure.assert_called_once_with(encoding="utf-8")
+        stderr.reconfigure.assert_called_once_with(encoding="utf-8")
+
     @mock.patch("libremark_pdf.cli.core.convert_batch")
     def test_json_success_has_no_stderr(self, convert_batch):
         convert_batch.return_value = [

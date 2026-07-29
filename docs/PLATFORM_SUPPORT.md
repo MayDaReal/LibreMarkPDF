@@ -1,6 +1,6 @@
 # Platform support
 
-Windows x64 is the first mandatory candidate platform. A Windows artifact must
+Windows x64 is the only platform in the initial `v0.1.0` support scope. A Windows artifact must
 be built and validated on native Windows, outside the checkout, with its
 embedded browser and without Python or a Playwright cache available at runtime.
 
@@ -16,3 +16,8 @@ generated Windows resources in `browser-win/` and Linux resources in
 Artifacts from different platforms are not interchangeable. Canonical
 comparison verifies structural and visual equivalence; it does not promise
 byte-identical PDFs.
+
+Native canonical evidence retains exact text and PDFium geometry hashes per
+reviewed platform. This does not conceal cross-platform semantic differences:
+Linux support still requires an explicit native matrix and a separate
+cross-platform review before it can be advertised.

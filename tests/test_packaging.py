@@ -1,8 +1,12 @@
 """Regression tests for the PyInstaller entry point and build contract."""
 
 import json
+import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
+
+from tools import stage_manual_pdfs
 
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -24,11 +28,14 @@ class TestPackagingConfiguration(unittest.TestCase):
         for resource in (
             "style.css", "icons", "assets", "browsers", "fonts", "licenses",
             "LICENSE", "THIRD_PARTY_NOTICES.md", "THEME_CONTRIBUTING.md",
-            "CLI_JSON_SCHEMA.json", "MANUAL_EN.md", "MANUEL_FR.md",
+            "CLI_JSON_SCHEMA.json", "MANUAL_EN.pdf", "MANUEL_FR.pdf",
             "customtkinter",
         ):
             self.assertIn(resource, portable)
         self.assertIn('hiddenimports=["customtkinter"]', portable)
+        self.assertIn('excludes=[".links", ".links/*"]', portable)
+        self.assertNotIn('("docs/MANUAL_EN.md", "docs")', portable)
+        self.assertNotIn('("docs/MANUEL_FR.md", "docs")', portable)
 
     def test_portable_spec_has_distinct_gui_cli_and_diagnostic_entry_paths(self):
         spec = (ROOT / "LibreMarkPDF.spec").read_text(encoding="utf-8")
@@ -60,6 +67,8 @@ class TestPackagingConfiguration(unittest.TestCase):
         self.assertIn("LibreMarkPDF-debug.exe", script)
         self.assertNotIn("pip install", script)
         self.assertNotIn("playwright install", script)
+        self.assertIn("stage_manual_pdfs.py", script)
+        self.assertIn("LIBREMARK_PDF_MANUAL_SOURCE", script)
 
     def test_native_runner_covers_mandatory_candidate_boundaries(self):
         script = (ROOT / "tools" / "validate-windows-artifact.ps1").read_text(
@@ -83,8 +92,56 @@ class TestPackagingConfiguration(unittest.TestCase):
             "Get-AuthenticodeSignature",
             "manual-gui-review.md",
             "WINDOWS_VALIDATION_MANIFEST.sha256",
+            "MANUAL_EN.pdf",
+            "MANUEL_FR.pdf",
+            "browsers\\.links",
         ):
             self.assertIn(marker, script)
+
+    def test_manual_staging_uses_the_authoritative_cli_and_tracked_inputs(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / "docs").mkdir()
+            for name in stage_manual_pdfs.MANUALS:
+                (root / "docs" / (name + ".md")).write_text(
+                    "# Guide\n", encoding="utf-8"
+                )
+            (root / "style.css").write_text("body {}\n", encoding="utf-8")
+            output = root / "staging"
+
+            def convert(arguments):
+                out_dir = Path(arguments[arguments.index("--out-dir") + 1])
+                for name in stage_manual_pdfs.MANUALS:
+                    (out_dir / (name + ".pdf")).write_bytes(b"%PDF-manual")
+                return 0
+
+            with mock.patch.object(
+                stage_manual_pdfs.cli, "main", side_effect=convert
+            ) as cli_main:
+                outputs = stage_manual_pdfs.stage_manuals(output, root=root)
+
+        arguments = cli_main.call_args.args[0]
+        self.assertEqual(arguments[0], "convert")
+        self.assertEqual(
+            arguments[1:3],
+            [str(root / "docs" / "MANUAL_EN.md"),
+             str(root / "docs" / "MANUEL_FR.md")],
+        )
+        self.assertIn(str(root / "style.css"), arguments)
+        self.assertIn(stage_manual_pdfs.RENDER_DATE, arguments)
+        self.assertEqual([path.name for path in outputs], [
+            "MANUAL_EN.pdf", "MANUEL_FR.pdf",
+        ])
+
+    def test_manual_staging_fails_on_cli_error_or_missing_output(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            output = Path(temporary) / "staging"
+            with mock.patch.object(stage_manual_pdfs.cli, "main", return_value=1):
+                with self.assertRaisesRegex(RuntimeError, "generation failed"):
+                    stage_manual_pdfs.stage_manuals(output)
+            with mock.patch.object(stage_manual_pdfs.cli, "main", return_value=0):
+                with self.assertRaisesRegex(RuntimeError, "did not produce"):
+                    stage_manual_pdfs.stage_manuals(output)
 
     def test_frozen_entry_dispatches_by_authoritative_executable_name(self):
         entry = (ROOT / "libremark_pdf_entry.py").read_text(encoding="utf-8")

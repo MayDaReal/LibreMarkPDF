@@ -34,12 +34,19 @@ def main():
                         help="Named human reviewer who approved the rendered appearance")
     parser.add_argument("--explanation", required=True,
                         help="Why expected HTML, structure, or appearance changed")
+    parser.add_argument(
+        "--structure-platform", choices=(visual_regression.LINUX_X86_64,
+                                          visual_regression.WINDOWS_X64),
+        help="Merge exact text and geometry for one reviewed native platform without replacing rasters",
+    )
     args = parser.parse_args()
     if not all(value.strip() for value in (args.review_ticket, args.reviewer, args.explanation)):
         parser.error("review ticket, reviewer, and explanation must be non-empty")
     if len(args.candidate_commit) != 40 or any(
             character not in "0123456789abcdef" for character in args.candidate_commit.lower()):
         parser.error("candidate commit must be a 40-character hexadecimal Git object ID")
+    if args.structure_platform and not args.actual_dir:
+        parser.error("--structure-platform requires --actual-dir")
     if args.actual_dir:
         actual_dir = args.actual_dir
         evidence = visual_regression.collect_actual(args.manifest, actual_dir,
@@ -68,14 +75,19 @@ def _generate_and_write_expected(args):
 
 def _write_expected(args, actual_dir, evidence, evidence_sha256):
     """Copy only reviewed raster inputs and record immutable review provenance."""
-    raster_root = args.expected.parent / "rasters"
-    if raster_root.exists():
-        shutil.rmtree(raster_root)
-    raster_root.mkdir(parents=True)
-    for fixture in evidence["fixtures"]:
-        source = actual_dir / (fixture["fixture"] + "-pages")
-        shutil.copytree(source, raster_root / fixture["fixture"])
-    expected = dict(evidence)
+    if args.structure_platform:
+        expected = _merge_platform_structure(
+            visual_regression.load_json(args.expected), evidence, args.structure_platform
+        )
+    else:
+        raster_root = args.expected.parent / "rasters"
+        if raster_root.exists():
+            shutil.rmtree(raster_root)
+        raster_root.mkdir(parents=True)
+        for fixture in evidence["fixtures"]:
+            source = actual_dir / (fixture["fixture"] + "-pages")
+            shutil.copytree(source, raster_root / fixture["fixture"])
+        expected = dict(evidence)
     expected["golden_review"] = {
         "candidate_commit": args.candidate_commit,
         "explanation": args.explanation,
@@ -87,6 +99,48 @@ def _write_expected(args, actual_dir, evidence, evidence_sha256):
     args.expected.parent.mkdir(parents=True, exist_ok=True)
     args.expected.write_text(json.dumps(expected, ensure_ascii=False, indent=2,
                                         sort_keys=True) + "\n", encoding="utf-8")
+
+
+def _merge_platform_structure(expected, evidence, platform_id):
+    """Add exact native text/geometry while preserving approved Linux rasters."""
+    if expected.get("pdfium_version") != evidence.get("pdfium_version"):
+        raise ValueError("Geometry evidence uses a different PDFium version")
+    if expected.get("raster_dpi") != evidence.get("raster_dpi"):
+        raise ValueError("Geometry evidence uses a different raster DPI")
+    actual_by_id = {item["fixture"]: item for item in evidence["fixtures"]}
+    if set(actual_by_id) != {item["fixture"] for item in expected["fixtures"]}:
+        raise ValueError("Geometry evidence fixture set does not match expected data")
+    fixture_fields = (
+        "markdown_sha256", "canonical_html_sha256", "embedded_image_sha256",
+        "profile_canonical_sha256", "profile_fingerprint", "renderer_resource_hashes",
+        "page_count", "links",
+    )
+    page_fields = ("width_points", "height_points", "image_count")
+    for reference in expected["fixtures"]:
+        candidate = actual_by_id[reference["fixture"]]
+        if any(reference.get(key) != candidate.get(key) for key in fixture_fields):
+            raise ValueError(
+                "Geometry evidence changed a non-geometry fixture contract: {0}".format(
+                    reference["fixture"]
+                )
+            )
+        if len(reference["pages"]) != len(candidate["pages"]):
+            raise ValueError("Geometry evidence changed pagination")
+        for left, right in zip(reference["pages"], candidate["pages"]):
+            if any(left.get(key) != right.get(key) for key in page_fields):
+                raise ValueError("Geometry evidence changed a non-geometry page contract")
+            for field in ("text_geometry_sha256", "text_sha256"):
+                mapping = dict(left.get(field + "_by_platform", {}))
+                mapping.setdefault(visual_regression.LINUX_X86_64, left[field])
+                mapping[platform_id] = right[field]
+                left[field + "_by_platform"] = mapping
+    expected["structure_platforms"] = sorted({
+        key
+        for fixture in expected["fixtures"]
+        for page in fixture["pages"]
+        for key in page["text_geometry_sha256_by_platform"]
+    })
+    return expected
 
 
 if __name__ == "__main__":

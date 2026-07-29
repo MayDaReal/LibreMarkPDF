@@ -18,6 +18,13 @@ Native validation through `make validate-windows` and `make validate-linux`
 produces a candidate, diagnostics, and a checklist under
 `dist/<version>/<platform>/`.
 
+Each native build first stages `MANUAL_EN.pdf` and `MANUEL_FR.pdf` outside
+tracked source by converting both authoritative Markdown guides through
+LibreMark PDF's CLI with the root `style.css`. The build fails if conversion or
+either output fails. Artifact review opens both localized PDFs from the exact
+GUI and checks styling, headings, code, links, Unicode, pagination, selectable
+text, the default footer, clipping, and absence of remote resources.
+
 On Windows, the direct command requires no arguments:
 
 ```powershell
@@ -43,6 +50,12 @@ They cover Markdown, pagination, resources, Unicode, themes, collisions, and
 paths. Active tools are `tools/visual_regression.py`,
 `tools/artifact_visual_regression.py`, `tools/validate-windows-artifact.ps1`,
 and `tools/validate-linux-artifact.sh`.
+
+Text extraction and PDFium character geometry are exact within each reviewed
+native platform. `tools/update_visual_goldens.py --structure-platform` merges a
+complete reviewed platform evidence set without replacing another platform's
+hashes or the approved raster baseline. Cross-platform review remains separate
+and must report semantic differences rather than normalizing them away.
 
 Normal comparison is read-only. Updating goldens requires the dedicated update
 tool, a tracked issue, a justification, human review, and before/after

@@ -8,6 +8,10 @@ une ligne de commande non interactive.
 > encore publié. L’application actuelle doit être lancée depuis les sources ou
 > construite localement.
 
+La première version binaire `v0.1.0` prévue prend uniquement en charge Windows
+x64. Linux reste un candidat de développement séparé jusqu’à la réussite de sa
+validation native ; macOS est hors périmètre.
+
 Depuis un clone, lancez `bootstrap-windows.ps1` sous Windows ou
 `bootstrap-linux.sh` sous Linux. Ces scripts préparent l’environnement Python
 3.9 verrouillé et le navigateur Chromium local requis. Un clone partagé garde
@@ -289,7 +293,11 @@ Appuyez sur `F1` pour afficher les raccourcis clavier disponibles.
 Ils sont présentés dans un tableau localisé à deux colonnes action/touche avec
 une seule action **Fermer** et restent utilisables au clavier à la taille
 minimale de la fenêtre.
-**Aide → Manuel utilisateur** ouvre ce guide local dans l’application système.
+**Aide → Manuel utilisateur** ouvre le PDF inclus correspondant à la langue
+active dans l’application système. Depuis les sources, en l’absence d’un PDF
+préparé, cette action ouvre à la place ce guide Markdown suivi par Git. Les
+candidats génèrent le PDF avec LibreMark PDF lui-même et le fichier `style.css`
+suivi à la racine ; le PDF généré n’est pas un fichier source suivi.
 
 **À propos de LibreMark PDF** affiche les identités de l’application, du
 profil de rendu, de Playwright, de Chromium, de Python, du système et de

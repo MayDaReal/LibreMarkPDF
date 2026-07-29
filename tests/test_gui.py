@@ -1612,15 +1612,31 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
         app.lang = "fr"
         app._t = lambda key, **kwargs: key
 
-        app._show_user_manual()
+        packaged_pdf = mock.Mock(spec=Path)
+        packaged_pdf.is_file.return_value = True
+        with mock.patch.object(
+            tk_app.core, "resource_path", return_value=packaged_pdf
+        ):
+            app._show_user_manual()
+        app.services.open_path.assert_called_once_with(packaged_pdf)
 
-        app.services.open_path.assert_called_once_with(
-            core.resource_path("docs/MANUEL_FR.md")
-        )
-
+        missing_pdf = mock.Mock(spec=Path)
+        missing_pdf.is_file.return_value = False
+        source_manual = Path("docs/MANUAL_EN.md")
+        app.services.reset_mock()
         app.services.open_path.side_effect = RuntimeError("unavailable")
         app.lang = "en"
-        app._show_user_manual()
+        with mock.patch.object(
+            tk_app.core,
+            "resource_path",
+            side_effect=(missing_pdf, source_manual),
+        ) as resource_path:
+            app._show_user_manual()
+        self.assertEqual(
+            [call.args[0] for call in resource_path.call_args_list],
+            ["docs/MANUAL_EN.pdf", "docs/MANUAL_EN.md"],
+        )
+        app.services.open_path.assert_called_once_with(source_manual)
         app.dialogs.show_error.assert_called_once_with(
             "error_title",
             "manual_open_error",

@@ -6,6 +6,10 @@ computer. It provides a desktop interface and a non-interactive command line.
 > **Pre-release notice:** there is no officially validated download yet. The
 > current application must be run from source or built locally.
 
+The planned initial `v0.1.0` binary release supports Windows x64 only. Linux
+remains a separate development candidate until its native validation passes;
+macOS is out of scope.
+
 For a source checkout, run `bootstrap-windows.ps1` on Windows or
 `bootstrap-linux.sh` on Linux. They prepare the locked Python 3.9 environment
 and the required local Chromium payload. A shared checkout keeps the native
@@ -266,7 +270,11 @@ LibreMark PDF**.
 Press `F1` to display the available keyboard shortcuts.
 They are presented in a localized two-column action/key table with one
 **Close** action and remain keyboard-usable at the minimum window size.
-**Help → User manual** opens this local guide in the system application.
+**Help → User manual** opens the language-matching packaged PDF in the system
+application. When running from a source checkout without a staged PDF, it opens
+this tracked Markdown guide instead. Candidate builds generate the PDF with
+LibreMark PDF itself and the tracked root `style.css`; the generated PDF is not
+a tracked source file.
 
 **About LibreMark PDF** shows the application, render profile, Playwright,
 Chromium, Python, system, and architecture identities. **Copy technical

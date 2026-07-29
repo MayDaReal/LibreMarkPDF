@@ -1533,6 +1533,9 @@ class TestModernShellWidgets(unittest.TestCase):
         )
 
         first_source = results[0]["input"]
+        # Native focus_set() requires the shared test toplevel to be active.
+        self.root.focus_force()
+        self.root.update()
         view.focus_result(first_source)
         self.root.update()
         view.rows[first_source]._move_focus(1)

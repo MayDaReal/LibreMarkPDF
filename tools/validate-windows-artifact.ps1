@@ -160,6 +160,16 @@ try {
             throw "Candidate entry point is missing: $Path"
         }
     }
+    foreach ($Manual in @("MANUAL_EN.pdf", "MANUEL_FR.pdf")) {
+        $ManualPath = Join-Path $Candidate "_internal\docs\$Manual"
+        if (-not (Test-Path -LiteralPath $ManualPath -PathType Leaf) -or
+            (Get-Item -LiteralPath $ManualPath).Length -eq 0) {
+            throw "Packaged localized manual is missing or empty: $ManualPath"
+        }
+    }
+    if (Test-Path -LiteralPath (Join-Path $Candidate "_internal\browsers\.links")) {
+        throw "Playwright source-link metadata must not enter the candidate."
+    }
 
     $ExternalRoot = Join-Path $RuntimeDir "LibreMark PDF validation épreuve"
     $ExternalCandidate = Join-Path $ExternalRoot "LibreMarkPDF"
@@ -415,6 +425,7 @@ Candidate GUI: `$GuiPath`
 - [ ] Collision and overwrite choices are presented before rendering.
 - [ ] Open-PDF and open-folder actions appear only for successful results.
 - [ ] EN and FR labels/status remain localized during operations.
+- [ ] User manual opens the packaged EN/FR PDF matching the active language; headings, code, links, Unicode, pagination, selectable text, page footer, and supplied styling are correct, with no clipping or remote resource.
 - [ ] Tab order, focus visibility, Ctrl+O/Ctrl+R/Ctrl+G/Escape, labels, contrast, and Windows high-DPI scaling are acceptable.
 - [ ] Drag-and-drop works; source tests also passed with tkinterdnd2 blocked.
 - [ ] Theme cards, default@1, installed community theme selection, and themed preview work.

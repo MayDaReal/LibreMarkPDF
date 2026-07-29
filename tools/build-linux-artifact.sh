@@ -12,6 +12,7 @@ python_bin="${LIBREMARK_PDF_PYTHON:-python}"
 browser_source="${LIBREMARK_PDF_BROWSER_SOURCE:-browser-linux}"
 dist_path="${LIBREMARK_PDF_DISTPATH:-$PWD/dist}"
 work_path="${LIBREMARK_PDF_WORKPATH:-$PWD/build}"
+manual_source="$work_path/manual-pdfs"
 lock_path="$PWD/requirements/locks/linux-x86_64-py39.txt"
 archive_name="LibreMarkPDF-linux-x86_64-candidate.tar.gz"
 
@@ -51,7 +52,10 @@ then
 fi
 
 mkdir -p "$dist_path" "$work_path"
+PLAYWRIGHT_BROWSERS_PATH="$browser_source" \
+  "$python_bin" tools/stage_manual_pdfs.py --output-dir "$manual_source"
 export LIBREMARK_PDF_BROWSER_SOURCE="$browser_source"
+export LIBREMARK_PDF_MANUAL_SOURCE="$manual_source"
 "$python_bin" -m PyInstaller --noconfirm --clean \
   --distpath "$dist_path" \
   --workpath "$work_path" \

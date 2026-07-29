@@ -21,6 +21,15 @@ PURE_TESTS = [
     "tests.test_core.TestTemplateBuilding",
     "tests.test_core.TestMarkdownConversion",
 ]
+UI_TESTS = [
+    "tests.test_gui",
+    "tests.test_ctk_files",
+    "tests.test_ctk_foundations",
+    "tests.test_ctk_settings",
+    "tests.test_ctk_shell",
+    "tests.test_i18n",
+    "tests.test_desktop_reporting",
+]
 
 
 def command_for_suite(suite: str) -> list[str]:
@@ -30,7 +39,7 @@ def command_for_suite(suite: str) -> list[str]:
     if suite == "all":
         return [sys.executable, "-m", "unittest", "discover", "-s", "tests", "-v"]
     if suite == "ui":
-        return [sys.executable, "-m", "unittest", "tests.test_gui", "-v"]
+        return [sys.executable, "-m", "unittest", *UI_TESTS, "-v"]
     if suite == "visual":
         return [sys.executable, "-m", "unittest", "tests.test_visual_regression", "-v"]
     raise ValueError("Unknown suite: {0}".format(suite))

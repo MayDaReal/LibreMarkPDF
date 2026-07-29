@@ -52,7 +52,9 @@ agent contract in [`SKILL.md`](SKILL.md).
   Preview limit;
 - deterministic JSON output and meaningful exit status for automation.
 
-User guides: [English](docs/MANUAL_EN.md) · [Français](docs/MANUEL_FR.md)
+Tracked user-guide sources: [English Markdown](docs/MANUAL_EN.md) ·
+[Markdown français](docs/MANUEL_FR.md). Native candidate builds generate and
+package the matching local PDF guides with LibreMark PDF itself and `style.css`.
 
 ## Find the right document
 
@@ -177,6 +179,9 @@ Conversion runs locally with the bundled resources.
 
 ### Windows
 
+The initial `v0.1.0` release scope is Windows x64. Linux and macOS are not
+included in that support promise.
+
 Run `make build-windows` from the locked environment created by
 `bootstrap-windows.ps1`. Without GNU Make, call
 `tools\build-windows-artifact.bat` directly. Validate the complete candidate
@@ -186,7 +191,9 @@ The portable candidate provides `LibreMarkPDF.exe` for the no-console GUI,
 `LibreMarkPDF-cli.exe` for authoritative CLI streams, and
 `LibreMarkPDF-debug.exe` for GUI startup diagnostics. No candidate is an
 official release until its retained native evidence passes the applicable
-gates.
+gates. The build generates `MANUAL_EN.pdf` and `MANUEL_FR.pdf` from the tracked
+Markdown guides and packages them under `docs/`; generated PDFs are not source
+files and are never committed.
 
 ### Linux
 
@@ -205,7 +212,9 @@ to an onedir layout with `LibreMarkPDF` (GUI), `LibreMarkPDF-cli`
 (authoritative streams), and `LibreMarkPDF-debug` (diagnostic GUI). The
 tarball avoids FUSE but still requires compatible glibc and Chromium host
 libraries. Linux is not advertised as supported or portable until its
-independent native validation passes.
+independent native validation passes. Validation completed after an immutable
+`v0.1.0` publication applies to a later release; it does not retroactively add
+Linux support to the published Windows-only release.
 
 ## Architecture
 

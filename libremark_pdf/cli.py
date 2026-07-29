@@ -33,6 +33,14 @@ class _VersionAction(argparse.Action):
         parser.exit()
 
 
+def _configure_utf8_standard_streams() -> None:
+    """Keep redirected CLI output UTF-8 on frozen Windows builds."""
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if callable(reconfigure):
+            reconfigure(encoding="utf-8")
+
+
 def _json_text(payload: dict) -> str:
     return json.dumps(
         payload, ensure_ascii=False, indent=2, sort_keys=True
@@ -422,6 +430,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: Optional[Sequence[str]] = None) -> int:
     """Parse `argv`, run the selected command, and return an exit status."""
+    _configure_utf8_standard_streams()
     arguments = list(argv) if argv is not None else sys.argv[1:]
     parser = build_parser()
     try:

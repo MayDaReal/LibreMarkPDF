@@ -492,8 +492,10 @@ class LibreMarkPdfApp(
             button.accessible_name = self._t(key)
 
     def _show_user_manual(self) -> None:
-        manual_name = "MANUEL_FR.md" if self.lang == "fr" else "MANUAL_EN.md"
-        manual_path = core.resource_path("docs/{0}".format(manual_name))
+        manual_stem = "MANUEL_FR" if self.lang == "fr" else "MANUAL_EN"
+        manual_path = core.resource_path("docs/{0}.pdf".format(manual_stem))
+        if not manual_path.is_file():
+            manual_path = core.resource_path("docs/{0}.md".format(manual_stem))
         try:
             self.services.open_path(manual_path)
         except Exception as exc:

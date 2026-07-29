@@ -37,7 +37,9 @@ class TestLinuxPackaging(unittest.TestCase):
     def test_portable_spec_accepts_an_external_browser_staging_root(self):
         spec = (ROOT / "LibreMarkPDF.spec").read_text(encoding="utf-8")
         self.assertIn("LIBREMARK_PDF_BROWSER_SOURCE", spec)
-        self.assertIn('(browser_source, "browsers")', spec)
+        self.assertIn("Tree(", spec)
+        self.assertIn('prefix="browsers"', spec)
+        self.assertIn('excludes=[".links", ".links/*"]', spec)
 
     def test_build_is_no_download_no_elevation_and_has_three_entries(self):
         script = (
@@ -50,6 +52,8 @@ class TestLinuxPackaging(unittest.TestCase):
             "chromium_headless_shell-1223",
             "LibreMarkPDF-cli",
             "LibreMarkPDF-debug",
+            "stage_manual_pdfs.py",
+            "LIBREMARK_PDF_MANUAL_SOURCE",
             "tar --sort=name",
             "gzip -n",
         ):
@@ -84,6 +88,9 @@ class TestLinuxPackaging(unittest.TestCase):
             "artifact_visual_regression.py",
             "LINUX_VALIDATION_MANIFEST.sha256",
             "manual-linux-gui-review.md",
+            "MANUAL_EN.pdf",
+            "MANUEL_FR.pdf",
+            "browsers/.links",
             'PLAYWRIGHT_BROWSERS_PATH="$browser_source"',
             "run env",
             "git-porcelain-before.txt",

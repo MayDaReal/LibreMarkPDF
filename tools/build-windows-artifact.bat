@@ -50,6 +50,14 @@ if errorlevel 1 (
 if not defined LIBREMARK_PDF_DISTPATH set "LIBREMARK_PDF_DISTPATH=%cd%\dist"
 if not defined LIBREMARK_PDF_WORKPATH set "LIBREMARK_PDF_WORKPATH=%cd%\build"
 
+set "LIBREMARK_PDF_MANUAL_SOURCE=%LIBREMARK_PDF_WORKPATH%\manual-pdfs"
+set "PLAYWRIGHT_BROWSERS_PATH=%cd%\browser-win"
+"%LIBREMARK_PDF_PYTHON%" tools\stage_manual_pdfs.py --output-dir "%LIBREMARK_PDF_MANUAL_SOURCE%"
+if errorlevel 1 (
+    echo [FAILED] Localized manual PDF generation failed.
+    goto :error
+)
+
 echo Distribution path: %LIBREMARK_PDF_DISTPATH%
 echo Work path: %LIBREMARK_PDF_WORKPATH%
 echo(

@@ -197,6 +197,16 @@ run env \
   ./tools/build-linux-artifact.sh
 
 candidate="$artifacts/LibreMarkPDF"
+for manual in MANUAL_EN.pdf MANUEL_FR.pdf; do
+  if [[ ! -s "$candidate/_internal/docs/$manual" ]]; then
+    echo "Packaged localized manual is missing or empty: $manual" >&2
+    exit 1
+  fi
+done
+if [[ -e "$candidate/_internal/browsers/.links" ]]; then
+  echo "Playwright source-link metadata must not enter the candidate." >&2
+  exit 1
+fi
 external_candidate="$external_parent/LibreMark PDF – Linux x86_64"
 mkdir -p "$external_parent"
 cp -a "$candidate" "$external_candidate"
@@ -343,6 +353,10 @@ contrast, drag-and-drop and fallback, preview scroll/zoom/stale-result handling,
 progress/cancel/safe close, collisions, successful open actions, batch
 continuation and theme selection. Retain screenshots or video. Automation
 startup evidence does not replace this review.
+
+Open the User manual in each language and confirm that the matching packaged
+PDF has supplied styling, headings, code, links, Unicode, correct pagination
+and footer, readable/selectable text, no clipping, and no remote resources.
 EOF
 
 network_state "$logs/network-after.txt"

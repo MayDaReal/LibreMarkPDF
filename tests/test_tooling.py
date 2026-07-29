@@ -94,7 +94,17 @@ class TestContributorTooling(unittest.TestCase):
         self.assertTrue(all(item["path"] in known for item in report["generated"]))
 
     def test_test_runner_keeps_suites_separate(self):
-        self.assertIn("tests.test_gui", run_tests.command_for_suite("ui"))
+        ui_command = run_tests.command_for_suite("ui")
+        self.assertIn("tests.test_gui", ui_command)
+        self.assertIn("tests.test_ctk_shell", ui_command)
+        self.assertIn("tests.test_i18n", ui_command)
+        self.assertIn("tests.test_desktop_reporting", ui_command)
+        self.assertEqual(
+            unittest.defaultTestLoader.loadTestsFromNames(
+                run_tests.UI_TESTS
+            ).countTestCases(),
+            221,
+        )
         self.assertIn("tests.test_visual_regression", run_tests.command_for_suite("visual"))
 
 

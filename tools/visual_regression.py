@@ -9,6 +9,7 @@ import argparse
 import base64
 import hashlib
 import json
+import platform
 import re
 import sys
 import tempfile
@@ -22,6 +23,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from libremark_pdf import core
+from libremark_pdf.engine import chromium
 
 
 SCHEMA = 1
@@ -31,6 +33,30 @@ DELTA_THRESHOLD = 16
 CHANGED_PIXEL_MAXIMUM_PERCENT = 4.20
 # Owner-reviewed cross-platform antialiasing envelope.
 LARGEST_REGION_MAXIMUM_PERCENT = 0.10
+LINUX_X86_64 = "linux-x86_64"
+WINDOWS_X64 = "windows-x64"
+
+
+def canonical_platform_id():
+    """Return the native platform identity owned by canonical geometry data."""
+    machine = platform.machine().lower()
+    if sys.platform == "win32" and machine in ("amd64", "x86_64"):
+        return WINDOWS_X64
+    if sys.platform.startswith("linux") and machine in ("amd64", "x86_64"):
+        return LINUX_X86_64
+    raise RuntimeError(
+        "Canonical visual evidence is unsupported on {0}/{1}".format(
+            sys.platform, machine
+        )
+    )
+
+
+def expected_page_hash(page, field, platform_id):
+    """Select one exact reviewed page hash for the native platform."""
+    by_platform = page.get(field + "_by_platform")
+    if by_platform is None:
+        return page.get(field)
+    return by_platform.get(platform_id)
 
 
 def sha256_file(path):
@@ -284,7 +310,8 @@ def collect_actual(manifest_path, actual_dir, require_complete=False):
     if require_complete and missing:
         raise ValueError("Incomplete canonical evidence; missing: {}".format(", ".join(missing)))
     return {"fixtures": [entries[fixture_id] for fixture_id in expected_ids if fixture_id in entries],
-            "pdfium_version": "5.11.0", "raster_dpi": RASTER_DPI, "schema": SCHEMA}
+            "pdfium_version": "5.11.0", "platform_id": canonical_platform_id(),
+            "raster_dpi": RASTER_DPI, "schema": SCHEMA}
 
 
 def generate_actual(manifest_path, actual_dir, fixture_ids=None):
@@ -299,9 +326,9 @@ def generate_actual(manifest_path, actual_dir, fixture_ids=None):
         fixtures = [fixture for fixture in fixtures if fixture["id"] in requested]
     actual_dir.mkdir(parents=True, exist_ok=True)
     entries_dir = actual_dir / "entries"
-    # The harness has no renderer of its own: one core-managed browser is reused
+    # The harness has no renderer of its own: one engine-managed browser is reused
     # solely to keep a 30-fixture comparison practical and deterministic.
-    with core._BrowserRenderer() as renderer:
+    with chromium.BrowserRenderer() as renderer:
         for fixture in fixtures:
             header_footer = core.HeaderFooterConfig(**fixture["header_footer"])
             document = core.prepare_render_document(
@@ -337,6 +364,7 @@ def compare(expected_path, actual_dir, report_path, diff_dir):
     """Compare actual evidence to approved data and retain diffs on failure."""
     expected = load_json(expected_path)
     actual = load_json(actual_dir / "evidence.json")
+    platform_id = actual.get("platform_id", canonical_platform_id())
     expected_by_id = {item["fixture"]: item for item in expected["fixtures"]}
     actual_by_id = {item["fixture"]: item for item in actual["fixtures"]}
     failures = []
@@ -355,9 +383,14 @@ def compare(expected_path, actual_dir, report_path, diff_dir):
         if len(reference["pages"]) != len(candidate["pages"]):
             checks["pagination"] = False
         for index, (left, right) in enumerate(zip(reference["pages"], candidate["pages"])):
-            structural = all(left.get(key) == right.get(key) for key in
-                             ("width_points", "height_points", "text_geometry_sha256",
-                              "text_sha256", "image_count"))
+            structural = (
+                expected_page_hash(left, "text_geometry_sha256", platform_id)
+                == right.get("text_geometry_sha256")
+                and expected_page_hash(left, "text_sha256", platform_id)
+                == right.get("text_sha256")
+                and all(left.get(key) == right.get(key) for key in
+                        ("width_points", "height_points", "image_count"))
+            )
             reference_image = Path(expected_path).parent / "rasters" / fixture_id / left["image"]
             candidate_image = actual_dir / (fixture_id + "-pages") / right["image"]
             metrics = raster_metrics(Image.open(reference_image), Image.open(candidate_image))
@@ -378,7 +411,8 @@ def compare(expected_path, actual_dir, report_path, diff_dir):
                              "pages": page_results})
         results.append({"fixture": fixture_id, "pass": passed, "checks": checks,
                         "pages": page_results})
-    report = {"failures": failures, "fixtures": results, "result": "pass" if not failures else "fail",
+    report = {"failures": failures, "fixtures": results, "platform_id": platform_id,
+              "result": "pass" if not failures else "fail",
               "schema": SCHEMA, "thresholds": {"changed_pixel_maximum_percent": CHANGED_PIXEL_MAXIMUM_PERCENT,
               "delta_threshold": DELTA_THRESHOLD, "largest_changed_region_maximum_percent": LARGEST_REGION_MAXIMUM_PERCENT,
               "raster_dpi": RASTER_DPI, "ssim_minimum": SSIM_MINIMUM}}
