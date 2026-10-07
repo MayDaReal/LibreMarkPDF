@@ -39,7 +39,7 @@ jobs:
             tests.test_core.TestMarkdownConversion
           coverage report
           coverage xml
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: coverage-${{ matrix.python-version }}
           path: coverage.xml
