@@ -89,6 +89,33 @@ class TestResponsiveShellContract(unittest.TestCase):
 
 
 class TestWindowChromeContract(unittest.TestCase):
+    def test_x11_uses_native_window_management(self):
+        root = mock.Mock()
+        root.tk.call.return_value = "x11"
+
+        chrome = WindowChrome(root)
+
+        self.assertTrue(chrome.uses_native_controls)
+        self.assertEqual(chrome._resize_surfaces, [])
+        root.bind.assert_not_called()
+        root.after_idle.assert_not_called()
+
+        chrome.maximize_button = mock.Mock()
+        chrome._maximize_accessible_names = {
+            "maximize": "Maximize window",
+            "restore": "Restore window",
+        }
+        chrome.minimize()
+        chrome.maximize()
+        chrome.restore()
+
+        root.iconify.assert_called_once_with()
+        self.assertEqual(
+            root.attributes.call_args_list,
+            [mock.call("-zoomed", True), mock.call("-zoomed", False)],
+        )
+        root.geometry.assert_not_called()
+
     def test_resize_cursors_use_only_portable_names_outside_windows(self):
         self.assertEqual(
             WindowChrome._resize_cursors("win32")["n"],
@@ -135,7 +162,7 @@ class TestWindowChromeContract(unittest.TestCase):
         header._post_menu(button, menu)
 
         menu.tk_popup.assert_called_once_with(-300, 76)
-        menu.grab_release.assert_called_once_with()
+        menu.grab_release.assert_not_called()
         button.tooltip.hide.assert_called_once_with()
 
     def test_taskbar_registration_refreshes_the_borderless_window_once(self):
@@ -628,10 +655,15 @@ class TestModernShellWidgets(unittest.TestCase):
         self.assertEqual(header.language_button.winfo_manager(), "")
         self.assertEqual(header.version_button.winfo_manager(), "")
         self.assertEqual(header.compact_menu_button.winfo_manager(), "grid")
-        self.assertEqual(
-            int(header.compact_menu_button.grid_info()["column"]),
-            int(header.minimize_button.grid_info()["column"]) - 1,
-        )
+        if header.window_chrome.uses_native_controls:
+            self.assertEqual(header.minimize_button.winfo_manager(), "")
+            self.assertEqual(header.maximize_button.winfo_manager(), "")
+            self.assertEqual(header.close_button.winfo_manager(), "")
+        else:
+            self.assertEqual(
+                int(header.compact_menu_button.grid_info()["column"]),
+                int(header.minimize_button.grid_info()["column"]) - 1,
+            )
         self.assertEqual(header.compact_menu.type(0), "command")
         self.assertEqual(header.compact_menu.type(2), "cascade")
         self.assertEqual(header.compact_menu.type(4), "separator")

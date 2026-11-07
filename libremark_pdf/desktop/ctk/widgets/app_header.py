@@ -43,7 +43,7 @@ class MenuAction:
 
 
 class WindowChrome:
-    """Provide controls, dragging, and resizing for a borderless root."""
+    """Use custom Windows chrome and native window management elsewhere."""
 
     _RESIZE_BORDER = SIZES["window_resize_border"]
     _RESIZE_CORNER = 10
@@ -71,6 +71,10 @@ class WindowChrome:
 
     def __init__(self, root: tk.Misc) -> None:
         self.root = root
+        self.windowing_system = str(
+            self.root.tk.call("tk", "windowingsystem")
+        )
+        self.uses_native_controls = self.windowing_system != "win32"
         self.maximize_button = None
         self._normal_geometry = None  # type: Optional[Tuple[int, int, int, int]]
         self._drag_origin = None  # type: Optional[Tuple[int, int]]
@@ -83,9 +87,10 @@ class WindowChrome:
         self._restore_override_after_map = False
         self._taskbar_registered = False
         self._resize_surfaces = []
-        self.root.bind("<Map>", self._on_root_map, add="+")
-        self._create_resize_surfaces()
-        self.root.after_idle(self._enable_custom_chrome)
+        if not self.uses_native_controls:
+            self.root.bind("<Map>", self._on_root_map, add="+")
+            self._create_resize_surfaces()
+            self.root.after_idle(self._enable_custom_chrome)
 
     def attach_maximize_button(self, button: ctk.CTkButton) -> None:
         """Retain the control whose glyph reflects maximize state."""
@@ -105,6 +110,8 @@ class WindowChrome:
 
     def bind_drag_surface(self, widget: tk.Misc) -> None:
         """Make a non-interactive title-bar surface draggable."""
+        if self.uses_native_controls:
+            return
         widget.bind("<ButtonPress-1>", self._start_drag, add="+")
         widget.bind("<B1-Motion>", self._drag, add="+")
         widget.bind("<ButtonRelease-1>", self._stop_drag, add="+")
@@ -117,6 +124,8 @@ class WindowChrome:
         return cls._PORTABLE_RESIZE_CURSORS
 
     def _enable_custom_chrome(self) -> None:
+        if self.uses_native_controls:
+            return
         self.root.overrideredirect(True)
         self._configure_windows_taskbar()
         self._raise_resize_surfaces()
@@ -494,6 +503,9 @@ class WindowChrome:
 
     def minimize(self) -> None:
         """Minimize while retaining a taskbar-restorable root."""
+        if getattr(self, "uses_native_controls", False):
+            self.root.iconify()
+            return
         self._restore_override_after_map = True
         self.root.overrideredirect(False)
         self.root.iconify()
@@ -515,6 +527,11 @@ class WindowChrome:
 
     def maximize(self) -> None:
         """Fill the desktop work area without covering the Windows taskbar."""
+        if getattr(self, "uses_native_controls", False):
+            self.root.attributes("-zoomed", True)
+            self._maximized = True
+            self._update_maximize_glyph()
+            return
         self.root.update_idletasks()
         self._maximized_drag_ratio = None
         self._normal_geometry = (
@@ -531,6 +548,11 @@ class WindowChrome:
     def restore(self) -> None:
         """Restore the last normal window rectangle."""
         self._maximized_drag_ratio = None
+        if getattr(self, "uses_native_controls", False):
+            self.root.attributes("-zoomed", False)
+            self._maximized = False
+            self._update_maximize_glyph()
+            return
         if self._normal_geometry is not None:
             width, height, x, y = self._normal_geometry
             self._set_window_rectangle(width, height, x, y)
@@ -848,6 +870,10 @@ class AppHeader(ctk.CTkFrame):
             padx=(0, SPACING["sm"]),
             pady=SPACING["sm"],
         )
+        if self.window_chrome.uses_native_controls:
+            self.minimize_button.grid_remove()
+            self.maximize_button.grid_remove()
+            self.close_button.grid_remove()
         for drag_surface in (self, self.logo_label, self.product_label):
             self.window_chrome.bind_drag_surface(drag_surface)
         self.language_actions = {
@@ -943,10 +969,7 @@ class AppHeader(ctk.CTkFrame):
         desired_y = button.winfo_rooty() + button.winfo_height()
         x = max(work_x, min(desired_x, work_x + work_width - menu_width))
         y = max(work_y, min(desired_y, work_y + work_height - menu_height))
-        try:
-            menu.tk_popup(x, y)
-        finally:
-            menu.grab_release()
+        menu.tk_popup(x, y)
 
     def retranslate(self, labels: dict, version: str, language: str) -> None:
         """Refresh visible copy and native menus without rebuilding controls."""

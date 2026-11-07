@@ -25,6 +25,20 @@ from .contracts import (
 )
 
 
+def _external_process_environment() -> dict:
+    """Return an environment safe for system tools launched when frozen."""
+    environment = os.environ.copy()
+    if sys.platform.startswith("linux") and getattr(sys, "frozen", False):
+        original_library_path = environment.pop(
+            "LD_LIBRARY_PATH_ORIG", None
+        )
+        if original_library_path:
+            environment["LD_LIBRARY_PATH"] = original_library_path
+        else:
+            environment.pop("LD_LIBRARY_PATH", None)
+    return environment
+
+
 def open_path(path: Path) -> None:
     """Open a successful output or directory through the native shell."""
     resolved = str(path)
@@ -33,7 +47,10 @@ def open_path(path: Path) -> None:
     elif sys.platform == "darwin":
         subprocess.Popen(["open", resolved])
     else:
-        subprocess.Popen(["xdg-open", resolved])
+        subprocess.Popen(
+            ["xdg-open", resolved],
+            env=_external_process_environment(),
+        )
 
 
 def run_preview_worker(

@@ -502,6 +502,7 @@ class LibreMarkPdfApp(
             self.services.open_path(manual_path)
         except Exception as exc:
             self.dialogs.show_error(
+                self.root,
                 self._t("error_title"),
                 self._t("manual_open_error", error=str(exc)),
             )
@@ -559,6 +560,7 @@ class LibreMarkPdfApp(
             self.services.open_path(notices_path)
         except Exception as exc:
             self.dialogs.show_error(
+                self.root,
                 self._t("error_title"),
                 self._t("notices_open_error", error=str(exc)),
             )

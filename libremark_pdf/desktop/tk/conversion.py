@@ -44,6 +44,7 @@ class TkConversionMixin:
             return
         if not self.files:
             self.dialogs.show_error(
+                self.root,
                 self._t("error_title"), self._t("error_no_files")
             )
             return
@@ -497,6 +498,7 @@ class TkConversionMixin:
             self.services.open_path(path)
         except Exception as exc:
             self.dialogs.show_error(
+                self.root,
                 self._t("error_title"),
                 self._t("open_error", error=str(exc)),
             )

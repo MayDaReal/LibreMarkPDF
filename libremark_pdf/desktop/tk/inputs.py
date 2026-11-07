@@ -59,6 +59,7 @@ class TkInputMixin:
         if self.operation != "idle":
             return
         paths = self.dialogs.choose_markdown_files(
+            self.root,
             self._t("choose_markdown_title"),
             [(self._t("markdown_filter_name"), "*.md *.markdown")],
         )
@@ -168,6 +169,7 @@ class TkInputMixin:
             self.services.open_path(path.parent)
         except Exception as exc:
             self.dialogs.show_error(
+                self.root,
                 self._t("error_title"),
                 self._t("open_error", error=str(exc)),
             )
@@ -226,6 +228,7 @@ class TkInputMixin:
 
     def _choose_css(self) -> None:
         path = self.dialogs.choose_css_file(
+            self.root,
             self._t("choose_css_title"),
             [(self._t("css_filter_name"), "*.css")],
         )
@@ -495,6 +498,7 @@ class TkInputMixin:
 
     def _choose_output_dir(self) -> None:
         path = self.dialogs.choose_output_folder(
+            self.root,
             self._t("choose_output_folder_title")
         )
         if path:
@@ -734,6 +738,7 @@ class TkInputMixin:
             for key, value in defaults.items()
         )
         if customized and not self.dialogs.ask_restore_header_footer(
+            self.root,
             self._t("restore_header_footer_title"),
             self._t("restore_header_footer_question"),
         ):

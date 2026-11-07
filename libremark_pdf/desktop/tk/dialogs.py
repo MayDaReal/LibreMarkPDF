@@ -178,6 +178,8 @@ class GeneralDialog:
         )
         self.window.minsize(min(360, width), min(280, height))
         self.window.deiconify()
+        self.window.wait_visibility()
+        self.window.lift(self.owner)
         self.window.grab_set()
         if self.initial_focus is not None:
             self.window.after_idle(self._focus_initial)
@@ -680,14 +682,20 @@ class ProblemReportDialog:
 class TkDialogs:
     """Call native Tk dialogs without changing their visible contract."""
 
-    def choose_markdown_files(self, title: str, filetypes: list):
-        return filedialog.askopenfilenames(title=title, filetypes=filetypes)
+    def choose_markdown_files(
+        self, parent: tk.Misc, title: str, filetypes: list
+    ):
+        return filedialog.askopenfilenames(
+            parent=parent, title=title, filetypes=filetypes
+        )
 
-    def choose_css_file(self, title: str, filetypes: list):
-        return filedialog.askopenfilename(title=title, filetypes=filetypes)
+    def choose_css_file(self, parent: tk.Misc, title: str, filetypes: list):
+        return filedialog.askopenfilename(
+            parent=parent, title=title, filetypes=filetypes
+        )
 
-    def choose_output_folder(self, title: str):
-        return filedialog.askdirectory(title=title)
+    def choose_output_folder(self, parent: tk.Misc, title: str):
+        return filedialog.askdirectory(parent=parent, title=title)
 
     def ask_collision_continue(
         self,
@@ -750,9 +758,13 @@ class TkDialogs:
         )
         return choice == "allow"
 
-    def ask_restore_header_footer(self, title: str, message: str) -> bool:
+    def ask_restore_header_footer(
+        self, parent: tk.Misc, title: str, message: str
+    ) -> bool:
         """Confirm replacing customized header/footer fields with defaults."""
-        return messagebox.askyesno(title, message, default=messagebox.NO)
+        return messagebox.askyesno(
+            title, message, parent=parent, default=messagebox.NO
+        )
 
     def ask_close_during_conversion(
         self,
@@ -885,11 +897,11 @@ class TkDialogs:
         dialog.wait_window()
         return choice
 
-    def show_error(self, title: str, message: str) -> None:
-        messagebox.showerror(title, message)
+    def show_error(self, parent: tk.Misc, title: str, message: str) -> None:
+        messagebox.showerror(title, message, parent=parent)
 
-    def show_info(self, title: str, message: str) -> None:
-        messagebox.showinfo(title, message)
+    def show_info(self, parent: tk.Misc, title: str, message: str) -> None:
+        messagebox.showinfo(title, message, parent=parent)
 
     def show_shortcuts(
         self,

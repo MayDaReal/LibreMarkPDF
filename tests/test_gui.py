@@ -520,6 +520,7 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
 
     def test_css_selection_and_theme_restore_remain_exclusive(self):
         app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
+        app.root = mock.Mock()
         app.dialogs = mock.Mock()
         app.dialogs.choose_css_file.return_value = "styles/print.css"
         app._t = lambda key, **kwargs: key
@@ -747,6 +748,7 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
                 self.value = value
 
         app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
+        app.root = mock.Mock()
         defaults = app._header_footer_defaults()
         app._settings_draft_hf_vars = {
             key: Value(value) for key, value in defaults.items()
@@ -782,6 +784,7 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
 
     def test_destination_choose_and_reset_preserve_global_batch_value(self):
         app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
+        app.root = mock.Mock()
         app.dialogs = mock.Mock()
         app.dialogs.choose_output_folder.return_value = "exports"
         app._t = lambda key, **kwargs: key
@@ -1594,6 +1597,7 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
 
     def test_third_party_notices_report_local_open_error(self):
         app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
+        app.root = mock.Mock()
         app.services = mock.Mock()
         app.services.open_path.side_effect = RuntimeError("unavailable")
         app.dialogs = mock.Mock()
@@ -1601,12 +1605,14 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
 
         app._show_third_party_notices()
         app.dialogs.show_error.assert_called_once_with(
+            app.root,
             "Error",
             "Could not open the third-party notices: unavailable",
         )
 
     def test_user_manual_uses_localized_packaged_document_and_service(self):
         app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
+        app.root = mock.Mock()
         app.services = mock.Mock()
         app.dialogs = mock.Mock()
         app.lang = "fr"
@@ -1638,6 +1644,7 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
         )
         app.services.open_path.assert_called_once_with(source_manual)
         app.dialogs.show_error.assert_called_once_with(
+            app.root,
             "error_title",
             "manual_open_error",
         )
@@ -2835,6 +2842,8 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
         ):
             foundation.show((520, 500), (560, 520))
         foundation.window.geometry.assert_called_once_with("520x488+120+96")
+        foundation.window.wait_visibility.assert_called_once_with()
+        foundation.window.lift.assert_called_once_with(foundation.owner)
         foundation.window.after_idle.assert_called_once_with(
             foundation._focus_initial
         )
@@ -2901,13 +2910,50 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
         output = Path("report.pdf")
         platform_os = mock.Mock()
         platform_os.name = "posix"
+        platform_os.environ = {"PATH": "/usr/bin"}
         with mock.patch.object(services, "os", platform_os):
             with mock.patch.object(services.sys, "platform", "linux"):
                 with mock.patch.object(
                     services.subprocess, "Popen"
                 ) as popen:
                     desktop_services.open_path(output)
-        popen.assert_called_once_with(["xdg-open", str(output)])
+        popen.assert_called_once_with(
+            ["xdg-open", str(output)], env={"PATH": "/usr/bin"}
+        )
+
+    def test_frozen_linux_restores_system_library_path_for_openers(self):
+        frozen_environment = {
+            "PATH": "/usr/bin",
+            "LD_LIBRARY_PATH": "/bundle/_internal",
+            "LD_LIBRARY_PATH_ORIG": "/system/libs",
+        }
+        with mock.patch.dict(
+            services.os.environ, frozen_environment, clear=True
+        ), mock.patch.object(
+            services.sys, "platform", "linux"
+        ), mock.patch.object(
+            services.sys, "frozen", True, create=True
+        ):
+            environment = services._external_process_environment()
+
+        self.assertEqual(environment["LD_LIBRARY_PATH"], "/system/libs")
+        self.assertNotIn("LD_LIBRARY_PATH_ORIG", environment)
+
+    def test_frozen_linux_removes_bundle_library_path_without_original(self):
+        frozen_environment = {
+            "PATH": "/usr/bin",
+            "LD_LIBRARY_PATH": "/bundle/_internal",
+        }
+        with mock.patch.dict(
+            services.os.environ, frozen_environment, clear=True
+        ), mock.patch.object(
+            services.sys, "platform", "linux"
+        ), mock.patch.object(
+            services.sys, "frozen", True, create=True
+        ):
+            environment = services._external_process_environment()
+
+        self.assertEqual(environment, {"PATH": "/usr/bin"})
 
     def test_source_contains_scroll_zoom_keyboard_and_focus_contracts(self):
         source = "\n".join(
@@ -2985,26 +3031,29 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
 
     def test_open_path_error_uses_the_injected_dialog(self):
         app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
+        app.root = mock.Mock()
         app.services = mock.Mock()
         app.services.open_path.side_effect = RuntimeError("unavailable")
         app.dialogs = mock.Mock()
         app._t = lambda key, **kwargs: key
         app._open_result(Path("/tmp/report.pdf"))
         app.dialogs.show_error.assert_called_once_with(
-            "error_title", "open_error"
+            app.root, "error_title", "open_error"
         )
 
     def test_dialog_boundary_keeps_native_return_values_and_arguments(self):
         dialogs = tk_dialogs.TkDialogs()
+        root = mock.Mock()
         with mock.patch.object(tk_dialogs.filedialog, "askopenfilenames", return_value=("one.md",)) as files:
             self.assertEqual(
-                dialogs.choose_markdown_files("Choose", [("Markdown", "*.md")]),
+                dialogs.choose_markdown_files(
+                    root, "Choose", [("Markdown", "*.md")]
+                ),
                 ("one.md",),
             )
         files.assert_called_once_with(
-            title="Choose", filetypes=[("Markdown", "*.md")]
+            parent=root, title="Choose", filetypes=[("Markdown", "*.md")]
         )
-        root = mock.Mock()
         with mock.patch.object(
             dialogs, "_ask_explicit_choice", return_value="cancel"
         ) as overwrite:
@@ -3060,16 +3109,17 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
             tk_dialogs.messagebox, "askyesno", return_value=True
         ) as restore:
             self.assertTrue(dialogs.ask_restore_header_footer(
-                "Restore", "Replace customized values?"
+                root, "Restore", "Replace customized values?"
             ))
         restore.assert_called_once_with(
             "Restore",
             "Replace customized values?",
+            parent=root,
             default=tk_dialogs.messagebox.NO,
         )
         with mock.patch.object(tk_dialogs.messagebox, "showinfo") as info:
-            dialogs.show_info("Shortcuts", "Ctrl+O")
-        info.assert_called_once_with("Shortcuts", "Ctrl+O")
+            dialogs.show_info(root, "Shortcuts", "Ctrl+O")
+        info.assert_called_once_with("Shortcuts", "Ctrl+O", parent=root)
 
     def test_general_dialog_geometry_clamps_to_visible_workspace(self):
         self.assertEqual(
@@ -3220,20 +3270,22 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
 
     def test_no_files_and_invalid_options_use_injected_dialogs(self):
         app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)
+        app.root = mock.Mock()
         app.operation = "idle"
         app._preview_running = False
         app.files = []
         app._t = lambda key, **kwargs: key
         app.dialogs = mock.Mock()
         app._on_generate_clicked()
-        app.dialogs.show_error.assert_called_once_with("error_title", "error_no_files")
+        app.dialogs.show_error.assert_called_once_with(
+            app.root, "error_title", "error_no_files"
+        )
 
         app.files = [Path("one.md")]
         app._preflight_decisions = mock.Mock(return_value=([], [], []))
         app._begin_operation = mock.Mock()
         app._finish_operation = mock.Mock()
         app._set_action_state = mock.Mock()
-        app.root = mock.Mock()
         app._invalidate_preview = mock.Mock()
         app._render_options = mock.Mock(return_value={})
         app._applied_options_summary = mock.Mock(return_value="snapshot")

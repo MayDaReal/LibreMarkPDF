@@ -103,7 +103,7 @@ class TestContributorTooling(unittest.TestCase):
             unittest.defaultTestLoader.loadTestsFromNames(
                 run_tests.UI_TESTS
             ).countTestCases(),
-            223,
+            226,
         )
         self.assertIn("tests.test_visual_regression", run_tests.command_for_suite("visual"))
 
