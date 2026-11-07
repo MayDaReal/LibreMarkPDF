@@ -136,6 +136,10 @@ cd "$repo_root"
 git status --short --branch | tee "$logs/git-status-before.txt"
 git status --porcelain=v1 --untracked-files=all \
   > "$logs/git-porcelain-before.txt"
+if [[ -s "$logs/git-porcelain-before.txt" ]]; then
+  echo "The native candidate checkout must be clean before building." >&2
+  exit 1
+fi
 git rev-parse HEAD | tee "$logs/commit.txt"
 git log -1 --show-signature | tee "$logs/git-signature.txt"
 
@@ -247,19 +251,51 @@ run_cli_case() {
 source_dir="$runtime/source"
 output_dir="$runtime/output"
 mkdir -p "$source_dir" "$output_dir"
-printf '# Linux candidate\n\nUnicode path: épreuve.\n' > "$source_dir/épreuve test.md"
+cp tests/fixtures/canonical/resources/blue-square.svg "$source_dir/blue-square.svg"
+printf '# Linux candidate\n\nUnicode path: épreuve.\n\n![Blue](blue-square.svg)\n' \
+  > "$source_dir/épreuve test.md"
 printf '# Batch continuation\n' > "$source_dir/good.md"
 run_cli_case doctor 0 doctor --json
+success_started_ns="$(date +%s%N)"
 run_cli_case success 0 convert "$source_dir/épreuve test.md" \
   --output "$output_dir/résultat final.pdf" --date 2026-07-14 --json
+success_milliseconds="$(( ($(date +%s%N) - success_started_ns) / 1000000 ))"
+run "$python_bin" -c \
+  'import json, pathlib, sys; data=json.loads(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8")); raise SystemExit(0 if data.get("status") == "ok" and pathlib.Path(sys.argv[2]).is_file() else 1)' \
+  "$logs/success.stdout.json" "$output_dir/résultat final.pdf"
 run_cli_case missing 1 convert "$source_dir/missing.md" --json
+run "$python_bin" -c \
+  'import json, pathlib, sys; data=json.loads(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8")); raise SystemExit(0 if data.get("error_code") == "INPUT_NOT_FOUND" else 1)' \
+  "$logs/missing.stdout.json"
 run_cli_case partial-batch 1 convert "$source_dir/good.md" \
   "$source_dir/missing.md" --out-dir "$output_dir/batch" --json
-run_cli_case collision 1 convert "$source_dir/good.md" \
+run "$python_bin" -c \
+  'import json, pathlib, sys; data=json.loads(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8")); results=data.get("results", []); raise SystemExit(0 if len(results) == 2 and results[0].get("status") == "ok" and results[1].get("error_code") == "INPUT_NOT_FOUND" else 1)' \
+  "$logs/partial-batch.stdout.json"
+run_cli_case source-collision 1 convert "$source_dir/good.md" \
   --output "$source_dir/good.md" --json
+duplicate_one="$runtime/duplicate one"
+duplicate_two="$runtime/duplicate two"
+mkdir -p "$duplicate_one" "$duplicate_two"
+cp "$source_dir/good.md" "$duplicate_one/same.md"
+cp "$source_dir/good.md" "$duplicate_two/same.md"
+run_cli_case collision 1 convert "$duplicate_one/same.md" \
+  "$duplicate_two/same.md" --out-dir "$output_dir/collision" --json
+run "$python_bin" -c \
+  'import json, pathlib, sys; data=json.loads(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8")); results=data.get("results", []); raise SystemExit(0 if len(results) == 2 and all(item.get("error_code") == "DUPLICATE_OUTPUT" for item in results) else 1)' \
+  "$logs/collision.stdout.json"
+theme_package="$runtime/community theme"
+cp -a tests/fixtures/themes/community-blue "$theme_package"
+run_cli_case theme-install 0 theme install "$theme_package" --json
+run "$python_bin" -c \
+  'import json, pathlib, sys; data=json.loads(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8")); raise SystemExit(0 if data.get("reference") == "community-blue@1" else 1)' \
+  "$logs/theme-install.stdout.json"
 run_cli_case theme 0 convert "$source_dir/good.md" \
-  --output "$output_dir/theme.pdf" --theme default@1 \
+  --output "$output_dir/theme.pdf" --theme community-blue@1 \
   --date 2026-07-14 --json
+run "$python_bin" -c \
+  'import json, pathlib, sys; data=json.loads(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8")); raise SystemExit(0 if data.get("theme") == "community-blue@1" else 1)' \
+  "$logs/theme.stdout.json"
 
 permission_probe_root="$(
   mktemp -d "${TMPDIR:-/tmp}/libremark-pdf-permission.XXXXXX"
@@ -281,6 +317,9 @@ if [[ $permission_exit -ne 0 ]]; then
   echo "Permission-denied candidate case failed to produce the expected contract." >&2
   exit 1
 fi
+run "$python_bin" -c \
+  'import json, pathlib, sys; data=json.loads(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8")); raise SystemExit(0 if data.get("error_code") in ("OUTPUT_UNAVAILABLE", "OUTPUT_REPLACE_FAILED") else 1)' \
+  "$logs/permission.stdout.json"
 chmod 700 "$permission_probe_root"
 rm -rf -- "$permission_probe_root"
 permission_probe_root=""
@@ -317,6 +356,11 @@ run "$python_bin" tools/inspect_linux_artifact.py \
   --artifact-dir "$external_candidate" \
   --output "$logs/linux-artifact-dependencies.json"
 
+candidate_bytes="$(find "$external_candidate" -type f -printf '%s\n' | awk '{ total += $1 } END { print total + 0 }')"
+run "$python_bin" -c \
+  'import json, pathlib, sys; pathlib.Path(sys.argv[1]).write_text(json.dumps({"candidate_bytes": int(sys.argv[2]), "cli_success_milliseconds": int(sys.argv[3]), "gui_startup_smoke_seconds": 5}, indent=2, sort_keys=True) + "\n", encoding="utf-8")' \
+  "$logs/size-performance.json" "$candidate_bytes" "$success_milliseconds"
+
 set +e
 env -u PLAYWRIGHT_BROWSERS_PATH "$python_bin" \
   tools/artifact_visual_regression.py \
@@ -347,20 +391,32 @@ cat > "$evidence_root/manual-linux-gui-review.md" <<'EOF'
 
 Status: **not completed**
 
-Record reviewer, distribution/version, desktop environment, display server
-(X11/Wayland), scaling, locale and time. Exercise EN/FR, keyboard focus,
-contrast, drag-and-drop and fallback, preview scroll/zoom/stale-result handling,
-progress/cancel/safe close, collisions, successful open actions, batch
-continuation and theme selection. Retain screenshots or video. Automation
-startup evidence does not replace this review.
+- [ ] GUI and diagnostic GUI start and remain responsive.
+- [ ] EN and FR labels, focus order, shortcuts, contrast, and scaling are usable.
+- [ ] Mouse wheel buttons 4/5, preview scrolling, zoom, and stale-result handling work.
+- [ ] Batch progress, cancellation, safe close, collisions, and successful open actions work.
+- [ ] Drag-and-drop and its browse fallback work.
+- [ ] Default and installed community themes render correctly.
+- [ ] Empty profile/cache, no Python on PATH, Unicode-and-space paths, and offline execution are confirmed.
+- [ ] The language-matching packaged manual PDF opens with supplied styling, headings,
+      code, links, Unicode, pagination, selectable text, default footer, no clipping,
+      and no remote resource.
 
-Open the User manual in each language and confirm that the matching packaged
-PDF has supplied styling, headings, code, links, Unicode, correct pagination
-and footer, readable/selectable text, no clipping, and no remote resources.
+Reviewer: ____________________
+Distribution/version: ____________________
+Desktop environment and display server: ____________________
+Display scale(s): ____________________
+Evidence screenshots/video paths: ____________________
+Result: PASS / FAIL
 EOF
 
 network_state "$logs/network-after.txt"
 assert_offline "$logs/network-after.txt"
+online_before="$(grep -Ec ' (up|unknown)$' "$logs/network-before.txt" || true)"
+online_after="$(grep -Ec ' (up|unknown)$' "$logs/network-after.txt" || true)"
+run "$python_bin" -c \
+  'import json, pathlib, sys; required=bool(int(sys.argv[2])); before=int(sys.argv[3]); after=int(sys.argv[4]); pathlib.Path(sys.argv[1]).write_text(json.dumps({"accepted_offline_evidence": required and before == 0 and after == 0, "physical_interfaces_up_before": before, "physical_interfaces_up_after": after, "require_offline": required}, indent=2, sort_keys=True) + "\n", encoding="utf-8")' \
+  "$logs/offline-verdict.json" "$require_offline" "$online_before" "$online_after"
 git status --short --branch | tee "$logs/git-status-after.txt"
 git status --porcelain=v1 --untracked-files=all \
   > "$logs/git-porcelain-after.txt"
@@ -390,3 +446,7 @@ echo "Linux candidate evidence completed."
 echo "Canonical comparison exit: $canonical_exit"
 echo "Evidence: $evidence_root"
 echo "Manual GUI and remaining distribution-matrix review are still required."
+if [[ $canonical_exit -ne 0 ]]; then
+  echo "Canonical comparison failed; Linux candidate validation is incomplete." >&2
+  exit 1
+fi

@@ -81,8 +81,10 @@ class TestLinuxPackaging(unittest.TestCase):
             "dev_fuse",
             "empty-path",
             "partial-batch",
+            "DUPLICATE_OUTPUT",
             "permission",
-            "default@1",
+            "theme-install",
+            "community-blue@1",
             "Xvfb",
             "inspect_linux_artifact.py",
             "artifact_visual_regression.py",
@@ -95,6 +97,10 @@ class TestLinuxPackaging(unittest.TestCase):
             "run env",
             "git-porcelain-before.txt",
             "cmp -s",
+            "offline-verdict.json",
+            "size-performance.json",
+            "must be clean before building",
+            "Canonical comparison failed",
         ):
             self.assertIn(marker, script)
         self.assertNotIn("sudo ", script)

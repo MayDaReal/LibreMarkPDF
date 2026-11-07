@@ -18,6 +18,12 @@ Native validation through `make validate-windows` and `make validate-linux`
 produces a candidate, diagnostics, and a checklist under
 `dist/<version>/<platform>/`.
 
+Run native candidate validation from a clean checkout so every artifact and
+evidence manifest identifies one exact commit. The validators do not install or
+download dependencies or browsers. Use their offline option only after physical
+network interfaces have been disconnected; automated startup evidence does not
+replace the generated manual GUI checklist.
+
 Each native build first stages `MANUAL_EN.pdf` and `MANUEL_FR.pdf` outside
 tracked source by converting both authoritative Markdown guides through
 LibreMark PDF's CLI with the root `style.css`. The build fails if conversion or
