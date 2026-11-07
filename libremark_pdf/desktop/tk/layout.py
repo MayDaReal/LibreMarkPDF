@@ -82,6 +82,16 @@ RESULTS_PANEL_COLLAPSED_HEIGHT = 52
 RESULTS_PANEL_VERTICAL_RESERVE = 542
 
 
+def splitter_cursors(windowing_system: str) -> dict[str, str]:
+    """Return resize cursors accepted by the active Tk window system."""
+    if windowing_system == "win32":
+        return {"horizontal": "size_we", "vertical": "size_ns"}
+    return {
+        "horizontal": "sb_h_double_arrow",
+        "vertical": "sb_v_double_arrow",
+    }
+
+
 def initial_window_size(root: tk.Misc) -> tuple[int, int]:
     """Return the target size capped to the available Tk screen."""
     available_width = int(root.winfo_screenwidth())
@@ -124,6 +134,16 @@ class AutoHideVerticalScrollbar(ttk.Scrollbar):
         elif not self.winfo_manager():
             self.pack(side="right", fill="y")
         super().set(first, last)
+
+
+class ScalingCompatibleToplevel(tk.Toplevel):
+    """Host CTk children without interrupting their Windows DPI transition."""
+
+    def block_update_dimensions_event(self) -> None:
+        """Satisfy the CTk scaling-window contract for a plain Tk host."""
+
+    def unblock_update_dimensions_event(self) -> None:
+        """Satisfy the CTk scaling-window contract for a plain Tk host."""
 
 
 class TkLayoutMixin:
@@ -258,10 +278,13 @@ class TkLayoutMixin:
         self._left_resize_origin = None
         self._results_panel_height = RESULTS_PANEL_TARGET_HEIGHT
         self._results_resize_origin = None
+        cursors = splitter_cursors(
+            str(self.root.tk.call("tk", "windowingsystem"))
+        )
         self.workspace_splitter = ttk.Frame(
             self.workspace,
             width=SECTION_GAP,
-            cursor="size_we",
+            cursor=cursors["horizontal"],
             takefocus=True,
         )
         self.workspace_splitter.grid_propagate(False)
@@ -308,7 +331,7 @@ class TkLayoutMixin:
         self.results_splitter = ttk.Frame(
             self.content_container,
             height=SECTION_GAP,
-            cursor="size_ns",
+            cursor=cursors["vertical"],
             takefocus=True,
         )
         self.results_splitter.grid_propagate(False)
@@ -397,7 +420,7 @@ class TkLayoutMixin:
             on_edit_header_footer=self._open_header_footer_editor,
             on_edit_other=self._open_advanced_editor,
         )
-        style_dialog = tk.Toplevel(self.root)
+        style_dialog = ScalingCompatibleToplevel(self.root)
         style_dialog.withdraw()
         style_dialog.transient(self.root)
         style_dialog.configure(background=COLORS["app_bg"])
@@ -414,7 +437,7 @@ class TkLayoutMixin:
             self.workspace, show_back=True
         )
         self._style_dialog = style_dialog
-        destination_dialog = tk.Toplevel(self.root)
+        destination_dialog = ScalingCompatibleToplevel(self.root)
         destination_dialog.withdraw()
         destination_dialog.transient(self.root)
         destination_dialog.configure(background=COLORS["app_bg"])
@@ -441,7 +464,7 @@ class TkLayoutMixin:
         self._register_automation_widget(
             "output.reset", self.destination_dialog_editor.source_radio
         )
-        header_footer_dialog = tk.Toplevel(self.root)
+        header_footer_dialog = ScalingCompatibleToplevel(self.root)
         header_footer_dialog.withdraw()
         header_footer_dialog.transient(self.root)
         header_footer_dialog.configure(background=COLORS["app_bg"])
@@ -464,7 +487,7 @@ class TkLayoutMixin:
             self.workspace, show_back=True
         )
         self._header_footer_dialog = header_footer_dialog
-        advanced_dialog = tk.Toplevel(self.root)
+        advanced_dialog = ScalingCompatibleToplevel(self.root)
         advanced_dialog.withdraw()
         advanced_dialog.transient(self.root)
         advanced_dialog.configure(background=COLORS["app_bg"])
@@ -618,6 +641,7 @@ class TkLayoutMixin:
                 getattr(self, "_style_editor_open", False)
                 or getattr(self, "_destination_editor_open", False)
                 or getattr(self, "_header_footer_editor_open", False)
+                or getattr(self, "_advanced_editor_open", False)
             )
         )
         if self._layout_mode == "compact" and fills_viewport:

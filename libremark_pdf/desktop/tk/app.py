@@ -10,6 +10,8 @@ import tkinter as tk
 from pathlib import Path
 from typing import Optional
 
+import customtkinter as ctk
+
 from ... import __version__, core, i18n
 from ..reporting import DEFAULT_REPORTING_SERVICE, ReportingService
 from ..services import DEFAULT_DESKTOP_SERVICES, DesktopServices
@@ -858,6 +860,8 @@ class LibreMarkPdfApp(
 
 def launch(services: DesktopServices = DEFAULT_DESKTOP_SERVICES) -> None:
     """Create the best available Tk root and run the desktop event loop."""
-    root = TkinterDnD.Tk() if _HAS_DND else tk.Tk()
+    root = ctk.CTk()
+    if _HAS_DND:
+        TkinterDnD.require(root)
     LibreMarkPdfApp(root, services=services)
     root.mainloop()

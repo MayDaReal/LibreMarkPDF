@@ -420,6 +420,15 @@ class TkInputMixin:
         y = self.root.winfo_rooty() + max(0, (self.root.winfo_height() - height) // 2)
         dialog.geometry("{0}x{1}+{2}+{3}".format(width, height, x, y))
 
+    def _restore_dialog_opacity(self, dialog: tk.Misc) -> None:
+        """Undo an interrupted CustomTkinter DPI transition on modal exit."""
+        for window in (dialog, self.root):
+            try:
+                if window.winfo_exists():
+                    window.attributes("-alpha", 1.0)
+            except (AttributeError, tk.TclError):
+                pass
+
     def _show_style_editor_host(self) -> None:
         if not self._style_editor_open:
             return
@@ -449,6 +458,7 @@ class TkInputMixin:
         if dialog.grab_current() is dialog:
             dialog.grab_release()
         dialog.withdraw()
+        self._restore_dialog_opacity(dialog)
         self.compact_style_editor.grid_forget()
         self._style_editor_open = False
         if self._layout_mode == "compact":
@@ -619,6 +629,7 @@ class TkInputMixin:
         if dialog.grab_current() is dialog:
             dialog.grab_release()
         dialog.withdraw()
+        self._restore_dialog_opacity(dialog)
         self.compact_destination_editor.grid_forget()
         self._destination_editor_open = False
         if self._layout_mode == "compact":
@@ -790,6 +801,7 @@ class TkInputMixin:
         if dialog.grab_current() is dialog:
             dialog.grab_release()
         dialog.withdraw()
+        self._restore_dialog_opacity(dialog)
         self.compact_header_footer_editor.grid_forget()
         self._header_footer_editor_open = False
         if self._layout_mode == "compact":
@@ -963,6 +975,7 @@ class TkInputMixin:
         if dialog.grab_current() is dialog:
             dialog.grab_release()
         dialog.withdraw()
+        self._restore_dialog_opacity(dialog)
         self.compact_advanced_editor.grid_forget()
         self._advanced_editor_open = False
         if self._layout_mode == "compact":

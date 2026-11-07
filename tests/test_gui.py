@@ -2847,6 +2847,21 @@ class TestGuiStateAndPlatformAdapters(unittest.TestCase):
         )
         foundation._focus_initial_control()
         foundation.initial_focus.focus_force.assert_called_once_with()
+        foundation.owner.attributes.assert_called_once_with("-alpha", 1.0)
+
+    def test_launch_uses_ctk_root_and_enables_optional_dnd_on_it(self):
+        root = mock.Mock()
+        services = mock.sentinel.services
+        with mock.patch.object(tk_app.ctk, "CTk", return_value=root), mock.patch.object(
+            tk_app, "_HAS_DND", True
+        ), mock.patch.object(tk_app.TkinterDnD, "require") as require, mock.patch.object(
+            tk_app, "LibreMarkPdfApp"
+        ) as application:
+            tk_app.launch(services=services)
+
+        require.assert_called_once_with(root)
+        application.assert_called_once_with(root, services=services)
+        root.mainloop.assert_called_once_with()
 
     def test_cancel_and_close_after_terminal_event_closes_immediately(self):
         app = gui.LibreMarkPdfApp.__new__(gui.LibreMarkPdfApp)

@@ -95,6 +95,10 @@ class TestWindowChromeContract(unittest.TestCase):
             "size_ns",
         )
         self.assertEqual(
+            tk_layout.splitter_cursors("win32"),
+            {"horizontal": "size_we", "vertical": "size_ns"},
+        )
+        self.assertEqual(
             WindowChrome._resize_cursors("x11"),
             {
                 "n": "top_side",
@@ -105,6 +109,13 @@ class TestWindowChromeContract(unittest.TestCase):
                 "ne": "top_right_corner",
                 "sw": "bottom_left_corner",
                 "se": "bottom_right_corner",
+            },
+        )
+        self.assertEqual(
+            tk_layout.splitter_cursors("x11"),
+            {
+                "horizontal": "sb_h_double_arrow",
+                "vertical": "sb_v_double_arrow",
             },
         )
 
@@ -1067,6 +1078,9 @@ class TestModernShellWidgets(unittest.TestCase):
             (application._advanced_dialog, "Advanced options"),
         )
         for dialog, expected_title in titled_dialogs:
+            self.assertIsInstance(dialog, tk_layout.ScalingCompatibleToplevel)
+            self.assertTrue(hasattr(dialog, "block_update_dimensions_event"))
+            self.assertTrue(hasattr(dialog, "unblock_update_dimensions_event"))
             self.assertEqual(dialog.state(), "withdrawn")
             self.assertEqual(dialog.title(), expected_title)
         self.assertEqual(
@@ -1076,8 +1090,14 @@ class TestModernShellWidgets(unittest.TestCase):
         self.assertEqual(application.action_bar.reason_label.cget("text"), "")
         application._open_style_editor()
         self.root.update()
+        application._style_dialog.attributes("-alpha", 0.15)
+        self.root.attributes("-alpha", 0.15)
         application._cancel_style_editor()
         self.root.update()
+        self.assertEqual(
+            float(application._style_dialog.attributes("-alpha")), 1.0
+        )
+        self.assertEqual(float(self.root.attributes("-alpha")), 1.0)
 
     def test_style_editor_retranslates_preserves_draft_and_moves_to_compact(self):
         services = mock.Mock()

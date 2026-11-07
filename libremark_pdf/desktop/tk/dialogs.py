@@ -137,6 +137,14 @@ class GeneralDialog:
         self._closed = True
         self.window.destroy()
 
+    def _restore_owner_opacity(self) -> None:
+        """Undo a partially completed CustomTkinter DPI transition."""
+        try:
+            if self.owner.winfo_exists():
+                self.owner.attributes("-alpha", 1.0)
+        except (AttributeError, tk.TclError):
+            pass
+
     def show(
         self,
         preferred_size: Tuple[int, int],
@@ -173,7 +181,10 @@ class GeneralDialog:
         self.window.grab_set()
         if self.initial_focus is not None:
             self.window.after_idle(self._focus_initial)
-        self.window.wait_window()
+        try:
+            self.window.wait_window()
+        finally:
+            self._restore_owner_opacity()
         trigger = self.trigger
         try:
             if trigger is not None and trigger.winfo_exists():
