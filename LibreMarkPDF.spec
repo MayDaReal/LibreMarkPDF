@@ -36,7 +36,7 @@ a = Analysis(
         (os.path.join(manual_source, "MANUAL_EN.pdf"), "docs"),
         (os.path.join(manual_source, "MANUEL_FR.pdf"), "docs"),
     ],
-    hiddenimports=["customtkinter"],
+    hiddenimports=["customtkinter", "PIL._tkinter_finder"],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],

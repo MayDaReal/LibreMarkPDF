@@ -32,7 +32,10 @@ class TestPackagingConfiguration(unittest.TestCase):
             "customtkinter",
         ):
             self.assertIn(resource, portable)
-        self.assertIn('hiddenimports=["customtkinter"]', portable)
+        self.assertIn(
+            'hiddenimports=["customtkinter", "PIL._tkinter_finder"]',
+            portable,
+        )
         self.assertIn('excludes=[".links", ".links/*"]', portable)
         self.assertNotIn('("docs/MANUAL_EN.md", "docs")', portable)
         self.assertNotIn('("docs/MANUEL_FR.md", "docs")', portable)
