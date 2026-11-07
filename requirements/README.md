@@ -9,11 +9,12 @@ The existing `requirements.txt` remains a convenient compatibility input for
 source development. Its lower bounds are intentionally not presented as
 reproducible; native candidates use the platform locks exclusively.
 
-The mandatory initial release candidate is Windows x64 on CPython 3.9:
-`locks/windows-x64-py39.txt`. The optional Linux x86_64 candidate uses
-`locks/linux-x86_64-py39.txt`; that lock is not a distribution support claim.
-Both select Playwright 1.60.0, whose wheel manifest selects Chromium/headless
-shell 148.0.7778.96 at revision 1223 and FFmpeg 1011. Changing Playwright or
+The initial release has two mandatory native candidate lanes on CPython 3.9:
+Windows x64 uses `locks/windows-x64-py39.txt`, and Ubuntu 24.04 x86_64 uses
+`locks/linux-x86_64-py39.txt`. A lock ensures archive integrity but is not by
+itself a distribution support claim. Both select Playwright 1.60.0, whose wheel
+manifest selects Chromium/headless shell 148.0.7778.96 at revision 1223 and
+FFmpeg 1011. Changing Playwright or
 its browser manifest requires a dedicated dependency PR, an updated
 platform-specific lock, renderer-spike review, and golden evidence; Dependabot
 must not merge it automatically.

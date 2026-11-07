@@ -8,9 +8,11 @@ une ligne de commande non interactive.
 > encore publié. L’application actuelle doit être lancée depuis les sources ou
 > construite localement.
 
-La première version binaire `v0.1.0` prévue prend uniquement en charge Windows
-x64. Linux reste un candidat de développement séparé jusqu’à la réussite de sa
-validation native ; macOS est hors périmètre.
+La première version binaire `v0.1.0` prévue prend en charge Windows x64 et les
+candidats Ubuntu 24.04 x86_64 validés. Cette portée ne constitue pas une
+compatibilité Linux générale : les autres distributions, versions,
+architectures, environnements de bureau et serveurs d’affichage restent hors
+de la matrice de support. macOS est hors périmètre.
 
 Depuis un clone, lancez `bootstrap-windows.ps1` sous Windows ou
 `bootstrap-linux.sh` sous Linux. Ces scripts préparent l’environnement Python

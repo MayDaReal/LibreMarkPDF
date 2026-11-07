@@ -15,9 +15,11 @@ release also requires a completed human checklist, a valid canonical corpus
 comparison, and applicable signatures. A successful build alone never makes a
 release official.
 
-The initial `v0.1.0` release scope is Windows x64. A Linux candidate validated
-after an immutable `v0.1.0` publication is released under a later version; it
-does not retroactively expand the platform promise of the published release.
+The initial `v0.1.0` release scope is Windows x64 and Ubuntu 24.04 x86_64.
+Both native artifacts must be built from the same immutable release commit and
+pass their independent automated and manual gates. Linux support is limited to
+the validated distribution, version, architecture, desktop environment, and
+display-server matrix recorded with the release evidence.
 
 Large archives, browsers, virtual environments, and generated PDFs are not
 versioned. Concise reports, manifests, and checksums for a published release

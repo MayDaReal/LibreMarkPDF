@@ -6,9 +6,10 @@ computer. It provides a desktop interface and a non-interactive command line.
 > **Pre-release notice:** there is no officially validated download yet. The
 > current application must be run from source or built locally.
 
-The planned initial `v0.1.0` binary release supports Windows x64 only. Linux
-remains a separate development candidate until its native validation passes;
-macOS is out of scope.
+The planned initial `v0.1.0` binary release supports Windows x64 and validated
+Ubuntu 24.04 x86_64 candidates. This is not a general Linux compatibility
+claim; other distributions, versions, architectures, desktop environments,
+and display servers remain outside the support matrix. macOS is out of scope.
 
 For a source checkout, run `bootstrap-windows.ps1` on Windows or
 `bootstrap-linux.sh` on Linux. They prepare the locked Python 3.9 environment

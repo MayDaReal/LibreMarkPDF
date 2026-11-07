@@ -1,4 +1,4 @@
-"""Focused tests for the optional Linux x86_64 candidate lane."""
+"""Focused tests for the Linux x86_64 candidate lane."""
 
 import json
 import shutil
@@ -176,11 +176,12 @@ class TestLinuxPackaging(unittest.TestCase):
         self.assertEqual(document["name"], "LibreMark-PDF-Linux-x86_64-test")
         json.dumps(document)
 
-    def test_platform_guide_does_not_advertise_unverified_support(self):
+    def test_platform_guide_limits_linux_support_to_validated_matrix(self):
         guide = (ROOT / "docs" / "PLATFORM_SUPPORT.md").read_text(
             encoding="utf-8"
         )
         self.assertIn("aucune compatibilité Linux générale", guide)
+        self.assertIn("Ubuntu 24.04 x86_64", guide)
         self.assertIn("Windows x64", guide)
 
 

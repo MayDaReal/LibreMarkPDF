@@ -4,9 +4,9 @@ LibreMark PDF converts UTF-8 Markdown files into styled A4 PDFs on the local
 computer. One shared engine serves a desktop GUI, a non-interactive CLI, and the
 agent contract in [`SKILL.md`](SKILL.md).
 
-> **Project status:** pre-release prototype. No official standalone download is
-> published yet. Build scripts are provided for development and validation;
-> they are not evidence of a supported release.
+> **Project status:** `0.1.0rc1` release candidate preparation. No official
+> standalone download is published yet. Native artifacts become supported only
+> after their platform validation evidence is complete.
 
 ## Features
 
@@ -179,7 +179,8 @@ Conversion runs locally with the bundled resources.
 
 ### Windows
 
-The initial `v0.1.0` release scope is Windows x64. Linux and macOS are not
+The initial `v0.1.0` release scope includes Windows x64 and Ubuntu 24.04
+x86_64. Each artifact must pass its own native release gate. macOS is not
 included in that support promise.
 
 Run `make build-windows` from the locked environment created by
@@ -207,14 +208,15 @@ export LIBREMARK_PDF_BROWSER_SOURCE=/absolute/staging/browser
 ./tools/build-linux-artifact.sh
 ```
 
-The candidate is `dist/LibreMarkPDF-linux-x86_64-candidate.tar.gz`. It expands
-to an onedir layout with `LibreMarkPDF` (GUI), `LibreMarkPDF-cli`
+The candidate is
+`dist/<version>/linux-x86_64/artifacts/LibreMarkPDF-linux-x86_64-candidate.tar.gz`.
+It expands to an onedir layout with `LibreMarkPDF` (GUI), `LibreMarkPDF-cli`
 (authoritative streams), and `LibreMarkPDF-debug` (diagnostic GUI). The
 tarball avoids FUSE but still requires compatible glibc and Chromium host
-libraries. Linux is not advertised as supported or portable until its
-independent native validation passes. Validation completed after an immutable
-`v0.1.0` publication applies to a later release; it does not retroactively add
-Linux support to the published Windows-only release.
+libraries. The initial Linux support promise is limited to validated Ubuntu
+24.04 x86_64 candidates; it does not imply compatibility with other Linux
+distributions, versions, architectures, desktop environments, or display
+servers.
 
 ## Architecture
 

@@ -238,7 +238,7 @@ class TestCliSubprocessContract(unittest.TestCase):
         self.assertEqual(completed.returncode, 0)
         self.assertEqual(completed.stderr, "")
         for identity in (
-            "LibreMark PDF 0.1.0.dev1", "render-profile default@1",
+            "LibreMark PDF 0.1.0rc1", "render-profile default@1",
             "Playwright 1.60.0", "Chromium 148.0.7778.96", "revision 1223",
         ):
             self.assertIn(identity, completed.stdout)
