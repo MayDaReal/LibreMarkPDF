@@ -430,9 +430,14 @@ class TestDeterministicCoreContract(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             output = Path(tmp) / "out.pdf"
             output.write_bytes(b"old")
-            with mock.patch.object(chromium.tempfile, "NamedTemporaryFile", side_effect=PermissionError("denied")):
+            with mock.patch.object(
+                chromium.os,
+                "open",
+                side_effect=PermissionError("denied"),
+            ) as open_file:
                 with self.assertRaisesRegex(core.ConversionError, "OUTPUT_UNAVAILABLE"):
                     core.convert_markdown_text_to_pdf("# New", output, overwrite=True)
+            open_file.assert_called_once()
             self.assertEqual(output.read_bytes(), b"old")
             self.assertEqual(list(Path(tmp).glob(".libremark-*.pdf")), [])
 

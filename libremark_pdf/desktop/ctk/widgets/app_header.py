@@ -405,7 +405,14 @@ class WindowChrome:
         edge, pointer_x, pointer_y, width, height, x, y = self._resize_origin
         delta_x = event.x_root - pointer_x
         delta_y = event.y_root - pointer_y
-        minimum_width, minimum_height = self.root.minsize()
+        minimum_size = self.root.tk.call(
+            "wm",
+            "minsize",
+            self.root._w,
+        )
+        minimum_width, minimum_height = (
+            int(value) for value in self.root.tk.splitlist(minimum_size)
+        )
 
         if "w" in edge:
             resized_width = max(minimum_width, width - delta_x)

@@ -192,10 +192,13 @@ class TestWindowChromeContract(unittest.TestCase):
             chrome._configure_windows_taskbar
         )
 
-    def test_resize_updates_are_frame_limited_and_rebased(self):
+    def test_resize_updates_are_frame_limited_and_bypass_ctk_minsize(self):
         chrome = WindowChrome.__new__(WindowChrome)
         chrome.root = mock.Mock()
-        chrome.root.minsize.return_value = (560, 520)
+        chrome.root._w = "."
+        chrome.root.minsize.side_effect = TypeError("CTk requires dimensions")
+        chrome.root.tk.call.return_value = (560, 520)
+        chrome.root.tk.splitlist.return_value = (560, 520)
         chrome.root.after.return_value = "resize-after"
         chrome._resize_origin = ("e", 100, 100, 700, 600, 20, 30)
         chrome._pending_resize_geometry = None
@@ -214,6 +217,8 @@ class TestWindowChromeContract(unittest.TestCase):
             16,
             chrome._apply_pending_resize,
         )
+        chrome.root.minsize.assert_not_called()
+        chrome.root.tk.call.assert_called_with("wm", "minsize", ".")
 
     def test_maximize_uses_the_work_area_for_the_current_monitor(self):
         chrome = WindowChrome.__new__(WindowChrome)

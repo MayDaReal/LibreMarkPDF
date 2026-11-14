@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import os
-import tempfile
+import uuid
 from pathlib import Path
 from typing import Any, Optional
 
@@ -146,6 +146,33 @@ def render_pdf(
         renderer.render(full_html, output_path, header_footer, render_date)
 
 
+def _create_temporary_output(output_path: Path) -> Path:
+    """Create one sibling output without tempfile's unbounded Windows retry."""
+    flags = os.O_RDWR | os.O_CREAT | os.O_EXCL
+    flags |= getattr(os, "O_BINARY", 0)
+    for _attempt in range(16):
+        candidate = output_path.parent / (
+            ".libremark-{0}.pdf".format(uuid.uuid4().hex)
+        )
+        try:
+            descriptor = os.open(str(candidate), flags, 0o600)
+        except FileExistsError:
+            continue
+        except OSError as exc:
+            raise ConversionError(
+                "OUTPUT_UNAVAILABLE: cannot create temporary output in: {0}".format(
+                    output_path.parent
+                )
+            ) from exc
+        os.close(descriptor)
+        return candidate
+    raise ConversionError(
+        "OUTPUT_UNAVAILABLE: cannot reserve a temporary output in: {0}".format(
+            output_path.parent
+        )
+    )
+
+
 def atomic_render_pdf(
     full_html: str, output_path: Path, header_footer: HeaderFooterConfig,
     render_date: Optional[str], renderer: Optional[BrowserRenderer] = None,
@@ -156,16 +183,7 @@ def atomic_render_pdf(
     try:
         if cancel_event is not None and cancel_event.is_set():
             raise ConversionError("CANCELLED: conversion cancelled before rendering")
-        try:
-            with tempfile.NamedTemporaryFile(
-                mode="wb", suffix=".pdf", prefix=".libremark-", dir=output_path.parent,
-                delete=False,
-            ) as handle:
-                temp_path = Path(handle.name)
-        except OSError as exc:
-            raise ConversionError(
-                "OUTPUT_UNAVAILABLE: cannot create temporary output in: {0}".format(output_path.parent)
-            ) from exc
+        temp_path = _create_temporary_output(output_path)
         if renderer is None:
             render_pdf(full_html, temp_path, header_footer, render_date)
         else:
