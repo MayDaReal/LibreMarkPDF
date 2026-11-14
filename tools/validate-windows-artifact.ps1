@@ -171,7 +171,11 @@ try {
         throw "Playwright source-link metadata must not enter the candidate."
     }
 
-    $ExternalRoot = Join-Path $RuntimeDir "LibreMark PDF validation épreuve"
+    # Windows PowerShell 5.1 may decode a UTF-8 script without a BOM through the
+    # active ANSI code page. Build the non-ASCII test character explicitly so
+    # this remains a genuine Unicode-path probe on every supported host.
+    $EAcute = [char]0x00E9
+    $ExternalRoot = Join-Path $RuntimeDir ("LibreMark PDF validation " + $EAcute + "preuve")
     $ExternalCandidate = Join-Path $ExternalRoot "LibreMarkPDF"
     New-Item -ItemType Directory -Force -Path $ExternalRoot | Out-Null
     Copy-Item -LiteralPath $Candidate -Destination $ExternalCandidate -Recurse
@@ -213,14 +217,14 @@ try {
         throw "RequireOffline was selected but a physical network adapter is up before runtime tests."
     }
 
-    $Input = Join-Path $ExternalRoot "rapport é avec espace.md"
+    $Input = Join-Path $ExternalRoot ("rapport " + $EAcute + " avec espace.md")
     $Image = Join-Path $ExternalRoot "blue-square.svg"
     Copy-Item -LiteralPath (
         Join-Path $RepoRoot "tests\fixtures\canonical\resources\blue-square.svg"
     ) -Destination $Image
-    "# Rapport é`n`n![Blue](blue-square.svg)`n" |
+    ("# Rapport " + $EAcute + "`n`n![Blue](blue-square.svg)`n") |
         Set-Content -LiteralPath $Input -Encoding UTF8
-    $Output = Join-Path $ExternalRoot "rapport é avec espace.pdf"
+    $Output = Join-Path $ExternalRoot ("rapport " + $EAcute + " avec espace.pdf")
     $SuccessTimer = [Diagnostics.Stopwatch]::StartNew()
     $Success = Invoke-CliCase "success" @(
         "convert", $Input, "--output", $Output, "--date", "2026-07-14", "--json"
@@ -456,14 +460,19 @@ Result: PASS / FAIL
 }
 
 $ManifestPath = Join-Path $EvidenceRoot "WINDOWS_VALIDATION_MANIFEST.sha256"
-Get-ChildItem -LiteralPath $EvidenceRoot -File -Recurse |
+$ManifestLines = Get-ChildItem -LiteralPath $EvidenceRoot -File -Recurse |
     Where-Object FullName -ne $ManifestPath |
     Sort-Object FullName |
     ForEach-Object {
         $Hash = Get-FileHash -Algorithm SHA256 -LiteralPath $_.FullName
         $Relative = $_.FullName.Substring($EvidenceRoot.TrimEnd("\").Length + 1)
         $Hash.Hash.ToLowerInvariant() + "  " + $Relative.Replace("\", "/")
-    } | Set-Content -LiteralPath $ManifestPath -Encoding ASCII
+    }
+[IO.File]::WriteAllLines(
+    $ManifestPath,
+    [string[]]$ManifestLines,
+    [Text.UTF8Encoding]::new($false)
+)
 
 $EvidenceArchive = $EvidenceRoot.TrimEnd("\") + ".zip"
 Compress-Archive -LiteralPath $EvidenceRoot -DestinationPath $EvidenceArchive -Force

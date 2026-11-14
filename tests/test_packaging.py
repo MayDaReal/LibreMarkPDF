@@ -101,6 +101,15 @@ class TestPackagingConfiguration(unittest.TestCase):
         ):
             self.assertIn(marker, script)
 
+    def test_windows_evidence_manifest_preserves_unicode_paths(self):
+        script = (ROOT / "tools" / "validate-windows-artifact.ps1").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("[char]0x00E9", script)
+        self.assertIn("[IO.File]::WriteAllLines(", script)
+        self.assertIn("[Text.UTF8Encoding]::new($false)", script)
+        self.assertNotIn("Set-Content -LiteralPath $ManifestPath -Encoding ASCII", script)
+
     def test_manual_staging_uses_the_authoritative_cli_and_tracked_inputs(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
