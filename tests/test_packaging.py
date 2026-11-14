@@ -108,6 +108,9 @@ class TestPackagingConfiguration(unittest.TestCase):
         self.assertIn("[char]0x00E9", script)
         self.assertIn("[IO.File]::WriteAllLines(", script)
         self.assertIn("[Text.UTF8Encoding]::new($false)", script)
+        self.assertIn("Candidate commit: $Commit", script)
+        self.assertIn("Candidate GUI: $GuiPath", script)
+        self.assertNotIn("Candidate commit: `$Commit`", script)
         self.assertNotIn("Set-Content -LiteralPath $ManifestPath -Encoding ASCII", script)
 
     def test_manual_staging_uses_the_authoritative_cli_and_tracked_inputs(self):

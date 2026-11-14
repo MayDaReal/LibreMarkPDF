@@ -416,8 +416,8 @@ try {
     @"
 # Native GUI and accessibility review
 
-Candidate commit: `$Commit`
-Candidate GUI: `$GuiPath`
+Candidate commit: $Commit
+Candidate GUI: $GuiPath
 
 - [ ] Windowed GUI starts with no console; diagnostic GUI starts with a console.
 - [ ] Sample and source previews render while physically disconnected.
