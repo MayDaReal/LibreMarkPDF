@@ -124,6 +124,17 @@ class TestLinuxPackaging(unittest.TestCase):
         )
         self.assertNotIn('permission_dir="$runtime/no-write"', script)
 
+    def test_runner_closes_transcript_before_sealing_evidence(self):
+        script = (
+            ROOT / "tools" / "validate-linux-artifact.sh"
+        ).read_text(encoding="utf-8")
+        transcript_close = script.index('wait "$transcript_pid"')
+        manifest_start = script.index('find "$evidence_root" -type f')
+        final_message = script.index('echo "Linux candidate evidence completed."')
+        self.assertIn('transcript_pid="$!"', script)
+        self.assertLess(transcript_close, manifest_start)
+        self.assertLess(manifest_start, final_message)
+
     @unittest.skipUnless(sys.platform.startswith("linux"), "requires native Linux")
     def test_elf_inspector_records_glibc_and_no_missing_library(self):
         true_path = Path(shutil.which("true") or "/bin/true")

@@ -85,7 +85,9 @@ rm -rf "$artifacts" "$runtime" "$work" "$external_parent" \
   "$evidence_root/canonical-report.json"
 mkdir -p "$logs" "$artifacts" "$runtime" "$work"
 transcript="$logs/linux-validation-transcript.txt"
+exec 3>&1 4>&2
 exec > >(tee -a "$transcript") 2>&1
+transcript_pid="$!"
 
 cleanup() {
   if [[ -n "$xvfb_pid" ]] && kill -0 "$xvfb_pid" 2>/dev/null; then
@@ -427,6 +429,14 @@ if ! cmp -s "$logs/git-porcelain-before.txt" "$logs/git-porcelain-after.txt"; th
   exit 1
 fi
 
+if [[ $canonical_exit -ne 0 ]]; then
+  echo "Canonical comparison failed; Linux candidate validation is incomplete." >&2
+  exit 1
+fi
+echo "Validation checks completed; sealing Linux candidate evidence."
+exec 1>&3 2>&4 3>&- 4>&-
+wait "$transcript_pid"
+
 find "$evidence_root" -type f \
   ! -name 'LINUX_VALIDATION_MANIFEST.sha256' \
   ! -name 'LINUX_VALIDATION_EVIDENCE.tar.gz' \
@@ -446,7 +456,3 @@ echo "Linux candidate evidence completed."
 echo "Canonical comparison exit: $canonical_exit"
 echo "Evidence: $evidence_root"
 echo "Manual GUI and remaining distribution-matrix review are still required."
-if [[ $canonical_exit -ne 0 ]]; then
-  echo "Canonical comparison failed; Linux candidate validation is incomplete." >&2
-  exit 1
-fi
