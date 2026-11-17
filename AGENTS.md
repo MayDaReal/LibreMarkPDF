@@ -27,9 +27,7 @@ completely:
 | Packaging/release | build scripts, both specs, `requirements.txt`, Windows validation guide |
 | Reliability work | `docs/VALIDATION.md`, `docs/RELEASE.md`, `docs/PLATFORM_SUPPORT.md` |
 
-Historical reliability material is preserved by the local Git tag
-`reliability-evidence-2026-07`; it is not part of normal contributor work. If
-a required document and the implementation disagree, report the discrepancy
+If a required document and the implementation disagree, report the discrepancy
 instead of silently choosing one.
 
 ## Repository boundaries

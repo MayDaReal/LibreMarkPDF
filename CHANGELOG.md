@@ -9,7 +9,7 @@ During the pre-release program, version numbers do not imply an officially
 supported artifact. Each entry must distinguish source behavior from validated
 native releases and link compatibility migrations when applicable.
 
-## 0.1.0rc1 - Unreleased
+## 0.1.0rc1 - 2026-11-16
 
 ### Added
 

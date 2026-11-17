@@ -4,9 +4,13 @@ LibreMark PDF converts UTF-8 Markdown files into styled A4 PDFs on the local
 computer. One shared engine serves a desktop GUI, a non-interactive CLI, and the
 agent contract in [`SKILL.md`](SKILL.md).
 
-> **Project status:** `0.1.0rc1` release candidate preparation. No official
-> standalone download is published yet. Native artifacts become supported only
-> after their platform validation evidence is complete.
+> **Project status:** `0.1.0rc1` is the first public release candidate. Download
+> the validated Windows x64 and Ubuntu 24.04 x86_64 artifacts from the
+> [`v0.1.0rc1` release](https://github.com/MayDaReal/LibreMarkPDF/releases/tag/v0.1.0rc1).
+> This is a pre-release, not the stable `v0.1.0` release. The Windows archive is
+> not Authenticode-signed; signed checksums and native validation evidence are
+> attached to the release. Verification instructions and the release public key
+> are documented in [`docs/RELEASE.md`](docs/RELEASE.md#release-checksum-signature).
 
 ## Features
 
@@ -71,9 +75,6 @@ documents below as needed:
 | Check user-facing documentation parity | [`docs/DOCUMENTATION_SYNC.md`](docs/DOCUMENTATION_SYNC.md) |
 | Build, test, and release candidates | [`docs/VALIDATION.md`](docs/VALIDATION.md) · [`docs/RELEASE.md`](docs/RELEASE.md) |
 | Platform status and limits | [`docs/PLATFORM_SUPPORT.md`](docs/PLATFORM_SUPPORT.md) |
-
-The historical reliability programme is preserved by the local Git tag
-`reliability-evidence-2026-07`. It is not required reading for normal work.
 
 ## Run from source
 
@@ -254,5 +255,6 @@ unlicensed packages are rejected. See
 ## License
 
 LibreMark PDF source code is released under the [MIT License](LICENSE).
-Dependency and bundled-resource licenses must be verified and included before
-an official binary is published.
+Bundled-resource and dependency notices are recorded in
+[`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md); candidate SBOMs are attached
+to each native release.

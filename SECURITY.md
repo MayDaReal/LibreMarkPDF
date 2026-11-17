@@ -2,9 +2,10 @@
 
 ## Supported versions
 
-LibreMark PDF is currently a pre-release prototype. No released version is
-receiving a formal security-support guarantee yet. Security fixes target the
-current `main` branch until the first supported release policy is published.
+LibreMark PDF is currently distributed as the `0.1.0rc1` pre-release. No stable
+version is receiving a formal security-support guarantee yet. Security fixes
+target the current `main` branch until the first stable support policy is
+published.
 
 Default conversion blocks network-capable HTML and CSS, validates supported
 local images, and refuses replacement unless overwrite is explicit. The

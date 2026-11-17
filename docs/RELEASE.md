@@ -24,3 +24,32 @@ display-server matrix recorded with the release evidence.
 Large archives, browsers, virtual environments, and generated PDFs are not
 versioned. Concise reports, manifests, and checksums for a published release
 may be versioned.
+
+## Release checksum signature
+
+Release checksum manifests are signed with the following SSH Ed25519 public
+key. Its fingerprint is
+`SHA256:/uZzs39mv1QxR2FXYN9ewOlf4FqeNZXzcYD5lKIievM`.
+
+```text
+ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFQKzDSKXrweG7oz0mWYQhXk/TZI9MitE0XFZnYeAeKi
+```
+
+Create a temporary allowed-signers file containing the identity and key:
+
+```text
+libremark-pdf-release ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFQKzDSKXrweG7oz0mWYQhXk/TZI9MitE0XFZnYeAeKi
+```
+
+Then verify the downloaded manifest and its detached signature:
+
+```bash
+ssh-keygen -Y verify -f allowed_signers \
+  -I libremark-pdf-release -n file \
+  -s SHA256SUMS.sig < SHA256SUMS
+sha256sum -c SHA256SUMS
+```
+
+Key rotation requires retaining the previous public key for every release it
+signed, publishing the replacement fingerprint, and updating this section
+before the replacement key signs a release.

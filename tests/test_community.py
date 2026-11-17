@@ -55,6 +55,26 @@ class TestCommunityHealth(unittest.TestCase):
         for name in ("VALIDATION.md", "RELEASE.md", "PLATFORM_SUPPORT.md"):
             self.assertTrue((ROOT / "docs" / name).is_file(), name)
 
+    def test_public_guides_link_the_published_release_candidate(self):
+        release_url = (
+            "https://github.com/MayDaReal/LibreMarkPDF/"
+            "releases/tag/v0.1.0rc1"
+        )
+        for path in (
+            ROOT / "README.md",
+            ROOT / "docs" / "MANUAL_EN.md",
+            ROOT / "docs" / "MANUEL_FR.md",
+        ):
+            self.assertIn(release_url, path.read_text(encoding="utf-8"), path)
+
+    def test_release_guide_publishes_checksum_verification_key(self):
+        release = (ROOT / "docs" / "RELEASE.md").read_text(encoding="utf-8")
+        self.assertIn("ssh-keygen -Y verify", release)
+        self.assertIn(
+            "SHA256:/uZzs39mv1QxR2FXYN9ewOlf4FqeNZXzcYD5lKIievM",
+            release,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
