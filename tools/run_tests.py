@@ -32,17 +32,25 @@ UI_TESTS = [
 ]
 
 
-def command_for_suite(suite: str) -> list[str]:
+def command_for_suite(suite: str, *, coverage: bool = False) -> list[str]:
     """Return the single unittest command for the requested suite."""
     if suite == "pure":
-        return [sys.executable, "-m", "unittest", *PURE_TESTS]
-    if suite == "all":
-        return [sys.executable, "-m", "unittest", "discover", "-s", "tests", "-v"]
-    if suite == "ui":
-        return [sys.executable, "-m", "unittest", *UI_TESTS, "-v"]
-    if suite == "visual":
-        return [sys.executable, "-m", "unittest", "tests.test_visual_regression", "-v"]
-    raise ValueError("Unknown suite: {0}".format(suite))
+        command = [sys.executable, "-m", "unittest", *PURE_TESTS]
+    elif suite == "all":
+        command = [
+            sys.executable, "-m", "unittest", "discover", "-s", "tests", "-v"
+        ]
+    elif suite == "ui":
+        command = [sys.executable, "-m", "unittest", *UI_TESTS, "-v"]
+    elif suite == "visual":
+        command = [
+            sys.executable, "-m", "unittest", "tests.test_visual_regression", "-v"
+        ]
+    else:
+        raise ValueError("Unknown suite: {0}".format(suite))
+    if coverage:
+        command = [sys.executable, "-m", "coverage", "run", *command[1:]]
+    return command
 
 
 def main() -> int:
@@ -53,10 +61,19 @@ def main() -> int:
         type=Path,
         default=ROOT / ("browser-win" if os.name == "nt" else "browser-linux"),
     )
+    parser.add_argument(
+        "--coverage",
+        action="store_true",
+        help="run the selected unittest suite through coverage",
+    )
     args = parser.parse_args()
     environment = os.environ.copy()
     environment["PLAYWRIGHT_BROWSERS_PATH"] = str(args.browser_dir.resolve())
-    return subprocess.run(command_for_suite(args.suite), cwd=ROOT, env=environment).returncode
+    return subprocess.run(
+        command_for_suite(args.suite, coverage=args.coverage),
+        cwd=ROOT,
+        env=environment,
+    ).returncode
 
 
 if __name__ == "__main__":

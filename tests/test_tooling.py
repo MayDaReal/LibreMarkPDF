@@ -106,6 +106,11 @@ class TestContributorTooling(unittest.TestCase):
             226,
         )
         self.assertIn("tests.test_visual_regression", run_tests.command_for_suite("visual"))
+        coverage_command = run_tests.command_for_suite("pure", coverage=True)
+        self.assertEqual(
+            coverage_command[:5],
+            [run_tests.sys.executable, "-m", "coverage", "run", "-m"],
+        )
 
     def test_hosted_workflows_cover_headless_linux_and_private_repositories(self):
         quality = (ROOT / ".github" / "workflows" / "quality.yml").read_text(
@@ -116,9 +121,14 @@ class TestContributorTooling(unittest.TestCase):
         )
         self.assertIn("ruff check libremark_pdf tests tools", quality)
         self.assertNotIn("tests tools spikes", quality)
+        self.assertIn("python tools/run_tests.py pure", quality)
         self.assertIn(
-            "xvfb-run -a python -m unittest discover -s tests -v", quality
+            "xvfb-run -a python tools/run_tests.py all --coverage", quality
         )
+        self.assertNotIn("tests.test_g1_spikes", quality)
+        project = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
+        self.assertIn('"coverage[toml]==7.10.7"', project)
+        self.assertIn("fail_under = 75", project)
         self.assertIn("github.event.repository.private == false", security)
 
 

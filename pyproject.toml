@@ -44,7 +44,7 @@ test = [
   "pillow==11.3.0",
   "pypdfium2==5.11.0",
   "tkinterdnd2==0.6.2",
-  "coverage==7.10.7",
+  "coverage[toml]==7.10.7",
   "ruff==0.14.2",
 ]
 docs = []
@@ -103,8 +103,8 @@ branch = true
 source = ["libremark_pdf"]
 
 [tool.coverage.report]
-# Initial browser-free subsystem baseline measured at 31%; raise with coverage.
-fail_under = 30
+# The complete Linux/Xvfb suite currently exceeds this branch-aware floor.
+fail_under = 75
 show_missing = true
 skip_covered = true
 

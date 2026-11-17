@@ -38,12 +38,7 @@ python -m venv .venv
 . .venv/bin/activate
 python -m pip install --upgrade pip
 python -m pip install -c requirements/constraints.txt -e ".[test]"
-python -m unittest tests.test_cli tests.test_community tests.test_i18n tests.test_packaging \
-  tests.test_quality_foundations \
-  tests.test_core.TestTitleExtraction \
-  tests.test_core.TestHeaderFooterConfig \
-  tests.test_core.TestTemplateBuilding \
-  tests.test_core.TestMarkdownConversion
+python tools/run_tests.py pure
 ```
 
 On Windows, activate with `.venv-windows-py39\Scripts\Activate.ps1` and use
@@ -75,10 +70,10 @@ python -m pip install --require-hashes `
 The lock was resolved for the target platform, but must still be installed and
 tested on native Windows before it becomes release evidence.
 
-The initial coverage floor is 30% overall, based on a measured 31% branch-aware
-pure-suite result. Reports retain per-module values so GUI, CLI, core, and i18n
-gaps remain visible. Raising the floor requires added tests; it must never be
-lowered to accept a regression.
+The branch-aware coverage gate runs the complete suite under Xvfb and enforces
+75% overall coverage. Reports retain per-module values so GUI, CLI, core, and
+i18n gaps remain visible. Raising the floor requires added tests; it must never
+be lowered to accept a regression.
 
 ## Hashed Linux candidate install
 
