@@ -137,6 +137,16 @@ class TestContributorTooling(unittest.TestCase):
         self.assertIn('"coverage[toml]==7.10.7"', project)
         self.assertIn("fail_under = 75", project)
         self.assertIn("github.event.repository.private == false", security)
+        combined = quality + security
+        for floating in (
+            "actions/checkout@v",
+            "actions/setup-python@v",
+            "actions/upload-artifact@v",
+            "actions/dependency-review-action@v",
+        ):
+            self.assertNotIn(floating, combined)
+        for version in ("v7.0.1", "v7.1.0", "v7.0.2", "v5.0.0"):
+            self.assertIn("# " + version, combined)
 
 
 if __name__ == "__main__":
