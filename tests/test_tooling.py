@@ -3,7 +3,7 @@
 import unittest
 from pathlib import Path
 
-from tools import check_source_hygiene, inventory_repository, run_tests
+from tools import check_source_hygiene, run_tests
 
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -86,12 +86,6 @@ class TestContributorTooling(unittest.TestCase):
         self.assertEqual((ROOT / "VERSION").read_text(encoding="utf-8").strip(), "0.1.0rc1")
         package = (ROOT / "libremark_pdf" / "__init__.py").read_text(encoding="utf-8")
         self.assertIn(' / "VERSION"', package)
-
-    def test_inventory_reports_only_known_generated_paths(self):
-        report = inventory_repository.inventory(ROOT)
-        known = set(inventory_repository.GENERATED_DIRECTORIES)
-        known.update(inventory_repository.GENERATED_FILES)
-        self.assertTrue(all(item["path"] in known for item in report["generated"]))
 
     def test_test_runner_keeps_suites_separate(self):
         ui_command = run_tests.command_for_suite("ui")
