@@ -11,7 +11,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 PURE_TESTS = [
-    "tests.test_cli",
+    "tests.test_cli.TestConvertCommand",
+    "tests.test_cli.TestCliSubprocessContract",
     "tests.test_community",
     "tests.test_i18n",
     "tests.test_packaging",

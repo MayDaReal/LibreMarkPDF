@@ -88,6 +88,10 @@ class TestContributorTooling(unittest.TestCase):
         self.assertIn(' / "VERSION"', package)
 
     def test_test_runner_keeps_suites_separate(self):
+        pure_command = run_tests.command_for_suite("pure")
+        self.assertIn("tests.test_cli.TestConvertCommand", pure_command)
+        self.assertIn("tests.test_cli.TestCliSubprocessContract", pure_command)
+        self.assertNotIn("tests.test_cli.TestCliSubprocessBrowserContract", pure_command)
         ui_command = run_tests.command_for_suite("ui")
         self.assertIn("tests.test_gui", ui_command)
         self.assertIn("tests.test_ctk_shell", ui_command)

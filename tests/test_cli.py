@@ -327,6 +327,9 @@ class TestCliSubprocessContract(unittest.TestCase):
             for item in payload["results"]
         ))
 
+class TestCliSubprocessBrowserContract(unittest.TestCase):
+    run_cli = TestCliSubprocessContract.run_cli
+
     def test_doctor_is_read_only_for_bundled_resource_files(self):
         tracked = [
             Path("style.css"),
@@ -341,10 +344,6 @@ class TestCliSubprocessContract(unittest.TestCase):
         self.assertEqual(completed.stderr, "")
         self.assertEqual(json.loads(completed.stdout)["status"], "ok")
         self.assertEqual(after, before)
-
-
-class TestCliSubprocessBrowserContract(unittest.TestCase):
-    run_cli = TestCliSubprocessContract.run_cli
 
     def test_unicode_space_resource_and_css_success_is_clean_json(self):
         with tempfile.TemporaryDirectory(prefix="LibreMark succès é ") as temporary:
