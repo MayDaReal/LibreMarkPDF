@@ -2,6 +2,7 @@
 
 import unittest
 from pathlib import Path
+from unittest import mock
 
 from tools import check_source_hygiene, run_tests
 
@@ -109,6 +110,14 @@ class TestContributorTooling(unittest.TestCase):
             coverage_command[:5],
             [run_tests.sys.executable, "-m", "coverage", "run", "-m"],
         )
+
+    def test_test_runner_honors_hosted_browser_staging(self):
+        staged = "/tmp/staged-playwright-browser"
+        with mock.patch.dict(
+            run_tests.os.environ,
+            {"PLAYWRIGHT_BROWSERS_PATH": staged},
+        ):
+            self.assertEqual(run_tests.default_browser_dir(), Path(staged))
 
     def test_hosted_workflows_cover_headless_linux_and_private_repositories(self):
         quality = (ROOT / ".github" / "workflows" / "quality.yml").read_text(

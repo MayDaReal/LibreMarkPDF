@@ -33,6 +33,14 @@ UI_TESTS = [
 ]
 
 
+def default_browser_dir() -> Path:
+    """Return the staged browser path selected by the caller or platform."""
+    configured = os.environ.get("PLAYWRIGHT_BROWSERS_PATH")
+    if configured:
+        return Path(configured)
+    return ROOT / ("browser-win" if os.name == "nt" else "browser-linux")
+
+
 def command_for_suite(suite: str, *, coverage: bool = False) -> list[str]:
     """Return the single unittest command for the requested suite."""
     if suite == "pure":
@@ -60,7 +68,7 @@ def main() -> int:
     parser.add_argument(
         "--browser-dir",
         type=Path,
-        default=ROOT / ("browser-win" if os.name == "nt" else "browser-linux"),
+        default=default_browser_dir(),
     )
     parser.add_argument(
         "--coverage",
