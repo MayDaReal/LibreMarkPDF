@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools==82.0.1"]
+requires = ["setuptools==84.2.1"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -27,25 +27,25 @@ dependencies = [
 [project.optional-dependencies]
 gui = [
   "customtkinter==6.0.0",
-  "pillow==11.3.0",
+  "pillow==12.3.0",
   "pypdfium2==5.11.0",
-  "tkinterdnd2==0.6.2",
+  "tkinterdnd2==0.7.0",
 ]
 build = [
   "customtkinter==6.0.0",
-  "pillow==11.3.0",
+  "pillow==12.3.0",
   "pypdfium2==5.11.0",
-  "tkinterdnd2==0.6.2",
-  "pyinstaller==6.21.0",
-  "setuptools==82.0.1",
+  "tkinterdnd2==0.7.0",
+  "pyinstaller==6.22.3",
+  "setuptools==84.2.1",
 ]
 test = [
   "customtkinter==6.0.0",
-  "pillow==11.3.0",
+  "pillow==12.3.0",
   "pypdfium2==5.11.0",
-  "tkinterdnd2==0.6.2",
-  "coverage[toml]==7.10.7",
-  "ruff==0.14.2",
+  "tkinterdnd2==0.7.0",
+  "coverage[toml]==7.16.2",
+  "ruff==0.17.5",
 ]
 docs = []
 
