@@ -19,7 +19,7 @@ used during outlining had SHA-256:
 
 ## Set up and run
 
-Use Python 3.10 or newer in a temporary build environment:
+Use Python 3.11 or newer in a temporary build environment:
 
 ```bash
 python3 -m pip install -r tools/svg-asset-forge/requirements.txt
