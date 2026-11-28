@@ -24,7 +24,7 @@ avoid copying the same contract into a new document.
 
 ## Development setup
 
-Use Python 3.9 or newer. The reproducible dependency workflow and pure-test
+Use standard CPython 3.14. The reproducible dependency workflow and pure-test
 command are in [`requirements/README.md`](requirements/README.md). Browser
 installation is a development/build step and may use the network; conversion
 must not download anything at runtime.
@@ -47,7 +47,7 @@ skip or weaken the test.
 - Put reusable conversion behavior only in `libremark_pdf/core.py`.
 - Keep GUI Tk calls on the main thread and preserve optional drag-and-drop.
 - Keep CLI stdout/stderr, JSON, and exit status deterministic.
-- Preserve Python 3.9 syntax.
+- Target Python 3.14 without unrelated syntax rewrites.
 - Do not combine renderer, packaging, visual identity, or unrelated cleanup.
 - Do not commit browsers, virtual environments, builds, PDFs, caches, secrets,
   or local configuration.

@@ -6,17 +6,25 @@ import hashlib
 import json
 import re
 from dataclasses import dataclass
+from importlib.metadata import version
 from pathlib import Path
 from typing import Any, Callable, Optional
 
 import markdown as md_lib
+import playwright
 
 PROFILE_SCHEMA = 1
 DEFAULT_PROFILE_VERSION = "default@1"
 DEFAULT_THEME_ID = "default@1"
-PLAYWRIGHT_VERSION = "1.60.0"
-CHROMIUM_VERSION = "148.0.7778.96"
-CHROMIUM_REVISION = "1223"
+PLAYWRIGHT_VERSION = version("playwright")
+_BROWSER_MANIFEST = Path(playwright.__file__).parent / "driver" / "package" / "browsers.json"
+_BROWSERS = {
+    entry["name"]: entry
+    for entry in json.loads(_BROWSER_MANIFEST.read_text(encoding="utf-8"))["browsers"]
+}
+CHROMIUM_VERSION = _BROWSERS["chromium-headless-shell"]["browserVersion"]
+CHROMIUM_REVISION = _BROWSERS["chromium-headless-shell"]["revision"]
+FFMPEG_REVISION = _BROWSERS["ffmpeg"]["revision"]
 MARKDOWN_EXTENSIONS = ("extra", "sane_lists")
 MAX_RESOURCE_BYTES = 5 * 1024 * 1024
 MAX_RESOURCE_COUNT = 32

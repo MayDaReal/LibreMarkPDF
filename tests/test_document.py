@@ -42,11 +42,11 @@ class TestDocumentDomain(unittest.TestCase):
         )
         self.assertEqual(
             prepared.profile.fingerprint,
-            "a39b293f471e820e9afb87c46267de0776fa15c7ab68b69c9dae403af78c6805",
+            "5552d4415fad58535d226f5c901ad9d060bfadc0abe62265e354cce84175dcd4",
         )
         self.assertEqual(
             hashlib.sha256(prepared.full_html.encode("utf-8")).hexdigest(),
-            "484685c815fe500442ce13bf7dd7b54a8124dc730e9b2895d6742dfa7d22d5af",
+            "a4bfd28eb2319dee66ce754ec96854ee977d6d857df662170058240cdccac04c",
         )
 
 

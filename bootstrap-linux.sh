@@ -2,7 +2,8 @@
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "$0")" && pwd)"
-python_bin="${PYTHON:-python3.9}"
+python_bin="${PYTHON:-python3.14}"
+cd "$repo_root"
 offline=0
 install_python=0
 install_make=0
@@ -28,8 +29,9 @@ fi
 confirm_install() {
   local purpose="$1"
   local requested="$2"
+  [[ "$offline" -eq 1 ]] && return 1
   [[ "$requested" -eq 1 ]] && return 0
-  [[ "$offline" -eq 1 || "$non_interactive" -eq 1 || ! -t 0 ]] && return 1
+  [[ "$non_interactive" -eq 1 || ! -t 0 ]] && return 1
   read -r -p "$purpose is missing. Install it now? [y/N] " answer
   [[ "$answer" =~ ^([yY]|[yY][eE][sS]|[oO]|[oO][uU][iI])$ ]]
 }
@@ -48,37 +50,32 @@ install_linux_packages() {
   fi
 }
 
-python_ready=0
-if command -v "$python_bin" >/dev/null 2>&1 &&
-  "$python_bin" -c 'import sys; raise SystemExit(0 if sys.version_info[:2] == (3, 9) else 1)'
+is_supported_python() {
+  command -v "$1" >/dev/null 2>&1 && "$1" -c \
+    'import sys, sysconfig; raise SystemExit(not (sys.implementation.name == "cpython" and sys.version_info[:2] == (3, 14) and not sysconfig.get_config_var("Py_GIL_DISABLED")))'
+}
+
+if ! is_supported_python "$python_bin" && [[ -z "${PYTHON:-}" ]] &&
+  command -v pyenv >/dev/null 2>&1
 then
-  python_ready=1
-fi
-if [[ "$python_ready" -eq 0 ]] && command -v pyenv >/dev/null 2>&1; then
-  pyenv_version="$(pyenv versions --bare 2>/dev/null | awk '$1 ~ /^3\.9([.]|$)/ { print $1; exit }')"
-  if [[ -n "$pyenv_version" ]]; then
-    python_bin="$(PYENV_VERSION="$pyenv_version" pyenv prefix 2>/dev/null)/bin/python"
-    if "$python_bin" -c 'import sys; raise SystemExit(0 if sys.version_info[:2] == (3, 9) else 1)' 2>/dev/null; then
-      python_ready=1
+  while IFS= read -r pyenv_version; do
+    prefix="$(PYENV_VERSION="$pyenv_version" pyenv prefix)"
+    if is_supported_python "$prefix/bin/python"; then
+      python_bin="$prefix/bin/python"
+      break
     fi
-  fi
+  done < <(pyenv versions --bare | awk '/^3\.14\.[0-9]+$/' | sort -Vr)
 fi
-if [[ "$python_ready" -eq 0 ]] && confirm_install "CPython 3.9" "$install_python"; then
-  if command -v apt-get >/dev/null 2>&1; then
-    install_linux_packages python3.9 python3.9-venv
-  elif command -v dnf >/dev/null 2>&1; then
-    install_linux_packages python3.9
-  elif command -v zypper >/dev/null 2>&1; then
-    install_linux_packages python39
-  fi
-  if command -v "$python_bin" >/dev/null 2>&1 &&
-    "$python_bin" -c 'import sys; raise SystemExit(0 if sys.version_info[:2] == (3, 9) else 1)'
-  then
-    python_ready=1
-  fi
+if ! is_supported_python "$python_bin" && [[ -z "${PYTHON:-}" ]] &&
+  command -v apt-cache >/dev/null 2>&1 &&
+  apt-cache show python3.14 python3.14-venv 2>/dev/null |
+    awk '/^Package: python3.14$/ { p=1 } /^Package: python3.14-venv$/ { v=1 } END { exit !(p && v) }' &&
+  confirm_install "CPython 3.14" "$install_python"
+then
+  install_linux_packages python3.14 python3.14-venv
 fi
-[[ "$python_ready" -eq 1 ]] || {
-  echo "CPython 3.9 is required. Install it manually (for example with pyenv) or rerun with --install-python." >&2
+is_supported_python "$python_bin" || {
+  echo "Standard CPython 3.14 is required. Install it with pyenv or set PYTHON to a matching executable." >&2
   exit 1
 }
 
@@ -87,28 +84,29 @@ if ! command -v make >/dev/null 2>&1 &&
 then
   install_linux_packages make
 fi
-venv="$repo_root/.venv-linux-py39"
-lock="$repo_root/requirements/locks/linux-x86_64-py39.txt"
-browser_root="$repo_root/browser-linux"
+venv="${LIBREMARK_PDF_VENV:-$repo_root/.venv-linux-py314}"
+lock="$repo_root/requirements/locks/linux-x86_64-py314.txt"
+browser_root="${LIBREMARK_PDF_BROWSER_SOURCE:-$repo_root/browser-linux}"
 if [[ ! -d "$venv" ]]; then
   "$python_bin" -m venv "$venv"
 fi
 venv_python="$venv/bin/python"
+is_supported_python "$venv_python" || {
+  echo "The environment at $venv must use standard CPython 3.14." >&2
+  exit 1
+}
+browser_root="$(realpath -m "$browser_root")"
 if [[ $offline -eq 1 ]]; then
-  "$venv_python" -m pip install --no-index --require-hashes -r "$lock"
+  "$venv_python" -m pip install --no-index --only-binary=:all: --require-hashes -r "$lock"
 else
-  "$venv_python" -m pip install --require-hashes -r "$lock"
+  "$venv_python" -m pip install --only-binary=:all: --require-hashes -r "$lock"
 fi
 "$venv_python" -m pip check
 if [[ $offline -eq 1 ]]; then
-  [[ -d "$browser_root" ]] || { echo "Offline mode requires browser-linux/." >&2; exit 1; }
+  [[ -d "$browser_root" ]] || { echo "Offline mode requires a staged browser payload at $browser_root." >&2; exit 1; }
 else
   PLAYWRIGHT_BROWSERS_PATH="$browser_root" "$venv_python" -m playwright install --only-shell chromium
 fi
-[[ -d "$browser_root/chromium_headless_shell-1223" ]] || {
-  echo "The required Chromium headless-shell revision 1223 is missing." >&2
-  exit 1
-}
 PLAYWRIGHT_BROWSERS_PATH="$browser_root" "$venv_python" tools/verify_locked_environment.py --lock "$lock"
 PLAYWRIGHT_BROWSERS_PATH="$browser_root" "$venv_python" -m libremark_pdf doctor --json
 echo "Ready: $venv_python"

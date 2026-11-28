@@ -16,7 +16,9 @@ comparison, and applicable signatures. A successful build alone never makes a
 release official.
 
 The initial `v0.1.0` release scope is Windows x64 and Ubuntu 24.04 x86_64.
-Both native artifacts must be built from the same immutable release commit and
+The next candidate moves both native lanes to standard CPython 3.14.
+Record the interpreter provider and exact patch in the native evidence. Both
+native artifacts must be built from the same immutable release commit and
 pass their independent automated and manual gates. Linux support is limited to
 the validated distribution, version, architecture, desktop environment, and
 display-server matrix recorded with the release evidence.

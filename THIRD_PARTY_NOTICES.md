@@ -39,10 +39,9 @@ but its legacy `License` metadata field incorrectly says
 are tracked in https://github.com/TomSchimansky/CustomTkinter/issues/2857.
 
 The exact versions and platform-specific archive SHA-256 values are in
-`requirements/locks/windows-x64-py39.txt` and
-`requirements/locks/linux-x86_64-py39.txt`; the applicable records are copied
-into each generated SBOM. Chromium/headless shell `148.0.7778.96` revision
-`1223` carries its packaged `LICENSE.headless_shell`; the evidence inventory
+the native lock listed in [the dependency workflow](requirements/README.md).
+The applicable records are copied into each generated SBOM. The Chromium
+headless shell selected by Playwright carries its packaged `LICENSE.headless_shell`; the evidence inventory
 hashes that file and the complete browser payload.
 
 The seven bundled Noto faces are licensed under OFL-1.1. Their retained texts

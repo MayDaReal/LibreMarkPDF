@@ -22,11 +22,14 @@ class TestWindowsSbom(unittest.TestCase):
             artifact = root / "candidate"
             artifact.mkdir()
             (artifact / "LibreMarkPDF-cli.exe").write_bytes(b"candidate")
+            (artifact / "LibreMarkPDF-debug.exe").write_bytes(b"candidate")
             document = generate_windows_sbom.generate(
                 lock, artifact, "a" * 40, "2026-07-18T12:00:00Z"
             )
         self.assertEqual(document["spdxVersion"], "SPDX-2.3")
-        self.assertEqual(len(document["files"]), 1)
+        cli, debug = document["files"]
+        self.assertEqual(cli["checksums"], debug["checksums"])
+        self.assertNotEqual(cli["SPDXID"], debug["SPDXID"])
         self.assertEqual(
             len(
                 document["packages"][0]["packageVerificationCode"][
@@ -51,14 +54,15 @@ class TestWindowsSbom(unittest.TestCase):
     def test_every_locked_windows_dependency_has_a_declared_mapping(self):
         lock = (
             Path(__file__).resolve().parent.parent
-            / "requirements" / "locks" / "windows-x64-py39.txt"
+            / "requirements" / "locks" / "windows-x64-py314.txt"
         )
         packages = generate_windows_sbom.locked_packages(lock)
-        self.assertGreaterEqual(len(packages), 19)
         self.assertNotIn("NOASSERTION", [item["license"] for item in packages])
         licenses = {item["name"].lower(): item["license"] for item in packages}
         self.assertEqual(licenses["customtkinter"], "MIT")
         self.assertEqual(licenses["darkdetect"], "BSD-3-Clause")
+        self.assertEqual(licenses["pefile"], "MIT")
+        self.assertEqual(licenses["pywin32-ctypes"], "BSD-3-Clause")
 
 
 if __name__ == "__main__":

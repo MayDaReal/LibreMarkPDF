@@ -15,17 +15,12 @@ Ubuntu 24.04 x86_64 candidates. This is not a general Linux compatibility
 claim; other distributions, versions, architectures, desktop environments,
 and display servers remain outside the support matrix. macOS is out of scope.
 
-For a source checkout, run `bootstrap-windows.ps1` on Windows or
-`bootstrap-linux.sh` on Linux. They prepare the locked Python 3.9 environment
-and the required local Chromium payload. A shared checkout keeps the native
-payloads separate in `browser-win/` and `browser-linux/`. On Windows,
-`bootstrap-windows.ps1 -InstallPython -InstallMake` can explicitly install
-missing recommended tools. On Linux, use
-`bootstrap-linux.sh --install-python --install-make`. Without explicit options,
-an interactive terminal asks before installing a missing tool.
-On Ubuntu 24.04 and other distributions without a native CPython 3.9 package,
-install CPython 3.9 with pyenv first; the Linux bootstrap detects an installed
-`3.9.x` pyenv version automatically.
+For a Linux source checkout, install standard CPython 3.14 with Tk and run
+`./bootstrap-linux.sh`. It detects Python 3.14 installed with pyenv or accepts
+an executable through `PYTHON`, prepares `.venv-linux-py314` from the native
+wheel lock and stages the required Chromium payload under `browser-linux/`.
+Use `--non-interactive` to run without prompts. For a Windows x64 source
+checkout, see the CPython 3.14 and PowerShell setup in the project README.
 
 ## Desktop workflow
 

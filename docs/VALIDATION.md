@@ -5,10 +5,10 @@ never modify the canonical corpus or its expected results.
 
 ## Commands
 
-After running `bootstrap-windows.ps1` or `bootstrap-linux.sh`:
+After running the native bootstrap with standard CPython 3.14:
 
 ```text
-make test-pure     # unit checks that do not require a browser
+make test-pure     # focused source and CLI contract checks
 make test          # complete suite with the locked Chromium payload
 make test-ui       # Tk orchestration and stable UI actions
 make test-visual   # canonical corpus contract
@@ -31,18 +31,23 @@ either output fails. Artifact review opens both localized PDFs from the exact
 GUI and checks styling, headings, code, links, Unicode, pagination, selectable
 text, the default footer, clipping, and absence of remote resources.
 
-On Windows, the direct command requires no arguments:
+On Windows x64, the direct validation command requires no arguments after
+bootstrapping the native environment.
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\validate-windows-artifact.ps1
 ```
 
-It defaults to `.venv-windows-py39`, `browser-win`, and
+It defaults to `.venv-windows-py314`, `browser-win`, and
 `dist/<version>/windows-x64`. Use `-Python` and `-EvidenceRoot` to override
-those values.
+the interpreter and evidence paths. Set `LIBREMARK_PDF_BROWSER_SOURCE` for the
+direct bootstrap, build, and validation scripts to use a separate staging
+directory, for example when retaining an earlier browser payload.
 
 The bootstrap scripts are interactive when a terminal is available. They ask
-for confirmation before installing Python 3.9 or GNU Make. Windows options
+for confirmation before installing Python or GNU Make. Linux searches for
+standard CPython 3.14 and only offers Ubuntu packages when both the
+interpreter and venv packages are available. Windows options
 `-InstallPython`, `-InstallMake`, and `-NonInteractive`, and their Linux
 equivalents `--install-python`, `--install-make`, and `--non-interactive`,
 support automated execution. Offline mode does not install or download

@@ -78,44 +78,15 @@ documents below as needed:
 
 ## Run from source
 
-Prerequisites: CPython 3.9, Tk for the GUI, and network access for the initial
-dependency/browser acquisition. Start with the platform bootstrap:
-
-```powershell
-.\bootstrap-windows.ps1
-```
-
-```bash
-./bootstrap-linux.sh
-```
-
-The bootstraps create a locked environment and stage the exact Chromium
-payload in the platform-specific ignored directory `browser-win/` or
-`browser-linux/`. The payloads are native and must not be shared between
-operating systems.
-
-By default, an interactive bootstrap asks before installing a missing Python
-or GNU Make. Explicit options are useful for automation:
-
-```powershell
-.\bootstrap-windows.ps1 -InstallPython -InstallMake
-```
+For Ubuntu 24.04 x86_64, install standard CPython 3.14 with Tk, then run
+`./bootstrap-linux.sh`. Use CPython 3.14.10 for migration validation. The
+bootstrap detects an installed pyenv runtime, or accepts an explicit
+interpreter with `PYTHON=/path/to/python3.14`. Initial setup downloads locked
+wheels and stages Chromium in `browser-linux/`.
 
 ```bash
-./bootstrap-linux.sh --install-python --install-make
-```
-
-Use `-NonInteractive` on Windows or `--non-interactive` on Linux to disable
-questions; without the explicit install options, missing tools then cause an
-error or remain optional. Reopen PowerShell after GNU Make installation if
-`make` is not yet on `PATH`. GNU Make exposes
-`make test`, `make test-ui`, and native validation shortcuts.
-
-```bash
-python3 -m venv venv
-. venv/bin/activate
-python -m pip install -r requirements.txt
-python -m playwright install chromium
+./bootstrap-linux.sh --non-interactive
+. .venv-linux-py314/bin/activate
 
 # GUI
 python -m libremark_pdf
@@ -124,9 +95,11 @@ python -m libremark_pdf
 python -m libremark_pdf convert report.md --json
 ```
 
-On Windows, the locked environment is `.venv-windows-py39`; activate it with
-`.venv-windows-py39\Scripts\Activate.ps1`. The Linux environment is
-`.venv-linux-py39`.
+On Windows x64, install standard CPython 3.14 with Tk and run
+`powershell -NoProfile -ExecutionPolicy Bypass -File .\bootstrap-windows.ps1`.
+The script prepares `.venv-windows-py314` and stages Chromium in
+`browser-win/`. Pass `-Python <path>` to select an interpreter, then use
+`.\.venv-windows-py314\Scripts\python.exe -m libremark_pdf` to run the GUI.
 
 ## CLI examples
 
@@ -184,7 +157,7 @@ The initial `v0.1.0` release scope includes Windows x64 and Ubuntu 24.04
 x86_64. Each artifact must pass its own native release gate. macOS is not
 included in that support promise.
 
-Run `make build-windows` from the locked environment created by
+Run `make build-windows` after preparing the native locked environment with
 `bootstrap-windows.ps1`. Without GNU Make, call
 `tools\build-windows-artifact.bat` directly. Validate the complete candidate
 with `make validate-windows`.
@@ -199,12 +172,12 @@ files and are never committed.
 
 ### Linux
 
-Prepare the hash-locked CPython 3.9 x86_64 environment and exact browser
+Prepare the hash-locked CPython 3.14 x86_64 environment and exact browser
 payload with `bootstrap-linux.sh`, then run `make build-linux`. Without GNU
 Make, call:
 
 ```bash
-export LIBREMARK_PDF_PYTHON="$PWD/.venv-linux-py39/bin/python"
+export LIBREMARK_PDF_PYTHON="$PWD/.venv-linux-py314/bin/python"
 export LIBREMARK_PDF_BROWSER_SOURCE=/absolute/staging/browser
 ./tools/build-linux-artifact.sh
 ```

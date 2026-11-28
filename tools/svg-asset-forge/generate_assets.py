@@ -14,7 +14,7 @@ ROOT = Path(__file__).resolve().parents[2]
 SOURCE = Path(__file__).resolve().parent / "sources" / "libremark-pdf-logo.svg"
 ASSETS_DIR = ROOT / "assets"
 PNG_SIZES = (16, 32, 48, 64, 128, 256)
-EXPECTED_TOOLS = {"CairoSVG": "2.9.0", "Pillow": "13.0.0"}
+EXPECTED_TOOLS = {"CairoSVG": "2.9.1", "Pillow": "13.0.0"}
 
 
 def _verify_tools() -> None:

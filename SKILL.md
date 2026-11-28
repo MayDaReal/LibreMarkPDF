@@ -74,6 +74,7 @@ python -m libremark_pdf doctor --json
 python -m libremark_pdf convert --help
 ```
 
-`doctor` is read-only: it inspects the bundled resource and browser identities
-without launching Chromium or downloading anything. Do not substitute a second
-renderer if it reports a missing browser.
+`doctor --json` reports the Python runtime and the Playwright, Chromium and
+FFmpeg identities. It checks for the selected headless shell and required local
+resources without launching Chromium or downloading anything. Use the same
+renderer when resolving a missing shell.

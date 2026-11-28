@@ -170,7 +170,7 @@ class TestConvertCommand(unittest.TestCase):
         self.assertEqual(payload["theme"], "default@1")
         self.assertEqual(payload["render_date"], "2026-07-14")
         self.assertEqual(payload["render_profile"], "default@1")
-        self.assertEqual(payload["playwright_version"], "1.60.0")
+        self.assertEqual(payload["playwright_version"], cli.core.PLAYWRIGHT_VERSION)
         self.assertRegex(payload["renderer_fingerprint"], r"^[0-9a-f]{64}$")
 
     def test_css_and_theme_are_mutually_exclusive(self):
@@ -217,8 +217,10 @@ class TestConvertCommand(unittest.TestCase):
 
 
 class TestCliSubprocessContract(unittest.TestCase):
-    def run_cli(self, *arguments, cwd=None):
+    def run_cli(self, *arguments, cwd=None, browser_dir=None):
         environment = os.environ.copy()
+        if browser_dir is not None:
+            environment["PLAYWRIGHT_BROWSERS_PATH"] = str(browser_dir)
         root = str(Path(__file__).resolve().parent.parent)
         existing = environment.get("PYTHONPATH")
         environment["PYTHONPATH"] = root if not existing else root + os.pathsep + existing
@@ -239,9 +241,25 @@ class TestCliSubprocessContract(unittest.TestCase):
         self.assertEqual(completed.stderr, "")
         for identity in (
             "LibreMark PDF 0.1.0rc1", "render-profile default@1",
-            "Playwright 1.60.0", "Chromium 148.0.7778.96", "revision 1223",
+            f"Playwright {cli.core.PLAYWRIGHT_VERSION}",
+            f"Chromium {cli.core.CHROMIUM_VERSION}",
+            f"revision {cli.core.CHROMIUM_REVISION}",
         ):
             self.assertIn(identity, completed.stdout)
+
+    def test_doctor_rejects_a_shell_from_another_revision(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            stale = Path(temporary) / "chromium_headless_shell-0"
+            stale.mkdir()
+            executable = "chrome-headless-shell.exe" if os.name == "nt" else "chrome-headless-shell"
+            (stale / executable).touch()
+            completed = self.run_cli("doctor", "--json", browser_dir=temporary)
+        self.assertEqual(completed.returncode, 1)
+        self.assertEqual(completed.stderr, "")
+        payload = json.loads(completed.stdout)
+        self.assertFalse(payload["resources"]["browser"])
+        self.assertEqual(payload["browser_executables"], [])
+        self.assertEqual(payload["python_version"], sys.version.split()[0])
 
     def test_unknown_option_is_one_json_document_with_no_stderr(self):
         completed = self.run_cli(

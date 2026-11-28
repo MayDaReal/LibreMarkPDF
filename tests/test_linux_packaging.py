@@ -14,7 +14,7 @@ from tools import verify_locked_environment
 
 
 ROOT = Path(__file__).resolve().parent.parent
-LOCK = ROOT / "requirements" / "locks" / "linux-x86_64-py39.txt"
+LOCK = ROOT / "requirements" / "locks" / "linux-x86_64-py314.txt"
 
 
 class TestLinuxPackaging(unittest.TestCase):
@@ -46,10 +46,10 @@ class TestLinuxPackaging(unittest.TestCase):
             ROOT / "tools" / "build-linux-artifact.sh"
         ).read_text(encoding="utf-8")
         for marker in (
-            "linux-x86_64-py39.txt",
-            "sys.version_info[:2] == (3, 9)",
-            "PyInstaller.__version__ == '6.21.0'",
-            "chromium_headless_shell-1223",
+            "linux-x86_64-py314.txt",
+            "sys.version_info[:2] == (3, 14)",
+            "tools/verify_locked_environment.py",
+            "core.CHROMIUM_REVISION, core.FFMPEG_REVISION",
             "LibreMarkPDF-cli",
             "LibreMarkPDF-debug",
             "stage_manual_pdfs.py",

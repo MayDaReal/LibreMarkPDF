@@ -11,7 +11,7 @@ $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
 $RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 if ([string]::IsNullOrWhiteSpace($Python)) {
-    $Python = Join-Path $RepoRoot ".venv-windows-py39\Scripts\python.exe"
+    $Python = Join-Path $RepoRoot ".venv-windows-py314\Scripts\python.exe"
 }
 if ([string]::IsNullOrWhiteSpace($EvidenceRoot)) {
     $Version = (Get-Content -LiteralPath (Join-Path $RepoRoot "VERSION") -Raw).Trim()
@@ -29,7 +29,14 @@ if (-not [Environment]::Is64BitOperatingSystem -or $NativeArchitecture -ne "AMD6
     throw "The mandatory candidate lane requires native Windows x64 (AMD64)."
 }
 if (-not (Test-Path -LiteralPath $Python -PathType Leaf)) {
-    throw "The locked CPython 3.9 executable is unavailable: $Python"
+    throw "The locked CPython 3.14 executable is unavailable: $Python"
+}
+$Python = (Resolve-Path -LiteralPath $Python).Path
+$Lock = Join-Path $RepoRoot "requirements\locks\windows-x64-py314.txt"
+$BrowserSource = if ($env:LIBREMARK_PDF_BROWSER_SOURCE) {
+    (Resolve-Path -LiteralPath $env:LIBREMARK_PDF_BROWSER_SOURCE).Path
+} else {
+    Join-Path $RepoRoot "browser-win"
 }
 
 $EvidenceRoot = [IO.Path]::GetFullPath($EvidenceRoot)
@@ -117,15 +124,17 @@ try {
     ) -Encoding UTF8
 
     Invoke-Native $Python @("--version")
-    $VersionProbe = & $Python -c "import platform,sys; print(platform.platform()); print(sys.version); raise SystemExit(0 if sys.version_info[:2] == (3,9) else 1)"
-    if ($LASTEXITCODE -ne 0) { throw "CPython 3.9 is mandatory." }
+    $VersionProbe = & $Python -c "import platform, ssl, sys, sysconfig, tkinter; print(platform.platform(), sys.version, sys._base_executable, ssl.OPENSSL_VERSION, tkinter.TclVersion, tkinter.TkVersion, sep=chr(10)); raise SystemExit(not (sys.implementation.name == 'cpython' and sys.version_info[:2] == (3, 14) and sysconfig.get_platform() == 'win-amd64' and not sysconfig.get_config_var('Py_GIL_DISABLED')))"
+    if ($LASTEXITCODE -ne 0) { throw "Standard CPython 3.14 x64 is mandatory." }
     $VersionProbe | Set-Content -LiteralPath (Join-Path $LogDir "python.txt") -Encoding UTF8
     Invoke-Native $Python @("-m", "pip", "freeze")
+    Invoke-Native $Python @("tools\verify_locked_environment.py", "--lock", $Lock)
+    $env:PLAYWRIGHT_BROWSERS_PATH = $BrowserSource
     Invoke-Native $Python @("-m", "libremark_pdf", "--version")
     Invoke-Native $Python @("-m", "libremark_pdf", "doctor", "--json")
 
     $HashInputs = @(
-        "requirements\locks\windows-x64-py39.txt",
+        $Lock,
         "style.css",
         "tests\fixtures\canonical\manifest.json",
         "tests\goldens\canonical\expected.json",
@@ -143,12 +152,12 @@ try {
         Join-Path $LogDir "source-input-hashes.json"
     ) -Encoding UTF8
 
-    $env:PLAYWRIGHT_BROWSERS_PATH = Join-Path $RepoRoot "browser-win"
     Invoke-Native $Python @("-m", "unittest", "discover", "-s", "tests", "-v")
 
     $env:LIBREMARK_PDF_DISTPATH = $ArtifactDir.FullName
     $env:LIBREMARK_PDF_WORKPATH = $WorkDir.FullName
     $env:LIBREMARK_PDF_PYTHON = $Python
+    $env:LIBREMARK_PDF_BROWSER_SOURCE = $BrowserSource
     Invoke-Native (Join-Path $RepoRoot "tools\build-windows-artifact.bat")
 
     $Candidate = Join-Path $ArtifactDir "LibreMarkPDF"
@@ -337,11 +346,11 @@ try {
         Join-Path $LogDir "offline-verdict.json"
     ) -Encoding UTF8
 
-    $GuiProcess = Start-Process -FilePath $GuiPath -PassThru
+    $GuiProcess = Start-Process -FilePath $GuiPath -PassThru -WindowStyle Hidden
     Start-Sleep -Seconds 5
     if ($GuiProcess.HasExited) { throw "Windowed GUI exited during startup smoke." }
     Stop-Process -Id $GuiProcess.Id
-    $DebugProcess = Start-Process -FilePath $DebugPath -PassThru
+    $DebugProcess = Start-Process -FilePath $DebugPath -PassThru -WindowStyle Hidden
     Start-Sleep -Seconds 5
     if ($DebugProcess.HasExited) { throw "Diagnostic GUI exited during startup smoke." }
     Stop-Process -Id $DebugProcess.Id
@@ -373,7 +382,7 @@ try {
     $Sbom = Join-Path $EvidenceRoot "LibreMarkPDF-Windows-x64.spdx.json"
     Invoke-Native $Python @(
         "tools\generate_windows_sbom.py",
-        "--lock", (Join-Path $RepoRoot "requirements\locks\windows-x64-py39.txt"),
+        "--lock", $Lock,
         "--artifact-dir", $ExternalCandidate,
         "--commit", $Commit,
         "--created", $Created,

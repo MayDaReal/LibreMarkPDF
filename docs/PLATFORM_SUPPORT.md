@@ -5,6 +5,11 @@ Windows x64 and Ubuntu 24.04 x86_64. A Windows artifact must be built and
 validated on native Windows, outside the checkout, with its embedded browser
 and without Python or a Playwright cache available at runtime.
 
+The source migration targets standard CPython 3.14, with native wheel locks
+for Ubuntu 24.04 x86_64 and Windows x64. Each release requires its own native
+validation. Public downloads retain the support scope published with their
+own release.
+
 The Linux portable tarball must be built and validated natively on Ubuntu
 24.04 x86_64. Its release evidence records the desktop environment, display
 server, glibc requirements, offline behavior, and GUI/CLI checks. This narrow

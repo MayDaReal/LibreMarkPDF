@@ -17,6 +17,7 @@ from .contracts import (
     CHROMIUM_VERSION,
     ConversionError,
     DEFAULT_PROFILE_VERSION,
+    FFMPEG_REVISION,
     MAX_RESOURCE_BYTES,
     MAX_RESOURCE_COUNT,
     MAX_TOTAL_RESOURCE_BYTES,
@@ -113,15 +114,17 @@ def renderer_identity() -> dict:
     _configured()
     executable_names = {"chrome-headless-shell", "chrome-headless-shell.exe"}
     browser_executables = []
-    if _browsers_dir.is_dir():
+    shell_directory = _browsers_dir / f"chromium_headless_shell-{CHROMIUM_REVISION}"
+    if shell_directory.is_dir():
         browser_executables = sorted(
             str(path)
-            for path in _browsers_dir.rglob("*")
+            for path in shell_directory.rglob("*")
             if path.is_file() and path.name in executable_names
         )
     return {
         "chromium_revision": CHROMIUM_REVISION,
         "chromium_version": CHROMIUM_VERSION,
+        "ffmpeg_revision": FFMPEG_REVISION,
         "playwright_version": PLAYWRIGHT_VERSION,
         "render_profile": DEFAULT_PROFILE_VERSION,
         "browser_path": str(_browsers_dir),

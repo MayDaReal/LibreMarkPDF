@@ -4,7 +4,7 @@ import os
 import sys
 
 from PyInstaller.building.datastruct import Tree
-from PyInstaller.utils.hooks import collect_data_files
+from PyInstaller.utils.hooks import collect_data_files, copy_metadata
 
 
 browser_source = os.environ.get(
@@ -22,7 +22,7 @@ a = Analysis(
     ["libremark_pdf_entry.py"],
     pathex=[],
     binaries=[],
-    datas=collect_data_files("customtkinter") + [
+    datas=collect_data_files("customtkinter") + copy_metadata("playwright") + [
         ("style.css", "."),
         ("VERSION", "."),
         ("icons", "icons"),

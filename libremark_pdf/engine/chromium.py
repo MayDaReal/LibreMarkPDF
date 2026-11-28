@@ -9,6 +9,7 @@ from typing import Any, Optional
 
 from . import document
 from .contracts import (
+    CHROMIUM_VERSION,
     ConversionError,
     HeaderFooterConfig,
     MARGIN_NO_HEADER_FOOTER,
@@ -45,6 +46,13 @@ class BrowserRenderer:
                 "BROWSER_UNAVAILABLE: could not launch the headless browser. Run "
                 "'python -m playwright install chromium' once, then retry."
             ) from exc
+        actual_version = self._browser.version
+        if actual_version != CHROMIUM_VERSION:
+            self.__exit__(None, None, None)
+            raise ConversionError(
+                f"BROWSER_MISMATCH: expected Chromium {CHROMIUM_VERSION}, "
+                f"launched {actual_version}."
+            )
         return self
 
     def __exit__(self, exc_type, exc_value, traceback) -> None:
