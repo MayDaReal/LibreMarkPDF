@@ -37,6 +37,11 @@ class TestPackagingConfiguration(unittest.TestCase):
             portable,
         )
         self.assertIn('excludes=[".links", ".links/*"]', portable)
+        self.assertIn('Path(sys.base_prefix) / "LICENSE.txt"', portable)
+        self.assertIn('Path(sysconfig.get_path("stdlib")) / "LICENSE.txt"', portable)
+        self.assertIn('"licenses/CPython"', portable)
+        self.assertIn('"pypdfium2"', portable)
+        self.assertIn('+ native_licenses +', portable)
         self.assertNotIn('("docs/MANUAL_EN.md", "docs")', portable)
         self.assertNotIn('("docs/MANUEL_FR.md", "docs")', portable)
 

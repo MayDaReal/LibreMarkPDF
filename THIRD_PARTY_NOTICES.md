@@ -44,6 +44,11 @@ The applicable records are copied into each generated SBOM. The Chromium
 headless shell selected by Playwright carries its packaged `LICENSE.headless_shell`; the evidence inventory
 hashes that file and the complete browser payload.
 
+The frozen artifact retains CPython's license under `licenses/CPython/`.
+Wheel-supplied notices for Pillow, pypdfium2, TkinterDnD2, greenlet,
+darkdetect, setuptools and the PyInstaller bootloader are also under
+`licenses/`. The pypdfium2 notices cover its bundled PDFium build.
+
 The seven bundled Noto faces are licensed under OFL-1.1. Their retained texts
 are:
 

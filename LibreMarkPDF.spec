@@ -2,6 +2,9 @@
 
 import os
 import sys
+import sysconfig
+from importlib.metadata import distribution
+from pathlib import Path
 
 from PyInstaller.building.datastruct import Tree
 from PyInstaller.utils.hooks import collect_data_files, copy_metadata
@@ -17,12 +20,35 @@ if not manual_source:
         "LIBREMARK_PDF_MANUAL_SOURCE is required; use a native build script."
     )
 
+interpreter_licenses = (
+    Path(sys.base_prefix) / "LICENSE.txt",
+    Path(sysconfig.get_path("stdlib")) / "LICENSE.txt",
+)
+interpreter_license = next((path for path in interpreter_licenses if path.is_file()), None)
+if interpreter_license is None:
+    raise SystemExit("The native CPython installation must include LICENSE.txt.")
+
+native_licenses = [(str(interpreter_license), "licenses/CPython")]
+for package in ("darkdetect", "greenlet", "Pillow", "pypdfium2", "PyInstaller",
+                "setuptools", "tkinterdnd2"):
+    wheel = distribution(package)
+    licenses = [
+        file for file in wheel.files or ()
+        if len(file.parts) > 1 and file.parts[0].endswith(".dist-info")
+        and (file.parts[1] == "licenses"
+             or file.name.upper().startswith(("LICENSE", "COPYING", "NOTICE")))
+    ]
+    if not licenses:
+        raise SystemExit(f"The locked {package} wheel is missing its license files.")
+    for file in licenses:
+        destination = Path("licenses", package, *file.parts[1:-1])
+        native_licenses.append((str(file.locate()), str(destination)))
 
 a = Analysis(
     ["libremark_pdf_entry.py"],
     pathex=[],
     binaries=[],
-    datas=collect_data_files("customtkinter") + copy_metadata("playwright") + [
+    datas=collect_data_files("customtkinter") + copy_metadata("playwright") + native_licenses + [
         ("style.css", "."),
         ("VERSION", "."),
         ("icons", "icons"),
