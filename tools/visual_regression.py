@@ -310,7 +310,7 @@ def collect_actual(manifest_path, actual_dir, require_complete=False):
     if require_complete and missing:
         raise ValueError("Incomplete canonical evidence; missing: {}".format(", ".join(missing)))
     return {"fixtures": [entries[fixture_id] for fixture_id in expected_ids if fixture_id in entries],
-            "pdfium_version": "5.11.0", "platform_id": canonical_platform_id(),
+            "pdfium_version": str(pdfium.PYPDFIUM_INFO), "platform_id": canonical_platform_id(),
             "raster_dpi": RASTER_DPI, "schema": SCHEMA}
 
 

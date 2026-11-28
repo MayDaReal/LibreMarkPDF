@@ -175,9 +175,9 @@ fi
 
 run "$python_bin" --version
 run "$python_bin" -c \
-  "import sys; raise SystemExit(0 if sys.version_info[:2] == (3, 9) else 1)"
+  'import sys, sysconfig; raise SystemExit(not (sys.implementation.name == "cpython" and sys.version_info[:2] == (3, 14) and not sysconfig.get_config_var("Py_GIL_DISABLED")))'
 run "$python_bin" tools/verify_locked_environment.py \
-  --lock requirements/locks/linux-x86_64-py39.txt
+  --lock requirements/locks/linux-x86_64-py314.txt
 run "$python_bin" -m pip check
 "$python_bin" -m pip freeze --all | sort > "$logs/python-freeze.txt"
 run "$python_bin" -m libremark_pdf --version
@@ -185,15 +185,16 @@ run env PLAYWRIGHT_BROWSERS_PATH="$browser_source" \
   "$python_bin" -m libremark_pdf doctor --json
 
 {
-  sha256sum requirements/locks/linux-x86_64-py39.txt
+  sha256sum requirements/locks/linux-x86_64-py314.txt
   sha256sum style.css tests/fixtures/canonical/manifest.json
   sha256sum tests/goldens/canonical/expected.json
   find fonts icons tests/fixtures/themes/community-blue -type f -print0 |
     sort -z | xargs -0 sha256sum
 } > "$logs/source-input-hashes.sha256"
 
-run env PLAYWRIGHT_BROWSERS_PATH="$browser_source" \
-  "$python_bin" -m unittest discover -s tests -v
+run env PLAYWRIGHT_BROWSERS_PATH="$browser_source" COVERAGE_FILE="$work/.coverage" \
+  "$python_bin" tools/run_tests.py all --coverage
+run env COVERAGE_FILE="$work/.coverage" "$python_bin" -m coverage report
 
 run env \
   LIBREMARK_PDF_PYTHON="$python_bin" \
@@ -380,7 +381,7 @@ echo "$canonical_exit" > "$logs/canonical-exit.txt"
 created="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 commit="$(git rev-parse HEAD)"
 run "$python_bin" tools/generate_windows_sbom.py \
-  --lock requirements/locks/linux-x86_64-py39.txt \
+  --lock requirements/locks/linux-x86_64-py314.txt \
   --artifact-dir "$external_candidate" \
   --commit "$commit" \
   --created "$created" \

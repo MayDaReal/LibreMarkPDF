@@ -14,15 +14,17 @@ class TestContributorTooling(unittest.TestCase):
     def test_bootstraps_use_platform_locks_and_exact_browser_install(self):
         windows = (ROOT / "bootstrap-windows.ps1").read_text(encoding="utf-8")
         linux = (ROOT / "bootstrap-linux.sh").read_text(encoding="utf-8")
-        for text, lock in ((windows, "windows-x64-py39.txt"), (linux, "linux-x86_64-py39.txt")):
+        for text, lock in ((windows, "windows-x64-py314.txt"), (linux, "linux-x86_64-py314.txt")):
             self.assertIn(lock, text)
             self.assertIn("--require-hashes", text)
+            self.assertIn("--only-binary=:all:", text)
+            self.assertIn("Py_GIL_DISABLED", text)
             self.assertIn("pip check", text)
             self.assertIn("playwright install --only-shell chromium", text)
-            self.assertIn("chromium_headless_shell-1223", text)
+            self.assertIn("-m libremark_pdf doctor --json", text)
         self.assertIn("browser-win", windows)
         self.assertIn("browser-linux", linux)
-        self.assertIn("Python.Python.3.9", windows)
+        self.assertIn("Python.Python.3.14", windows)
         self.assertIn("GnuWin32.Make", windows)
         self.assertIn("Confirm-Install", windows)
         self.assertIn("confirm_install", linux)
@@ -33,7 +35,8 @@ class TestContributorTooling(unittest.TestCase):
         validator = (
             ROOT / "tools" / "validate-windows-artifact.ps1"
         ).read_text(encoding="utf-8")
-        self.assertIn('.venv-windows-py39\\Scripts\\python.exe', validator)
+        self.assertIn('.venv-windows-py314\\Scripts\\python.exe', validator)
+        self.assertIn("win-amd64", validator)
         self.assertIn('dist\\$Version\\windows-x64', validator)
 
     def test_makefile_exposes_non_overlapping_test_and_validation_targets(self):
@@ -84,7 +87,11 @@ class TestContributorTooling(unittest.TestCase):
         self.assertTrue((ROOT / "tools" / "build-linux-artifact.sh").is_file())
 
     def test_version_is_single_root_source(self):
-        self.assertEqual((ROOT / "VERSION").read_text(encoding="utf-8").strip(), "0.1.0rc1")
+        from libremark_pdf import __version__
+
+        version = (ROOT / "VERSION").read_text(encoding="utf-8").strip()
+        self.assertEqual(__version__, version)
+        self.assertRegex(version, r"^\d+\.\d+\.\d+(?:(?:a|b|rc)\d+|\.dev\d+)?$")
         package = (ROOT / "libremark_pdf" / "__init__.py").read_text(encoding="utf-8")
         self.assertIn(' / "VERSION"', package)
 
@@ -134,7 +141,7 @@ class TestContributorTooling(unittest.TestCase):
         )
         self.assertNotIn("tests.test_g1_spikes", quality)
         project = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
-        self.assertIn('"coverage[toml]==7.10.7"', project)
+        self.assertIn('"coverage[toml]==7.17.5"', project)
         self.assertIn("fail_under = 75", project)
         self.assertIn("github.event.repository.private == false", security)
         combined = quality + security

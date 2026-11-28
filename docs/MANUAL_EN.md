@@ -3,29 +3,23 @@
 LibreMark PDF converts one or more Markdown files into styled A4 PDFs on your
 computer. It provides a desktop interface and a non-interactive command line.
 
-> **Pre-release notice:** validated Windows x64 and Ubuntu 24.04 x86_64
-> downloads are available from the public
-> [`v0.1.0rc1` release](https://github.com/MayDaReal/LibreMarkPDF/releases/tag/v0.1.0rc1).
-> This release candidate is not the stable `v0.1.0` release. The Windows archive
-> is not Authenticode-signed; signed checksums and validation evidence are
-> attached to the release.
+> **Pre-release notice:** see the
+> [`v0.1.0rc2` release page](https://github.com/MayDaReal/LibreMarkPDF/releases/tag/v0.1.0rc2)
+> for published Windows x64 and Ubuntu 24.04 x86_64 downloads, signed
+> checksums and native validation evidence. The Windows archive uses
+> checksum signing and comes without Authenticode.
 
 The planned initial `v0.1.0` binary release supports Windows x64 and validated
 Ubuntu 24.04 x86_64 candidates. This is not a general Linux compatibility
 claim; other distributions, versions, architectures, desktop environments,
 and display servers remain outside the support matrix. macOS is out of scope.
 
-For a source checkout, run `bootstrap-windows.ps1` on Windows or
-`bootstrap-linux.sh` on Linux. They prepare the locked Python 3.9 environment
-and the required local Chromium payload. A shared checkout keeps the native
-payloads separate in `browser-win/` and `browser-linux/`. On Windows,
-`bootstrap-windows.ps1 -InstallPython -InstallMake` can explicitly install
-missing recommended tools. On Linux, use
-`bootstrap-linux.sh --install-python --install-make`. Without explicit options,
-an interactive terminal asks before installing a missing tool.
-On Ubuntu 24.04 and other distributions without a native CPython 3.9 package,
-install CPython 3.9 with pyenv first; the Linux bootstrap detects an installed
-`3.9.x` pyenv version automatically.
+For a Linux source checkout, install standard CPython 3.14 with Tk and run
+`./bootstrap-linux.sh`. It detects Python 3.14 installed with pyenv or accepts
+an executable through `PYTHON`, prepares `.venv-linux-py314` from the native
+wheel lock and stages the required Chromium payload under `browser-linux/`.
+Use `--non-interactive` to run without prompts. For a Windows x64 source
+checkout, see the CPython 3.14 and PowerShell setup in the project README.
 
 ## Desktop workflow
 

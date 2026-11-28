@@ -9,26 +9,28 @@ on:
 permissions:
   contents: read
 
+env:
+  PYTHON_VERSION: "3.14.10"
+
 jobs:
   pure-tests:
     runs-on: ubuntu-24.04
-    strategy:
-      fail-fast: false
-      matrix:
-        python-version: ["3.9", "3.12"]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
+          cache-dependency-path: requirements/locks/linux-x86_64-py314.txt
       - name: Install locked test dependencies
-        run: python -m pip install -c requirements/constraints.txt -e ".[test]"
-      - name: Python 3.9 syntax and focused static checks
+        run: >-
+          python -m pip install --only-binary=:all: --require-hashes
+          -r requirements/locks/linux-x86_64-py314.txt
+      - name: CPython 3.14 syntax and focused static checks
         run: |
           python -m compileall -q libremark_pdf tests tools
           ruff check libremark_pdf tests tools
-      - name: Pure browser-free tests
+      - name: Focused source tests
         run: python tools/run_tests.py pure
 
   browser-tests:
@@ -37,10 +39,13 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
-          python-version: "3.9"
+          python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
+          cache-dependency-path: requirements/locks/linux-x86_64-py314.txt
       - name: Install locked test dependencies
-        run: python -m pip install -c requirements/constraints.txt -e ".[test]"
+        run: >-
+          python -m pip install --only-binary=:all: --require-hashes
+          -r requirements/locks/linux-x86_64-py314.txt
       - name: Install locked Chromium headless shell
         env:
           PLAYWRIGHT_BROWSERS_PATH: ${{ runner.temp }}/libremark-browsers
@@ -54,7 +59,7 @@ jobs:
           coverage xml
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: coverage-python-3.9
+          name: coverage-python-3.14
           path: coverage.xml
 
   source-hygiene:
@@ -63,7 +68,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
-          python-version: "3.9"
+          python-version: ${{ env.PYTHON_VERSION }}
       - run: python tools/check_source_hygiene.py
       - name: Build and inspect source archive
         run: |

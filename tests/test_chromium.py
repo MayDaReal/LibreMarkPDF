@@ -9,6 +9,18 @@ from libremark_pdf.engine import chromium
 
 
 class TestChromiumDomain(unittest.TestCase):
+    def test_browser_version_mismatch_closes_renderer_and_driver(self):
+        driver = mock.Mock()
+        browser = driver.chromium.launch.return_value
+        browser.version = "0.0.0.0"
+        with mock.patch("playwright.sync_api.sync_playwright") as start:
+            start.return_value.start.return_value = driver
+            with self.assertRaisesRegex(core.ConversionError, "BROWSER_MISMATCH"):
+                with chromium.BrowserRenderer():
+                    self.fail("An unexpected browser started a rendering session")
+        browser.close.assert_called_once_with()
+        driver.stop.assert_called_once_with()
+
     def test_chromium_implementation_does_not_import_the_public_facade(self):
         self.assertNotIn(
             "libremark_pdf.core", Path(chromium.__file__).read_text(encoding="utf-8")

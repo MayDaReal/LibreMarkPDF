@@ -111,8 +111,8 @@ it is local context, not product documentation or a source of truth.
 
 ## Invariants
 
-- Python 3.9 remains supported. Avoid `X | None`, `match`, and APIs introduced
-  after 3.9.
+- Source development targets standard GIL-enabled CPython 3.14. The
+  supported range is `>=3.14,<3.15`. Validate each native release lane.
 - Runtime conversion must not require an account, upload, telemetry, or network.
 - `resource_path()` must resolve the same data from source and `sys._MEIPASS`.
 - A bundled browser must be selected through `PLAYWRIGHT_BROWSERS_PATH`.
@@ -142,7 +142,7 @@ it is local context, not product documentation or a source of truth.
 - Use `pathlib.Path`, UTF-8 for text files, context managers, and narrow
   exceptions. Broad exceptions are allowed only at user-facing or per-item
   isolation boundaries and must retain an actionable message.
-- Add type hints to new or materially changed boundaries. Use Python 3.9 syntax.
+- Add type hints to new or materially changed boundaries. Use Python 3.14 syntax.
 - Comments explain constraints, decisions, or non-obvious failure handling;
   they do not narrate straightforward code. Keep public docstrings concise.
 - Do not add a dependency when the standard library or an existing dependency

@@ -1,12 +1,12 @@
 # GNU Make is optional on Windows; bootstrap-windows.ps1 is the primary entry.
 ifeq ($(OS),Windows_NT)
 VERSION := $(shell type VERSION)
-PYTHON ?= .venv-windows-py39\Scripts\python.exe
+PYTHON ?= .venv-windows-py314\Scripts\python.exe
 PLATFORM := windows-x64
 BROWSER_DIR ?= $(CURDIR)/browser-win
 else
 VERSION := $(shell cat VERSION)
-PYTHON ?= .venv-linux-py39/bin/python
+PYTHON ?= .venv-linux-py314/bin/python
 PLATFORM := linux-x86_64
 BROWSER_DIR ?= $(CURDIR)/browser-linux
 endif
@@ -37,7 +37,7 @@ test-visual:
 	$(PYTHON) tools/run_tests.py visual --browser-dir "$(BROWSER_DIR)"
 
 build-windows:
-	cmd /c "set LIBREMARK_PDF_PYTHON=$(PYTHON)&& set LIBREMARK_PDF_DISTPATH=$(DIST_DIR)&& tools\build-windows-artifact.bat"
+	cmd /c "set LIBREMARK_PDF_PYTHON=$(PYTHON)&& set LIBREMARK_PDF_BROWSER_SOURCE=$(BROWSER_DIR)&& set LIBREMARK_PDF_DISTPATH=$(DIST_DIR)&& tools\build-windows-artifact.bat"
 
 build-linux:
 	LIBREMARK_PDF_PYTHON="$(PYTHON)" LIBREMARK_PDF_BROWSER_SOURCE="$(BROWSER_DIR)" LIBREMARK_PDF_DISTPATH="$(DIST_DIR)" ./tools/build-linux-artifact.sh

@@ -2,7 +2,7 @@
 REM Build the Windows x64 portable-directory candidate.
 REM
 REM Prerequisites:
-REM - CPython 3.9 x64 environment prepared from the hashed Windows lock;
+REM - standard CPython 3.14 x64 environment prepared from the hashed Windows lock;
 REM - Playwright Chromium already staged under browser-win\;
 REM - no dependency or browser download is performed by this script.
 REM
@@ -22,28 +22,19 @@ echo === LibreMark PDF portable-directory build (Windows x64) ===
 echo Building from: %cd%
 echo(
 
-if not defined LIBREMARK_PDF_PYTHON set "LIBREMARK_PDF_PYTHON=python"
+if not defined LIBREMARK_PDF_PYTHON set "LIBREMARK_PDF_PYTHON=%cd%\.venv-windows-py314\Scripts\python.exe"
+if not defined LIBREMARK_PDF_BROWSER_SOURCE set "LIBREMARK_PDF_BROWSER_SOURCE=%cd%\browser-win"
+set "PLAYWRIGHT_BROWSERS_PATH=%LIBREMARK_PDF_BROWSER_SOURCE%"
 
-"%LIBREMARK_PDF_PYTHON%" -c "import sys; sys.exit(0 if sys.version_info[:2] == (3, 9) else 1)"
+"%LIBREMARK_PDF_PYTHON%" -c "import os, sys, sysconfig; raise SystemExit(not (sys.implementation.name == 'cpython' and sys.version_info[:2] == (3, 14) and sysconfig.get_platform() == 'win-amd64' and not sysconfig.get_config_var('Py_GIL_DISABLED') and (os.environ.get('PROCESSOR_ARCHITEW6432') or os.environ.get('PROCESSOR_ARCHITECTURE')) == 'AMD64'))"
 if errorlevel 1 (
-    echo [FAILED] This candidate build requires CPython 3.9.
+    echo [FAILED] This candidate build requires standard CPython 3.14 on native Windows x64.
     goto :error
 )
 
-"%LIBREMARK_PDF_PYTHON%" -c "import PyInstaller; raise SystemExit(0 if PyInstaller.__version__ == '6.21.0' else 1)"
+"%LIBREMARK_PDF_PYTHON%" -m tools.verify_locked_environment --lock requirements\locks\windows-x64-py314.txt --check-browser
 if errorlevel 1 (
-    echo [FAILED] PyInstaller 6.21.0 is required. Prepare the hashed lock first.
-    goto :error
-)
-
-if not exist "browser-win\" (
-    echo [FAILED] The locked Playwright browser payload is missing from browser-win\.
-    goto :error
-)
-
-where /r "%cd%\browser-win" chrome-headless-shell.exe >nul 2>nul
-if errorlevel 1 (
-    echo [FAILED] chrome-headless-shell.exe was not found under browser-win\.
+    echo [FAILED] Prepare the hashed Windows lock first.
     goto :error
 )
 
@@ -51,7 +42,6 @@ if not defined LIBREMARK_PDF_DISTPATH set "LIBREMARK_PDF_DISTPATH=%cd%\dist"
 if not defined LIBREMARK_PDF_WORKPATH set "LIBREMARK_PDF_WORKPATH=%cd%\build"
 
 set "LIBREMARK_PDF_MANUAL_SOURCE=%LIBREMARK_PDF_WORKPATH%\manual-pdfs"
-set "PLAYWRIGHT_BROWSERS_PATH=%cd%\browser-win"
 "%LIBREMARK_PDF_PYTHON%" tools\stage_manual_pdfs.py --output-dir "%LIBREMARK_PDF_MANUAL_SOURCE%"
 if errorlevel 1 (
     echo [FAILED] Localized manual PDF generation failed.
@@ -81,6 +71,12 @@ if not exist "%LIBREMARK_PDF_DISTPATH%\LibreMarkPDF\LibreMarkPDF-cli.exe" (
 )
 if not exist "%LIBREMARK_PDF_DISTPATH%\LibreMarkPDF\LibreMarkPDF-debug.exe" (
     echo [FAILED] Build completed without the diagnostic GUI executable.
+    goto :error
+)
+set "PLAYWRIGHT_BROWSERS_PATH="
+"%LIBREMARK_PDF_DISTPATH%\LibreMarkPDF\LibreMarkPDF-cli.exe" doctor --json
+if errorlevel 1 (
+    echo [FAILED] Frozen resource verification failed.
     goto :error
 )
 

@@ -4,7 +4,9 @@ __pycache__/
 *.egg-info/
 .venv/
 .venv-windows-py39/
+.venv-windows-py314/
 .venv-linux-py39/
+.venv-linux-py314/
 venv/
 venv-linux/
 

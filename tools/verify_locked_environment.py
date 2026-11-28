@@ -36,10 +36,28 @@ def verify(lock_path: Path) -> dict:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--lock", type=Path, required=True)
+    parser.add_argument("--check-browser", action="store_true")
     args = parser.parse_args()
     result = verify(args.lock)
     print(json.dumps(result, sort_keys=True))
-    return 0 if result["status"] == "ok" else 1
+    if result["status"] != "ok":
+        return 1
+    if args.check_browser:
+        from libremark_pdf import core
+
+        identity = core.renderer_identity()
+        browser_root = Path(identity["browser_path"])
+        expected = {
+            f"chromium_headless_shell-{identity['chromium_revision']}",
+            f"ffmpeg-{identity['ffmpeg_revision']}",
+        }
+        actual = {
+            path.name for path in browser_root.iterdir()
+            if path.is_dir() and path.name.startswith(("chromium", "ffmpeg-"))
+        } if browser_root.is_dir() else set()
+        if actual != expected or not identity["browser_executables"]:
+            parser.exit(1, f"Exact Chromium and FFmpeg payloads required in {browser_root}\n")
+    return 0
 
 
 if __name__ == "__main__":

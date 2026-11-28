@@ -4,12 +4,11 @@ LibreMark PDF convertit un ou plusieurs fichiers Markdown en PDF A4 mis en
 forme, directement sur votre ordinateur. Il propose une interface graphique et
 une ligne de commande non interactive.
 
-> **Version préliminaire :** les téléchargements validés pour Windows x64 et
-> Ubuntu 24.04 x86_64 sont disponibles dans la version publique
-> [`v0.1.0rc1`](https://github.com/MayDaReal/LibreMarkPDF/releases/tag/v0.1.0rc1).
-> Cette release candidate n’est pas la version stable `v0.1.0`. L’archive
-> Windows ne possède pas de signature Authenticode ; les sommes de contrôle
-> signées et les preuves de validation accompagnent la version.
+> **Version préliminaire.** Consultez la
+> [page de `v0.1.0rc2`](https://github.com/MayDaReal/LibreMarkPDF/releases/tag/v0.1.0rc2)
+> pour les téléchargements Windows x64 et Ubuntu 24.04 x86_64 publiés, les
+> sommes de contrôle signées et les preuves de validation native. L’archive
+> Windows est vérifiable par ses sommes de contrôle signées, sans Authenticode.
 
 La première version binaire `v0.1.0` prévue prend en charge Windows x64 et les
 candidats Ubuntu 24.04 x86_64 validés. Cette portée ne constitue pas une
@@ -17,17 +16,13 @@ compatibilité Linux générale : les autres distributions, versions,
 architectures, environnements de bureau et serveurs d’affichage restent hors
 de la matrice de support. macOS est hors périmètre.
 
-Depuis un clone, lancez `bootstrap-windows.ps1` sous Windows ou
-`bootstrap-linux.sh` sous Linux. Ces scripts préparent l’environnement Python
-3.9 verrouillé et le navigateur Chromium local requis. Un clone partagé garde
-les payloads natifs séparés dans `browser-win/` et `browser-linux/`. Sous
-Windows, `bootstrap-windows.ps1 -InstallPython -InstallMake` peut installer
-explicitement les outils recommandés manquants. Sous Linux, utilisez
-`bootstrap-linux.sh --install-python --install-make`. Sans ces options, un
-terminal interactif demande confirmation avant toute installation.
-Sur Ubuntu 24.04 et les distributions qui ne proposent plus de paquet CPython
-3.9 natif, installez d’abord CPython 3.9 avec pyenv ; le bootstrap Linux détecte
-automatiquement une version pyenv `3.9.x` déjà installée.
+Pour exécuter les sources sous Linux, installez CPython 3.14 standard avec Tk,
+puis lancez `./bootstrap-linux.sh`. Le script détecte une installation pyenv
+de Python 3.14 ou accepte un exécutable via `PYTHON`. Il prépare
+`.venv-linux-py314` à partir du verrou de roues natif et place Chromium dans
+`browser-linux/`. Utilisez `--non-interactive` pour désactiver les questions.
+Pour exécuter les sources sous Windows x64, consultez les instructions de
+configuration de CPython 3.14 et de PowerShell dans le README du projet.
 
 ## Utilisation de l’interface graphique
 

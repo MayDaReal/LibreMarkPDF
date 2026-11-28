@@ -12,6 +12,7 @@ from .engine.contracts import (
     ConversionError,
     DEFAULT_PROFILE_VERSION,
     DEFAULT_THEME_ID,
+    FFMPEG_REVISION,
     HeaderFooterConfig,
     MARKDOWN_EXTENSIONS,
     MARGIN_NO_HEADER_FOOTER,

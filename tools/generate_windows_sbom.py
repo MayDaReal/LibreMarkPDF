@@ -86,8 +86,9 @@ def generate(
         relative = path.relative_to(artifact_dir).as_posix()
         digest = sha256_file(path)
         sha1_digest = sha1_file(path)
+        path_digest = hashlib.sha256(relative.encode("utf-8")).hexdigest()
         files.append({
-            "SPDXID": spdx_id("File", digest[:20]),
+            "SPDXID": spdx_id("File", path_digest),
             "checksums": [
                 {"algorithm": "SHA1", "checksumValue": sha1_digest},
                 {"algorithm": "SHA256", "checksumValue": digest},

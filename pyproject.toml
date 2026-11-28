@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools==82.0.1"]
+requires = ["setuptools==84.2.1"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -7,45 +7,42 @@ name = "libremark-pdf"
 dynamic = ["version"]
 description = "Local Markdown-to-PDF desktop and command-line converter"
 readme = "README.md"
-requires-python = ">=3.9"
-license = {file = "LICENSE"}
+requires-python = ">=3.14,<3.15"
+license = "MIT"
+license-files = ["LICENSE"]
 authors = [{name = "LibreMark PDF contributors"}]
 classifiers = [
   "Development Status :: 4 - Beta",
-  "License :: OSI Approved :: MIT License",
   "Programming Language :: Python :: 3",
-  "Programming Language :: Python :: 3.9",
-  "Programming Language :: Python :: 3.10",
-  "Programming Language :: Python :: 3.11",
-  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.14",
 ]
 dependencies = [
   "Markdown==3.9",
-  "playwright==1.60.0",
+  "playwright==1.65.2",
 ]
 
 [project.optional-dependencies]
 gui = [
   "customtkinter==6.0.0",
-  "pillow==11.3.0",
-  "pypdfium2==5.11.0",
-  "tkinterdnd2==0.6.2",
+  "pillow==13.0.0",
+  "pypdfium2==5.15.2",
+  "tkinterdnd2==0.7.0",
 ]
 build = [
   "customtkinter==6.0.0",
-  "pillow==11.3.0",
-  "pypdfium2==5.11.0",
-  "tkinterdnd2==0.6.2",
-  "pyinstaller==6.21.0",
-  "setuptools==82.0.1",
+  "pillow==13.0.0",
+  "pypdfium2==5.15.2",
+  "tkinterdnd2==0.7.0",
+  "pyinstaller==6.22.3",
+  "setuptools==84.2.1",
 ]
 test = [
   "customtkinter==6.0.0",
-  "pillow==11.3.0",
-  "pypdfium2==5.11.0",
-  "tkinterdnd2==0.6.2",
-  "coverage[toml]==7.10.7",
-  "ruff==0.14.2",
+  "pillow==13.0.0",
+  "pypdfium2==5.15.2",
+  "tkinterdnd2==0.7.0",
+  "coverage[toml]==7.17.5",
+  "ruff==0.17.6",
 ]
 docs = []
 
@@ -109,7 +106,7 @@ show_missing = true
 skip_covered = true
 
 [tool.ruff]
-target-version = "py39"
+target-version = "py314"
 line-length = 88
 exclude = ["venv", "venv-linux", "build", "dist", "browsers"]
 

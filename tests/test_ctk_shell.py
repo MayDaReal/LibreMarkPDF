@@ -651,9 +651,10 @@ class TestModernShellWidgets(unittest.TestCase):
             calls,
             ["shortcuts", "manual", "report", "about", "fr"],
         )
-        self.assertEqual(
-            tk.Frame.cget(header.help_button, "takefocus"),
-            "1",
+        self.assertTrue(
+            header.help_button.tk.getboolean(
+                tk.Frame.cget(header.help_button, "takefocus")
+            )
         )
         header.set_layout_mode("compact")
         self.assertEqual(header.help_button.winfo_manager(), "")

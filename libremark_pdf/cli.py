@@ -307,7 +307,7 @@ def cmd_doctor(args: argparse.Namespace) -> int:
         "default_theme": core.show_theme(core.DEFAULT_THEME_ID).css_path.is_file(),
         "browser": bool(identity["browser_executables"]),
     }
-    payload = dict(identity, resources=required)
+    payload = dict(identity, resources=required, python_version=sys.version.split()[0])
     payload["status"] = "ok" if all(required.values()) else "error"
     payload["error"] = None if payload["status"] == "ok" else "One or more bundled resources are missing."
     payload["error_code"] = None if payload["status"] == "ok" else "RESOURCE_MISSING"
