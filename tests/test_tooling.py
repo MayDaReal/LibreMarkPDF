@@ -145,7 +145,7 @@ class TestContributorTooling(unittest.TestCase):
             "actions/dependency-review-action@v",
         ):
             self.assertNotIn(floating, combined)
-        for version in ("v7.0.1", "v7.1.0", "v7.0.2", "v5.0.0"):
+        for version in ("v7.0.1", "v7.1.0", "v7.0.2", "v5.0.1"):
             self.assertIn("# " + version, combined)
 
 
