@@ -23,7 +23,9 @@ jobs:
           cache: pip
           cache-dependency-path: requirements/locks/linux-x86_64-py314.txt
       - name: Install locked test dependencies
-        run: python -m pip install --only-binary=:all: --require-hashes -r requirements/locks/linux-x86_64-py314.txt
+        run: >-
+          python -m pip install --only-binary=:all: --require-hashes
+          -r requirements/locks/linux-x86_64-py314.txt
       - name: CPython 3.14 syntax and focused static checks
         run: |
           python -m compileall -q libremark_pdf tests tools
@@ -41,7 +43,9 @@ jobs:
           cache: pip
           cache-dependency-path: requirements/locks/linux-x86_64-py314.txt
       - name: Install locked test dependencies
-        run: python -m pip install --only-binary=:all: --require-hashes -r requirements/locks/linux-x86_64-py314.txt
+        run: >-
+          python -m pip install --only-binary=:all: --require-hashes
+          -r requirements/locks/linux-x86_64-py314.txt
       - name: Install locked Chromium headless shell
         env:
           PLAYWRIGHT_BROWSERS_PATH: ${{ runner.temp }}/libremark-browsers
