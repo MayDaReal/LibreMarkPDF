@@ -4,10 +4,13 @@
 the 31-fixture canonical corpus. The PNGs are required reference rasters for
 the frozen 144-DPI visual thresholds; no generated PDF is committed.
 
-The baseline is regenerated from complete Linux evidence for candidate commit
+The reference rasters come from complete Linux evidence for candidate commit
 `1822a7c538558622a088ef464f15ddee408eef1d`, approved by `maydareal`, and
 recorded by the signed local tag `g2-golden-regeneration-2026-07-18`.
-`expected.json` retains the review identity and source-evidence SHA-256.
+`expected.json` retains the identity and source-evidence SHA-256 for the
+current HTML, profile and native structural references. The CPython 3.14
+migration refreshed those values under
+[review #19](https://github.com/MayDaReal/LibreMarkPDF/issues/19).
 
 Normal harness execution never modifies these files.  Replacement requires
 the separate `tools/update_visual_goldens.py` command, complete reviewed evidence,

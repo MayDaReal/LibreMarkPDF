@@ -4,12 +4,11 @@ LibreMark PDF convertit un ou plusieurs fichiers Markdown en PDF A4 mis en
 forme, directement sur votre ordinateur. Il propose une interface graphique et
 une ligne de commande non interactive.
 
-> **Version préliminaire :** les téléchargements validés pour Windows x64 et
-> Ubuntu 24.04 x86_64 sont disponibles dans la version publique
-> [`v0.1.0rc1`](https://github.com/MayDaReal/LibreMarkPDF/releases/tag/v0.1.0rc1).
-> Cette release candidate n’est pas la version stable `v0.1.0`. L’archive
-> Windows ne possède pas de signature Authenticode ; les sommes de contrôle
-> signées et les preuves de validation accompagnent la version.
+> **Version préliminaire.** Consultez la
+> [page de `v0.1.0rc2`](https://github.com/MayDaReal/LibreMarkPDF/releases/tag/v0.1.0rc2)
+> pour les téléchargements Windows x64 et Ubuntu 24.04 x86_64 publiés, les
+> sommes de contrôle signées et les preuves de validation native. L’archive
+> Windows est vérifiable par ses sommes de contrôle signées, sans Authenticode.
 
 La première version binaire `v0.1.0` prévue prend en charge Windows x64 et les
 candidats Ubuntu 24.04 x86_64 validés. Cette portée ne constitue pas une

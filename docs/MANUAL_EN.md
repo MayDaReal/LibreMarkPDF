@@ -3,12 +3,11 @@
 LibreMark PDF converts one or more Markdown files into styled A4 PDFs on your
 computer. It provides a desktop interface and a non-interactive command line.
 
-> **Pre-release notice:** validated Windows x64 and Ubuntu 24.04 x86_64
-> downloads are available from the public
-> [`v0.1.0rc1` release](https://github.com/MayDaReal/LibreMarkPDF/releases/tag/v0.1.0rc1).
-> This release candidate is not the stable `v0.1.0` release. The Windows archive
-> is not Authenticode-signed; signed checksums and validation evidence are
-> attached to the release.
+> **Pre-release notice:** see the
+> [`v0.1.0rc2` release page](https://github.com/MayDaReal/LibreMarkPDF/releases/tag/v0.1.0rc2)
+> for published Windows x64 and Ubuntu 24.04 x86_64 downloads, signed
+> checksums and native validation evidence. The Windows archive uses
+> checksum signing and comes without Authenticode.
 
 The planned initial `v0.1.0` binary release supports Windows x64 and validated
 Ubuntu 24.04 x86_64 candidates. This is not a general Linux compatibility

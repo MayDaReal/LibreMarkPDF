@@ -87,7 +87,11 @@ class TestContributorTooling(unittest.TestCase):
         self.assertTrue((ROOT / "tools" / "build-linux-artifact.sh").is_file())
 
     def test_version_is_single_root_source(self):
-        self.assertEqual((ROOT / "VERSION").read_text(encoding="utf-8").strip(), "0.1.0rc1")
+        from libremark_pdf import __version__
+
+        version = (ROOT / "VERSION").read_text(encoding="utf-8").strip()
+        self.assertEqual(__version__, version)
+        self.assertRegex(version, r"^\d+\.\d+\.\d+(?:(?:a|b|rc)\d+|\.dev\d+)?$")
         package = (ROOT / "libremark_pdf" / "__init__.py").read_text(encoding="utf-8")
         self.assertIn(' / "VERSION"', package)
 

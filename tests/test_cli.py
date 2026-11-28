@@ -239,8 +239,11 @@ class TestCliSubprocessContract(unittest.TestCase):
         completed = self.run_cli("--version")
         self.assertEqual(completed.returncode, 0)
         self.assertEqual(completed.stderr, "")
+        version = (Path(__file__).resolve().parents[1] / "VERSION").read_text(
+            encoding="utf-8"
+        ).strip()
         for identity in (
-            "LibreMark PDF 0.1.0rc1", "render-profile default@1",
+            f"LibreMark PDF {version}", "render-profile default@1",
             f"Playwright {cli.core.PLAYWRIGHT_VERSION}",
             f"Chromium {cli.core.CHROMIUM_VERSION}",
             f"revision {cli.core.CHROMIUM_REVISION}",

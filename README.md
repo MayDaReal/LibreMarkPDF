@@ -4,13 +4,12 @@ LibreMark PDF converts UTF-8 Markdown files into styled A4 PDFs on the local
 computer. One shared engine serves a desktop GUI, a non-interactive CLI, and the
 agent contract in [`SKILL.md`](SKILL.md).
 
-> **Project status:** `0.1.0rc1` is the first public release candidate. Download
-> the validated Windows x64 and Ubuntu 24.04 x86_64 artifacts from the
-> [`v0.1.0rc1` release](https://github.com/MayDaReal/LibreMarkPDF/releases/tag/v0.1.0rc1).
-> This is a pre-release, not the stable `v0.1.0` release. The Windows archive is
-> not Authenticode-signed; signed checksums and native validation evidence are
-> attached to the release. Verification instructions and the release public key
-> are documented in [`docs/RELEASE.md`](docs/RELEASE.md#release-checksum-signature).
+> **Project status:** `0.1.0rc2` is a pre-release for Windows x64 and Ubuntu
+> 24.04 x86_64. See the [release page](https://github.com/MayDaReal/LibreMarkPDF/releases/tag/v0.1.0rc2)
+> for published artifacts, signed checksums and native validation evidence.
+> The Windows archive uses checksum signing and comes without Authenticode.
+> See the [release guide](docs/RELEASE.md#release-checksum-signature) for the
+> verification instructions and public key.
 
 ## Features
 

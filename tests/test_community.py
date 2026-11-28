@@ -56,9 +56,10 @@ class TestCommunityHealth(unittest.TestCase):
             self.assertTrue((ROOT / "docs" / name).is_file(), name)
 
     def test_public_guides_link_the_published_release_candidate(self):
+        version = (ROOT / "VERSION").read_text(encoding="utf-8").strip()
         release_url = (
             "https://github.com/MayDaReal/LibreMarkPDF/"
-            "releases/tag/v0.1.0rc1"
+            f"releases/tag/v{version}"
         )
         for path in (
             ROOT / "README.md",
